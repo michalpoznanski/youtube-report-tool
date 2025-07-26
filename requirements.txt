@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+google-api-python-client
+aiohttp
+pandas
+discord.py
+openai
+google-auth-httplib2
+google-auth-oauthlib 
