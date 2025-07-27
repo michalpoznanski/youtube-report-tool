@@ -20,9 +20,9 @@
 ### 4. Zmienne Środowiskowe
 Dodaj w sekcji "Environment Variables":
 ```
-DISCORD_TOKEN = MTM5NTcyNzA3OTE1MjAyOTc2Ng.Gnfnww.oAxmpxAm6qMdlofgH4snaFGPaaOEZva_qhvkBA
-YOUTUBE_API_KEY = AIzaSyCpWQ8QXUIXEy3hOda2Wa0UAUFIq-Ivm30
-GITHUB_TOKEN = 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
+DISCORD_TOKEN = [twój_nowy_token_discord]
+YOUTUBE_API_KEY = [twój_klucz_youtube_api]
+GITHUB_TOKEN = [twój_token_github]
 ```
 
 ### 5. Deploy
