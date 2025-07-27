@@ -14,10 +14,14 @@ WERSJA: 3.0 (Clean Architecture)
 
 import os
 import sys
+import traceback
+import time
 import discord
 from discord.ext import commands
 from datetime import datetime, timezone
 import asyncio
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Dodaj ścieżkę do modułów
 sys.path.append('modules')
@@ -30,14 +34,34 @@ from modules.git_manager import GitManager
 
 # ===== KONFIGURACJA =====
 
+print("🔍 DIAGNOSTYKA RAILWAY:")
+print(f"📁 Katalog roboczy: {os.getcwd()}")
+print(f"📁 Zawartość katalogu: {os.listdir('.')}")
+
+# Test Git
+import subprocess
+try:
+    git_version = subprocess.run(['git', '--version'], capture_output=True, text=True)
+    print(f"🔧 Git: {git_version.stdout.strip() if git_version.returncode == 0 else '❌ BRAK'}")
+except Exception as e:
+    print(f"🔧 Git: ❌ BŁĄD - {e}")
+
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+print(f"🔧 DISCORD_TOKEN: {'✅ Ustawiony' if DISCORD_TOKEN else '❌ BRAK'}")
+print(f"🔧 YOUTUBE_API_KEY: {'✅ Ustawiony' if YOUTUBE_API_KEY else '❌ BRAK'}")
+print(f"🔧 GITHUB_TOKEN: {'✅ Ustawiony' if GITHUB_TOKEN else '❌ BRAK'}")
 
 if not DISCORD_TOKEN or not YOUTUBE_API_KEY:
     print("❌ Brak wymaganych zmiennych środowiskowych:")
     print("   - DISCORD_TOKEN")
     print("   - YOUTUBE_API_KEY")
-    sys.exit(1)
+    print("🔄 Próba uruchomienia w trybie demo...")
+    # Nie wyłączamy aplikacji - pozwalamy jej działać
+    DISCORD_TOKEN = "DEMO_TOKEN"
+    YOUTUBE_API_KEY = "DEMO_KEY"
 
 # ===== DISCORD BOT SETUP =====
 
@@ -47,11 +71,16 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ===== INICJALIZACJA SYSTEMÓW =====
 
-config_manager = ConfigManager()
-sledz_system = SledzSystem(api_key=YOUTUBE_API_KEY)
-raport_system = RaportSystem(api_key=YOUTUBE_API_KEY)
-scheduler = AutoScheduler()
-git_manager = GitManager()
+try:
+    config_manager = ConfigManager()
+    sledz_system = SledzSystem(api_key=YOUTUBE_API_KEY)
+    raport_system = RaportSystem(api_key=YOUTUBE_API_KEY)
+    scheduler = AutoScheduler()
+    git_manager = GitManager()
+    print("✅ Wszystkie systemy zainicjalizowane")
+except Exception as e:
+    print(f"⚠️ Błąd inicjalizacji systemów: {e}")
+    print("🔄 Kontynuowanie z ograniczoną funkcjonalnością...")
 
 print("🚀 HOOK BOOST 3.0 - ULTRA LEAN")
 print("   Discord bot do surowych danych YouTube")
@@ -86,7 +115,7 @@ async def on_command_error(ctx, error):
 
 # ===== KOMENDY =====
 
-@bot.command(name="pomoc", aliases=["help", "h"])
+@bot.command(name="pomoc", aliases=["h"])
 async def help_command(ctx):
     """Pokazuje listę dostępnych komend"""
     embed = discord.Embed(
@@ -108,7 +137,7 @@ async def help_command(ctx):
         value="`!status` - Status systemu\n"
               "`!scheduler` - Status automatycznych raportów\n"
               "`!git` - Status GitHub\n"
-              "`!pomoc` - Ta wiadomość",
+              "`!pomoc` lub `!h` - Ta wiadomość",
         inline=False
     )
     
@@ -126,8 +155,11 @@ async def help_command(ctx):
 @bot.command(name="status")
 async def status_command(ctx):
     """Status Hook Boost 3.0"""
+    import uuid
+    response_id = str(uuid.uuid4())[:8]  # Unikalny ID
+    
     embed = discord.Embed(
-        title="🤖 **Hook Boost 3.0 Status**",
+        title=f"🤖 **Hook Boost 3.0 Status** [ID: {response_id}]",
         color=0x00ff00,
         timestamp=datetime.now(timezone.utc)
     )
@@ -201,50 +233,78 @@ async def sledz_command(ctx, *, message: str = None):
     except Exception as e:
         await ctx.send(f"❌ **Błąd systemu:** {str(e)}")
 
-@bot.command(name="raport")
+@bot.command(name="raport", aliases=["r", "report"])
 async def raport_command(ctx):
-    """Generuj 17-kolumnowy CSV raport"""
-    try:
-        room_name = ctx.channel.name
+    """Generuje raport CSV dla pokoju Discord"""
+    
+    import uuid
+    response_id = str(uuid.uuid4())[:8]  # Unikalny ID
+    
+    status_msg = await ctx.send(f"🔄 **Przygotowuję raport...** [ID: {response_id}]")
+    
+    room_name = str(ctx.channel.name)
+    
+    # DEBUGGING
+    print(f"🔍 DEBUG raport:")
+    print(f"   Channel name: '{room_name}'")
+    print(f"   Channel type: {type(room_name)}")
+    
+    channels = config_manager.get_room_channels(room_name)
+    print(f"   Found channels: {len(channels)} - {channels}")
+    
+    # Sprawdź też wszystkie dostępne pokoje
+    all_config = config_manager.load_channels_config()
+    print(f"   All rooms in config: {list(all_config.get('channels', {}).keys())}")
+    
+    if not channels:
+        embed = discord.Embed(
+            title="❌ **Brak kanałów!**",
+            description=f"Pokój `#{room_name}` nie ma przypisanych kanałów YouTube.\n\nUżyj `!śledź [link]` aby dodać kanały.",
+            color=0xff0000,
+            timestamp=datetime.now(timezone.utc)
+        )
         
-        # Sprawdź kanały w pokoju
-        channels = sledz_system.get_room_channels(room_name)
+        await status_msg.edit(content="", embed=embed)
+        return
+    
+    # Start generowania
+    await status_msg.edit(content=f"📊 **Generuję raport...**\n17-kolumn CSV z {len(channels)} kanałów")
+    
+    # Generuj raport
+    result = raport_system.generate_room_report(room_name, channels)
+    
+    if result['success']:
+        # Commit do GitHub
+        git_success = git_manager.auto_commit_and_push(f"Raport {room_name} - {datetime.now().strftime('%Y-%m-%d')}")
         
-        if not channels:
-            await ctx.send("❌ **Brak kanałów!**\nUżyj `!śledź` aby dodać kanały")
-            return
+        embed = discord.Embed(
+            title="✅ **Raport gotowy!**",
+            color=0x00ff00,
+            timestamp=datetime.now(timezone.utc)
+        )
         
-        # Start generowania
-        status_msg = await ctx.send(f"📊 **Generuję raport...**\n17-kolumn CSV z {len(channels)} kanałów")
+        embed.add_field(
+            name="📊 **Statystyki**",
+            value=f"```\nPokój: #{room_name}\nKanały: {result['channels']}\nFilmy: {result['videos']}\nPlik: {result['filename']}\n```",
+            inline=False
+        )
         
-        # Generuj raport
-        result = raport_system.generate_room_report(room_name, channels)
+        embed.add_field(
+            name="💾 **17-kolumn CSV**",
+            value=f"GitHub: {'✅ PUSH' if git_success else '❌ BŁĄD'}\nSurowe dane YouTube",
+            inline=False
+        )
         
-        if result['success']:
-            embed = discord.Embed(
-                title="✅ **Raport gotowy!**",
-                color=0x00ff00,
-                timestamp=datetime.now(timezone.utc)
-            )
-            
-            embed.add_field(
-                name="📊 **Statystyki**",
-                value=f"```\nPokój: #{room_name}\nKanały: {result['channels']}\nFilmy: {result['videos']}\nPlik: {result['filename']}\n```",
-                inline=False
-            )
-            
-            embed.add_field(
-                name="💾 **17-kolumn CSV**",
-                value="Auto-commit do GitHub\nSurowe dane YouTube",
-                inline=False
-            )
-            
-            await status_msg.edit(content="", embed=embed)
-        else:
-            await status_msg.edit(content=f"❌ **Błąd raportu:** {result['error']}")
-            
-    except Exception as e:
-        await ctx.send(f"❌ **Błąd systemu:** {str(e)}")
+        await status_msg.edit(content="", embed=embed)
+    else:
+        embed = discord.Embed(
+            title="❌ **Błąd raportu**",
+            description=f"```\n{result['error']}\n```",
+            color=0xff0000,
+            timestamp=datetime.now(timezone.utc)
+        )
+        
+        await status_msg.edit(content="", embed=embed)
 
 @bot.command(name="scheduler")
 async def scheduler_command(ctx):
@@ -310,12 +370,93 @@ async def git_command(ctx):
     
     await ctx.send(embed=embed)
 
+# Simple HTTP server for Render.com port detection
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'Hook Boost 3.0 Discord Bot is running!')
+
+def start_http_server():
+    server = HTTPServer(('0.0.0.0', 8000), SimpleHandler)
+    server.serve_forever()
+
 # ===== URUCHOMIENIE =====
 
 if __name__ == "__main__":
-    print("🚀 Starting Hook Boost 3.0...")
+    print(f"🚀 Uruchamianie Hook Boost 3.0...")
+    print(f"🔧 Discord Token: {'✅ Ustawiony' if DISCORD_TOKEN and DISCORD_TOKEN != 'DEMO_TOKEN' else '❌ BRAK'}")
+    print(f"🔧 YouTube API: {'✅ Ustawiony' if YOUTUBE_API_KEY and YOUTUBE_API_KEY != 'DEMO_KEY' else '❌ BRAK'}")
+    print(f"🔧 GitHub Token: {'✅ Ustawiony' if GITHUB_TOKEN else '❌ BRAK'}")
+    
+    # Test Git
+    import subprocess
+    try:
+        git_version = subprocess.run(['git', '--version'], capture_output=True, text=True)
+        print(f"🔧 Git: {git_version.stdout.strip() if git_version.returncode == 0 else '❌ BRAK'}")
+    except Exception as e:
+        print(f"🔧 Git: ❌ BŁĄD - {e}")
+    
+    # Start HTTP server in background for Render.com
+    http_thread = Thread(target=start_http_server, daemon=True)
+    http_thread.start()
+    print(f"🌐 HTTP server started on port 8000")
+    
+    # Inicjalizacja systemów z obsługą błędów
+    try:
+        config_manager = ConfigManager()
+        print("✅ ConfigManager zainicjalizowany")
+    except Exception as e:
+        print(f"❌ Błąd ConfigManager: {e}")
+        print(f"   {traceback.format_exc()}")
     
     try:
-        bot.run(DISCORD_TOKEN)
+        sledz_system = SledzSystem(config_manager)
+        print("✅ SledzSystem zainicjalizowany")
     except Exception as e:
-        print(f"❌ Błąd bota: {e}") 
+        print(f"❌ Błąd SledzSystem: {e}")
+        print(f"   {traceback.format_exc()}")
+    
+    try:
+        raport_system = RaportSystem(YOUTUBE_API_KEY)
+        print("✅ RaportSystem zainicjalizowany")
+    except Exception as e:
+        print(f"❌ Błąd RaportSystem: {e}")
+        print(f"   {traceback.format_exc()}")
+    
+    try:
+        scheduler = AutoScheduler(raport_system, config_manager)
+        print("✅ AutoScheduler zainicjalizowany")
+    except Exception as e:
+        print(f"❌ Błąd AutoScheduler: {e}")
+        print(f"   {traceback.format_exc()}")
+    
+    try:
+        git_manager = GitManager(GITHUB_TOKEN)
+        print("✅ GitManager zainicjalizowany")
+    except Exception as e:
+        print(f"❌ Błąd GitManager: {e}")
+        print(f"   {traceback.format_exc()}")
+    
+    print(f"🚀 Uruchamianie Discord bot...")
+    
+    # Uruchomienie bota z retry i obsługą błędów
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            bot.run(DISCORD_TOKEN)
+        except Exception as e:
+            print(f"❌ Błąd uruchomienia bota (próba {attempt + 1}/{max_retries}): {e}")
+            print(f"   {traceback.format_exc()}")
+            if attempt < max_retries - 1:
+                print(f"⏳ Ponowna próba za 5 sekund...")
+                time.sleep(5)
+            else:
+                print(f"💀 Nie udało się uruchomić bota po {max_retries} próbach")
+                break
+    
+    # Keep the container alive
+    print("🔄 Bot zakończony, utrzymuję kontener...")
+    while True:
+        time.sleep(30) 
