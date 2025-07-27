@@ -1,0 +1,44 @@
+{
+  "daily_usage": {
+    "2025-07-26": 400
+  },
+  "operations": [
+    {
+      "timestamp": "2025-07-26T13:33:21.256858",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 100
+    },
+    {
+      "timestamp": "2025-07-26T13:33:37.517524",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 200
+    },
+    {
+      "timestamp": "2025-07-26T13:41:10.657207",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 300
+    },
+    {
+      "timestamp": "2025-07-26T13:45:31.540314",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 400
+    }
+  ],
+  "last_reset": null
+}

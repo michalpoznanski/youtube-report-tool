@@ -1,0 +1,38 @@
+# 🔑 TOKENY I KLUCZE HOOK BOOST
+# Data backup: 27.01.2025 17:14
+# ==========================================
+
+## 🎮 DISCORD BOT TOKEN:
+MTM5NTcyNzA3OTE1MjAyOTc2Ng.GiIrWA.K8UgzKgCMut7m1-uONE3dPGBRNwBBAqRecSkZ8
+
+## 📺 YOUTUBE API KEY:
+(Sprawdź w Railway Environment Variables)
+
+## 🔧 GITHUB TOKEN (PAT):
+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
+
+## ☁️ RAILWAY TOKEN:
+01cb5053-0fac-4ffe-9618-c7af6466902d
+
+## 📂 GDZIE SĄ UŻYWANE:
+
+### PRODUKCJA (Railway):
+- DISCORD_TOKEN (env variable)
+- YOUTUBE_API_KEY (env variable)  
+- GITHUB_TOKEN (env variable)
+
+### LOKALNE PLIKI (zawierają tokeny):
+- auto_full_report.py - DISCORD_TOKEN w kodzie
+- full_report.py - DISCORD_TOKEN w kodzie
+- hook_boost_v2.py - używa os.getenv()
+
+## ⚠️ UWAGA BEZPIECZEŃSTWA:
+- Tokeny w plikach .py są PUBLICZNE w kodzie!
+- Railway używa environment variables (BEZPIECZNE)
+- GitHub PAT ma uprawnienia repo access
+- Discord token ma uprawnienia bota
+
+## 🛡️ ZALECENIA:
+1. Wszystkie tokeny przenieść do .env
+2. Usunąć hardkodowane tokeny z plików .py
+3. Dodać .env do .gitignore 

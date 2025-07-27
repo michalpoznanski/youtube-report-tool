@@ -1,0 +1,49 @@
+name: Railway Auto Deploy & Control
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+        - deploy
+        - restart
+        - status
+
+jobs:
+  railway-control:
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Railway Restart via API
+      if: github.event.inputs.action == 'restart'
+      run: |
+        curl -X POST \
+          -H "Authorization: Bearer $RAILWAY_TOKEN" \
+          -H "Content-Type: application/json" \
+          https://backboard.railway.app/graphql/v2 \
+          -d '{"query":"mutation { serviceRestart(serviceId: \"hookboost\") { id name status } }"}'
+    
+    - name: Railway Status via API
+      if: github.event.inputs.action == 'status'
+      run: |
+        curl -X POST \
+          -H "Authorization: Bearer $RAILWAY_TOKEN" \
+          -H "Content-Type: application/json" \
+          https://backboard.railway.app/graphql/v2 \
+          -d '{"query":"query { project { services { id name status } } }"}'
+    
+    - name: Railway Deploy (Auto via GitHub)
+      if: github.event.inputs.action == 'deploy' || github.event_name == 'push'
+      run: echo "Deploy triggered by GitHub push - Railway will auto-redeploy" 

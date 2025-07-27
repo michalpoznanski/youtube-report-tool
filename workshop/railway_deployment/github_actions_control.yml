@@ -1,0 +1,45 @@
+name: Railway Auto Deploy & Control
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+        - deploy
+        - restart
+        - status
+
+jobs:
+  railway-control:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Railway Deploy
+      if: github.event.inputs.action == 'deploy' || github.event_name == 'push'
+      uses: railwayapp/cli@v1
+      with:
+        token: ${{ secrets.RAILWAY_TOKEN }}
+        command: up
+    
+    - name: Railway Restart
+      if: github.event.inputs.action == 'restart'
+      uses: railwayapp/cli@v1
+      with:
+        token: ${{ secrets.RAILWAY_TOKEN }}
+        command: service restart
+    
+    - name: Railway Status
+      if: github.event.inputs.action == 'status'
+      uses: railwayapp/cli@v1
+      with:
+        token: ${{ secrets.RAILWAY_TOKEN }}
+        command: status 

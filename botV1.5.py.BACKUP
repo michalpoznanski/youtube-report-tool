@@ -1,0 +1,706 @@
+import discord
+from openai import OpenAI
+from datetime import datetime, timezone, timedelta
+import pandas as pd
+import re
+import os
+import sys
+from pathlib import Path
+import asyncio
+from dotenv import load_dotenv
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google.oauth2.service_account import Credentials
+# Removed import to prevent botV1_4 from running
+
+# Add the project root to Python path
+project_root = Path(__file__).parent
+sys.path.append(str(project_root))
+
+# Load environment variables from current directory
+env_path = project_root / '.env'
+load_dotenv(env_path)
+
+# Enable intents
+intents = discord.Intents.default()
+intents.message_content = True
+
+# Get environment variables
+DISCORD_BOT_TOKEN = "MTM5NTcyNzA3OTE1MjAyOTc2Ng.GiIrWA.K8UgzKgCMut7m1-uONE3dPGBRNwBBAqRecSkZ8"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+if not OPENAI_API_KEY or not YOUTUBE_API_KEY:
+    raise ValueError("One or more API keys are missing. Ensure they are set in the .env file.")
+
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Initialize APIs with correct paths
+SERVICE_ACCOUNT_FILE = project_root / 'data' / 'config' / 'service_account.json'
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+
+# Initialize APIs
+youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+credentials = Credentials.from_service_account_file(str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
+drive_service = build('drive', 'v3', credentials=credentials)
+sheets_service = build('sheets', 'v4', credentials=credentials)
+docs_service = build('docs', 'v1', credentials=credentials)
+
+# Bot configuration
+PREFIX = "!"
+
+# Create bot instance
+class MyClient(discord.Client):
+    def __init__(self, *, intents: discord.Intents):
+        super().__init__(intents=intents)
+
+client = MyClient(intents=intents)
+
+# Notify when the bot is online
+@client.event
+async def on_ready():
+    print(f"Bot YT2 is online as {client.user}")
+    print(f"Prefix: {PREFIX}")
+    print("Available commands:")
+    print(f"  {PREFIX}raport - Generate report from last 400 hours")
+    print(f"Bot intents: {client.intents}")
+    print(f"Message content intent: {client.intents.message_content}")
+
+# Function to fetch video details and categorize by duration asynchronously
+async def get_video_details(video_url):
+    video_id = video_url.split("v=")[-1].split("&")[0] if "youtube.com" in video_url else video_url.split("/")[-1]
+    print(f"Fetching details for video ID: {video_id}")
+
+    try:
+        request = youtube.videos().list(
+            part="snippet,contentDetails,statistics",
+            id=video_id
+        )
+        response = await asyncio.to_thread(request.execute)
+
+        if response["items"]:
+            snippet = response["items"][0]["snippet"]
+            content_details = response["items"][0]["contentDetails"]
+            statistics = response["items"][0].get("statistics", {})
+            view_count = statistics.get("viewCount", "0")
+            title = snippet["title"]
+            published_at = snippet["publishedAt"]
+            channel_name = snippet["channelTitle"]
+            description = snippet["description"]
+            # Tags might not exist for all videos
+            tags = snippet.get("tags", [])
+            tags_string = ", ".join(tags) if tags else ""
+            duration = content_details["duration"]
+            
+            # Convert duration to seconds
+            match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
+            hours = int(match.group(1)) if match.group(1) else 0
+            minutes = int(match.group(2)) if match.group(2) else 0
+            seconds = int(match.group(3)) if match.group(3) else 0
+            total_seconds = hours * 3600 + minutes * 60 + seconds
+            
+            # Categorize video
+            category = "Short" if total_seconds <= 180 else "Long-form"
+            category_id = snippet.get("categoryId", "")
+            
+            published_date = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")
+            return channel_name, title, published_date.strftime("%Y-%m-%d"), category, description, tags_string, view_count, category_id, duration
+    except Exception as e:
+        print(f"Error fetching video details: {e}")
+
+    return None, None, None, None, None, None, None, None, None
+
+# Function to load banned tags
+def load_banned_tags():
+    try:
+        with open('banned_tags.txt', 'r', encoding='utf-8') as file:
+            return {tag.strip().lower() for tag in file if tag.strip()}
+    except FileNotFoundError:
+        print("Warning: banned_tags.txt not found. No tags will be filtered.")
+        return set()
+
+# Function to create and upload Google Sheets
+def upload_to_google_sheets(data):
+    # Create spreadsheet with two sheets
+    spreadsheet = sheets_service.spreadsheets().create(
+        body={
+            'properties': {'title': 'Competition Videos'},
+            'sheets': [
+                {'properties': {'title': 'Videos'}},
+                {'properties': {'title': 'Tag Statistics'}}
+            ]
+        },
+    ).execute()
+    
+    spreadsheet_id = spreadsheet['spreadsheetId']
+    videos_sheet_id = spreadsheet['sheets'][0]['properties']['sheetId']
+    tags_sheet_id = spreadsheet['sheets'][1]['properties']['sheetId']
+
+    # Upload main video data (unchanged)
+    video_rows = [["Channel Name", "Date of Publishing", "Hour (GMT+2)", "Title", "Description", "Tags", "Link", "Category", "Wyświetlenia", "CategoryId", "Duration"]] + [
+        [row["Channel Name"], row["Date of Publishing"], row["Hour (GMT+2)"], 
+         row["Title"], row["Description"], row["Tags"], row["Link"], row["Category"], row["Wyświetlenia"], row["CategoryId"], row["Duration"]]
+        for row in data
+    ]
+
+    sheets_service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id,
+        range="Videos!A1",
+        valueInputOption="RAW",
+        body={"values": video_rows}
+    ).execute()
+
+    # Load banned tags
+    banned_tags = load_banned_tags()
+
+    # Calculate statistics
+    num_videos = len(data)
+    unique_channels = len(set(item["Channel Name"] for item in data))
+    
+    # Get time frame
+    all_times = [datetime.strptime(f"{item['Date of Publishing']} {item['Hour (GMT+2)']}", "%Y-%m-%d %H:%M") 
+                 for item in data]
+    earliest_time = min(all_times)
+    latest_time = max(all_times)
+    time_frame = f"From {earliest_time.strftime('%Y-%m-%d %H:%M')} to {latest_time.strftime('%Y-%m-%d %H:%M')} (GMT+2)"
+
+    # Calculate tag statistics
+    tag_counts = {}
+    for item in data:
+        if item["Tags"]:
+            video_tags = [tag.strip() for tag in item["Tags"].split(',')]
+            for tag in video_tags:
+                # Skip empty tags and banned tags (case insensitive comparison)
+                if tag and tag.lower() not in banned_tags:
+                    tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+    # Sort tags by count
+    sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    # Get top 10 tags for the chart
+    top_10_tags = sorted_tags[:10] if len(sorted_tags) >= 10 else sorted_tags
+    
+    # Prepare tag statistics sheet content with general statistics at the top
+    tag_rows = [
+        ["General Statistics", ""],
+        ["Number of Videos", num_videos],
+        ["Time Frame", time_frame],
+        ["Lookback Hours", data[0].get("Lookback Hours", "N/A")],
+        ["Number of Unique Channels", unique_channels],
+        ["", ""],  # Empty row for spacing
+        ["Tag Statistics", ""],
+        ["Tag", "Number of Uses"]
+    ] + [[tag, count] for tag, count in sorted_tags]
+
+    # Upload tag statistics
+    sheets_service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id,
+        range="Tag Statistics!A1",
+        valueInputOption="RAW",
+        body={"values": tag_rows}
+    ).execute()
+
+    # Add chart
+    chart_requests = {
+        "requests": [
+            {
+                "addChart": {
+                    "chart": {
+                        "spec": {
+                            "title": "Top 10 Most Used Tags",
+                            "basicChart": {
+                                "chartType": "BAR",
+                                "legendPosition": "NO_LEGEND",
+                                "axis": [
+                                    {
+                                        "position": "BOTTOM_AXIS",
+                                        "title": "Number of Uses"
+                                    },
+                                    {
+                                        "position": "LEFT_AXIS",
+                                        "title": "Tags"
+                                    }
+                                ],
+                                "domains": [
+                                    {
+                                        "domain": {
+                                            "sourceRange": {
+                                                "sources": [
+                                                    {
+                                                        "sheetId": tags_sheet_id,
+                                                        "startRowIndex": 7,  # Start after headers
+                                                        "endRowIndex": 17,   # Top 10 tags
+                                                        "startColumnIndex": 0,
+                                                        "endColumnIndex": 1
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ],
+                                "series": [
+                                    {
+                                        "series": {
+                                            "sourceRange": {
+                                                "sources": [
+                                                    {
+                                                        "sheetId": tags_sheet_id,
+                                                        "startRowIndex": 7,  # Start after headers
+                                                        "endRowIndex": 17,   # Top 10 tags
+                                                        "startColumnIndex": 1,
+                                                        "endColumnIndex": 2
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "targetAxis": "BOTTOM_AXIS"
+                                    }
+                                ],
+                                "headerCount": 1
+                            }
+                        },
+                        "position": {
+                            "overlayPosition": {
+                                "anchorCell": {
+                                    "sheetId": tags_sheet_id,
+                                    "rowIndex": 5,  # Moved 5 cells lower
+                                    "columnIndex": 3
+                                },
+                                "offsetXPixels": 10,
+                                "offsetYPixels": 10,
+                                "widthPixels": 600,
+                                "heightPixels": 400
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    }
+
+    # Add the chart to the sheet
+    sheets_service.spreadsheets().batchUpdate(
+        spreadsheetId=spreadsheet_id,
+        body=chart_requests
+    ).execute()
+
+    # Adjust formatting (existing column width adjustments remain the same)
+    requests = [
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": videos_sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": 4,  # Description column
+                    "endIndex": 5
+                },
+                "properties": {
+                    "pixelSize": 400
+                },
+                "fields": "pixelSize"
+            }
+        },
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": videos_sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": 5,  # Tags column
+                    "endIndex": 6
+                },
+                "properties": {
+                    "pixelSize": 300
+                },
+                "fields": "pixelSize"
+            }
+        },
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": tags_sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": 0,  # Tag column
+                    "endIndex": 1
+                },
+                "properties": {
+                    "pixelSize": 300
+                },
+                "fields": "pixelSize"
+            }
+        }
+    ]
+    
+    # Add formatting for headers and statistics
+    requests.extend([
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": tags_sheet_id,
+                    "startRowIndex": 0,
+                    "endRowIndex": 1
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": {"red": 0.8, "green": 0.8, "blue": 0.8},
+                        "textFormat": {"bold": True, "fontSize": 12}
+                    }
+                },
+                "fields": "userEnteredFormat(backgroundColor,textFormat)"
+            }
+        },
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": tags_sheet_id,
+                    "startRowIndex": 6,
+                    "endRowIndex": 8
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": {"red": 0.9, "green": 0.9, "blue": 0.9},
+                        "textFormat": {"bold": True}
+                    }
+                },
+                "fields": "userEnteredFormat(backgroundColor,textFormat)"
+            }
+        }
+    ])
+
+    sheets_service.spreadsheets().batchUpdate(
+        spreadsheetId=spreadsheet_id,
+        body={"requests": requests}
+    ).execute()
+
+    drive_service.permissions().create(
+        fileId=spreadsheet_id,
+        body={"role": "writer", "type": "anyone"},
+    ).execute()
+
+    return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+
+# Function to create and upload a Google Docs file with the AI analysis
+def upload_to_google_docs(analysis_text):
+    try:
+        # Create a new Google Docs file
+        doc = drive_service.files().create(
+            body={
+                'name': 'YouTube Analysis Report',
+                'mimeType': 'application/vnd.google-apps.document'
+            },
+            fields='id'
+        ).execute()
+        
+        doc_id = doc.get('id')
+
+        # Use Google Docs API to write content into the document
+        requests = [
+            {
+                'insertText': {
+                    'location': {'index': 1},
+                    'text': analysis_text
+                }
+            }
+        ]
+        docs_service.documents().batchUpdate(documentId=doc_id, body={'requests': requests}).execute()
+
+        # Make the document public
+        drive_service.permissions().create(
+            fileId=doc_id,
+            body={"role": "reader", "type": "anyone"},
+        ).execute()
+
+        return f"https://docs.google.com/document/d/{doc_id}/edit"
+
+    except Exception as e:
+        print(f"Error creating Google Docs file: {e}")
+        return None
+
+# Function to fetch data from a Google Sheet
+def fetch_sheet_data(spreadsheet_id):
+    try:
+        # Get the first sheet ID
+        spreadsheet = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        sheet_id = spreadsheet['sheets'][0]['properties']['sheetId']
+
+        # Fetch all values from the "Videos" sheet
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=f"Videos!A1:K{sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()['sheets'][0]['properties']['gridProperties']['rowCount']}"
+        ).execute()
+        values = result.get('values', [])
+        if not values:
+            print("No data found in the Videos sheet.")
+            return []
+
+        # Skip header row
+        data = [dict(zip(values[0], row)) for row in values[1:]]
+        return data
+    except Exception as e:
+        print(f"Error fetching data from Google Sheets: {e}")
+        return []
+
+# Function to analyze keywords in titles
+def analyze_title_keywords(spreadsheet_id):
+    data = fetch_sheet_data(spreadsheet_id)
+    if not data:
+        print("No data to analyze.")
+        return
+
+    short_titles = []
+    long_titles = []
+
+    for item in data:
+        title = item.get("Title")
+        if title:
+            # Remove common words that don't carry much meaning for keyword analysis
+            title = re.sub(r'\b(the|a|an|and|or|of|in|for|with|on|at|by|from|to|up|down|over|under|again|further|then|once|here|there|where|when|why|how)\b', '', title, flags=re.IGNORECASE)
+            title = re.sub(r'\s+', ' ', title).strip() # Remove extra spaces
+
+            if item.get("Category") == "Short":
+                short_titles.append(title)
+            else:
+                long_titles.append(title)
+
+    print("\n--- Keyword Analysis ---")
+    print("Short-form Titles:")
+    analyze_keywords(short_titles)
+    print("\nLong-form Titles:")
+    analyze_keywords(long_titles)
+
+def analyze_keywords(titles):
+    if not titles:
+        print("No titles to analyze.")
+        return
+
+    all_words = []
+    for title in titles:
+        words = re.findall(r'\b\w+\b', title)
+        all_words.extend(words)
+
+    word_counts = {}
+    for word in all_words:
+        word_counts[word] = word_counts.get(word, 0) + 1
+
+    # Sort by count descending
+    sorted_words = sorted(word_counts.items(), key=lambda item: item[1], reverse=True)
+
+    print("Top 10 keywords:")
+    for word, count in sorted_words[:10]:
+        print(f"{word}: {count}")
+
+# Function to analyze top titles (moved from botV1_4.py)
+def analyze_top_titles(sheet_id):
+    data = fetch_sheet_data(sheet_id)
+    shorts = [row for row in data if row.get("Category") == "Short" and row.get("Title")]
+    longform = [row for row in data if row.get("Category") == "Long-form" and row.get("Title")]
+    
+    # Count videos by category
+    short_count = len(shorts)
+    longform_count = len(longform)
+    
+    # Calculate total views for each category
+    short_views = sum(int(row.get("Wyświetlenia", 0)) for row in shorts)
+    longform_views = sum(int(row.get("Wyświetlenia", 0)) for row in longform)
+    
+    # Calculate average views for each category
+    short_avg = short_views // short_count if short_count > 0 else 0
+    longform_avg = longform_views // longform_count if longform_count > 0 else 0
+    
+    print(f"📊 ANALIZA DANYCH:")
+    print(f"Shorts: {short_count} filmów, {short_views:,} wyświetleń (średnio {short_avg:,})")
+    print(f"Long-form: {longform_count} filmów, {longform_views:,} wyświetleń (średnio {longform_avg:,})")
+    print(f"Łącznie: {short_count + longform_count} filmów, {short_views + longform_views:,} wyświetleń")
+
+# Function to generate report (internal function)
+async def generate_report_internal(channel, lookback_hours=400):
+    """Internal function to generate report - used by both prefix command and scheduled tasks"""
+    import random
+    execution_id = random.randint(1000, 9999)
+    print(f"GENERATE_REPORT_INTERNAL STARTED - ID: {execution_id}")
+    
+    now = datetime.now(timezone.utc)
+    lookback_time = now - timedelta(hours=lookback_hours)
+    data = []
+    pattern = r"(https://(?:www\.youtube\.com/watch\?v=|youtu\.be/)\S+)"
+    print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Using pattern: {pattern}")
+    
+    # Test pattern with known YouTube URL
+    test_url = "https://www.youtube.com/watch?v=hGoWgE7gulc"
+    test_match = re.search(pattern, test_url)
+    print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Test pattern with {test_url}: {'MATCH' if test_match else 'NO MATCH'}")
+
+    print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Searching messages from {lookback_time} to {now}")
+    message_count = 0
+    youtube_links_found = 0
+    
+    async for message in channel.history(limit=10000):
+        message_count += 1
+        # Remove time limit - check ALL messages
+        # if message.created_at < lookback_time:
+        #     print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Message too old, stopping search at message {message_count}")
+        #     print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Last message time: {message.created_at}")
+        #     print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Lookback time: {lookback_time}")
+        #     break
+        
+        # Skip messages from bots (including this bot)
+        if message.author.bot:
+            continue
+        
+        # Debug: show all messages to see what we're getting
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Message {message_count}: {message.author} at {message.created_at} - {message.content[:100]}...")
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Message embeds: {len(message.embeds)}")
+        for i, embed in enumerate(message.embeds):
+            print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Embed {i}: {embed.url if embed.url else 'No URL'}")
+        
+        # Check message content for YouTube links
+        match = re.search(pattern, message.content)
+        if match:
+            youtube_links_found += 1
+            print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Found YouTube link in content #{youtube_links_found}: {match.group(1)[:50]}...")
+            video_link = match.group(1).strip()
+            channel_name, title, published_date, category, description, tags, view_count, category_id, duration = await get_video_details(video_link)
+            if channel_name and title:
+                time_posted = message.created_at.astimezone(timezone(timedelta(hours=2)))
+                data.append({
+                    "Channel Name": channel_name,
+                    "Date of Publishing": published_date,
+                    "Hour (GMT+2)": time_posted.strftime("%H:%M"),
+                    "Title": title,
+                    "Description": description,
+                    "Tags": tags,
+                    "Link": video_link,
+                    "Category": category,
+                    "Wyświetlenia": view_count,
+                    "CategoryId": category_id,
+                    "Duration": duration,
+                    "Lookback Hours": lookback_hours
+                })
+        
+        # Check message embeds for YouTube links
+        for embed in message.embeds:
+            if embed.url and re.search(pattern, embed.url):
+                youtube_links_found += 1
+                print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Found YouTube link in embed #{youtube_links_found}: {embed.url[:50]}...")
+                video_link = embed.url.strip()
+                channel_name, title, published_date, category, description, tags, view_count, category_id, duration = await get_video_details(video_link)
+                if channel_name and title:
+                    time_posted = message.created_at.astimezone(timezone(timedelta(hours=2)))
+                    data.append({
+                        "Channel Name": channel_name,
+                        "Date of Publishing": published_date,
+                        "Hour (GMT+2)": time_posted.strftime("%H:%M"),
+                        "Title": title,
+                        "Description": description,
+                        "Tags": tags,
+                        "Link": video_link,
+                        "Category": category,
+                        "Wyświetlenia": view_count,
+                        "CategoryId": category_id,
+                        "Duration": duration,
+                        "Lookback Hours": lookback_hours
+                    })
+
+    print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - SEARCH SUMMARY:")
+    print(f"  - Messages checked: {message_count}")
+    print(f"  - YouTube links found: {youtube_links_found}")
+    print(f"  - Videos processed: {len(data)}")
+
+    if data:
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Found {len(data)} videos, generating sheet...")
+        
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Calling upload_to_google_sheets...")
+        sheet_link = upload_to_google_sheets(data)
+        sheet_id = sheet_link.split('/d/')[1].split('/')[0]
+        
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Sheet created, analyzing...")
+        
+        # Capture the output of analyze_top_titles
+        import io
+        import sys
+        buffer = io.StringIO()
+        sys.stdout = buffer
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Calling analyze_top_titles...")
+        analyze_top_titles(sheet_id)
+        sys.stdout = sys.__stdout__
+        report = buffer.getvalue()
+        
+        if len(report) > 1900:
+            report = report[:1900] + "\n...(ucięto)..."
+        
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - Sending final report...")
+        
+        # Send everything in ONE message to prevent duplicates
+        final_message = f"""🔍 **ANALIZA KOMPLETNA**
+📊 Przeanalizowano {len(data)} filmów z ostatnich {lookback_hours} godzin
+
+📋 **RAPORT Z ANALIZY:**
+```{report}```
+
+🔗 **Link do Google Sheet:** {sheet_link}"""
+        
+        await channel.send(final_message)
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - COMPLETED")
+    else:
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - No data found")
+        await channel.send("❌ Nie znaleziono żadnych filmów YouTube w ostatnich {} godzinach.".format(lookback_hours))
+        print(f"GENERATE_REPORT_INTERNAL - ID: {execution_id} - COMPLETED (no data)")
+
+# Global variable to prevent multiple concurrent executions
+is_processing = False
+last_message_id = None  # Track last processed message to prevent duplicates
+
+# Message event handler for prefix commands
+@client.event  
+async def on_message(message):
+    global is_processing, last_message_id
+    
+    # Prevent duplicate processing of the same message
+    if message.id == last_message_id:
+        print(f"DUPLICATE MESSAGE DETECTED: {message.id} - IGNORING")
+        return
+    
+    last_message_id = message.id
+    # Message processed - no more debug logs needed
+    
+    # Ignore messages from the bot itself
+    if message.author == client.user:
+        return
+
+    # Ignore bots
+    if message.author.bot:
+        return
+
+    # Check if message starts with prefix
+    if not message.content.startswith(PREFIX):
+        return
+
+    # Parse command
+    content = message.content[len(PREFIX):].strip()
+    command = content.split()[0].lower()
+    args = content.split()[1:]
+
+    if command == "raport":
+        # Prevent concurrent executions
+        if is_processing:
+            await message.channel.send("⏳ Raport jest już generowany. Poczekaj na zakończenie.")
+            return
+        
+        is_processing = True
+        try:
+            # Extract lookback_hours from args or use default 168 (1 week)
+            lookback_hours = 168
+            if args:
+                try:
+                    lookback_hours = int(args[0])
+                except ValueError:
+                    await message.channel.send("❌ Nieprawidłowy format. Użyj: `!raport [godziny]` (domyślnie 400)")
+                    return
+            
+            await generate_report_internal(message.channel, lookback_hours)
+        finally:
+            is_processing = False
+
+# Run the bot
+if __name__ == "__main__":
+    client.run(DISCORD_BOT_TOKEN)
