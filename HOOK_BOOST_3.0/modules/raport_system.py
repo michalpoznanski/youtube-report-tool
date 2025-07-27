@@ -109,7 +109,7 @@ class RaportSystem:
                 'key': self.api_key
             }
             
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=30)
             response.raise_for_status()
             
             data = response.json()
@@ -146,7 +146,7 @@ class RaportSystem:
                 'key': self.api_key
             }
             
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=30)
             response.raise_for_status()
             
             data = response.json()
@@ -164,6 +164,10 @@ class RaportSystem:
                     if video_info:
                         videos.append(video_info)
             
+        except requests.exceptions.Timeout:
+            print(f"❌ Timeout przy pobieraniu filmów z kanału {channel_name}")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Błąd sieci przy pobieraniu filmów z kanału {channel_name}: {e}")
         except Exception as e:
             print(f"❌ Błąd pobierania filmów z kanału {channel_name}: {e}")
         
@@ -179,7 +183,7 @@ class RaportSystem:
                 'key': self.api_key
             }
             
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=30)
             response.raise_for_status()
             
             data = response.json()
@@ -201,7 +205,7 @@ class RaportSystem:
                 'key': self.api_key
             }
             
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=30)
             response.raise_for_status()
             
             data = response.json()

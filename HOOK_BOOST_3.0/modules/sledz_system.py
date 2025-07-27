@@ -147,7 +147,6 @@ class SledzSystem:
             }
         
         elif link_data['type'] == 'handle':
-            # Rozwiąż @handle do Channel ID
             handle = link_data['link']
             if 'youtube.com/@' in handle:
                 handle = handle.split('youtube.com/@')[-1].split('?')[0]
@@ -155,31 +154,58 @@ class SledzSystem:
                 handle = handle[1:]
             
             try:
-                url = f"https://www.googleapis.com/youtube/v3/search"
+                # Lepsze API do rozwiązywania @handle
+                url = f"https://www.googleapis.com/youtube/v3/channels"
                 params = {
-                    'part': 'snippet',
-                    'q': f"@{handle}",
-                    'type': 'channel',
+                    'part': 'id',
+                    'forHandle': handle,
                     'key': self.api_key
                 }
                 
-                response = requests.get(url, params=params)
+                response = requests.get(url, params=params, timeout=30)
                 response.raise_for_status()
                 
                 data = response.json()
                 if data.get('items'):
-                    channel_id = data['items'][0]['snippet']['channelId']
+                    channel_id = data['items'][0]['id']
                     return {
                         'success': True,
                         'channel_id': channel_id,
                         'cost': link_data['cost']
                     }
                 else:
-                    return {
-                        'success': False,
-                        'error': f'Kanał @{handle} nie został znaleziony'
+                    # Fallback - Search API
+                    url = f"https://www.googleapis.com/youtube/v3/search"
+                    params = {
+                        'part': 'snippet',
+                        'q': f"@{handle}",
+                        'type': 'channel',
+                        'maxResults': 1,
+                        'key': self.api_key
                     }
                     
+                    response = requests.get(url, params=params, timeout=30)
+                    response.raise_for_status()
+                    
+                    data = response.json()
+                    if data.get('items'):
+                        channel_id = data['items'][0]['snippet']['channelId']
+                        return {
+                            'success': True,
+                            'channel_id': channel_id,
+                            'cost': link_data['cost']
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'error': f'Kanał @{handle} nie został znaleziony'
+                        }
+                        
+            except requests.exceptions.Timeout:
+                return {
+                    'success': False,
+                    'error': f'Timeout przy rozwiązywaniu @{handle}'
+                }
             except Exception as e:
                 return {
                     'success': False,

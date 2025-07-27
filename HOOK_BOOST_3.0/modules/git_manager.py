@@ -37,6 +37,25 @@ class GitManager:
                 print("❌ To nie jest Git repository")
                 return False
             
+            # Sprawdź remote origin
+            remote_result = subprocess.run(
+                ['git', 'remote', 'get-url', 'origin'],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True
+            )
+            
+            if remote_result.returncode != 0:
+                # Dodaj remote origin z tokenem
+                remote_url = f"https://{self.github_token}@github.com/michalpoznanski/hookboost.git"
+                subprocess.run(
+                    ['git', 'remote', 'add', 'origin', remote_url],
+                    cwd=self.repo_path
+                )
+                print("✅ Remote origin dodany")
+            else:
+                print("✅ Remote origin już istnieje")
+            
             # Konfiguruj Git (jeśli ma token)
             if self.github_token:
                 subprocess.run(
@@ -120,7 +139,17 @@ class GitManager:
     
     def auto_commit_and_push(self, message=None):
         """Automatyczny commit i push"""
-        if self.setup_git():
-            if self.commit_reports(message):
-                return self.push_to_github()
-        return False 
+        print(f"🔗 GitManager: Rozpoczynam auto-commit i push")
+        print(f"🔗 GitManager: Token: {'✅ Ustawiony' if self.github_token else '❌ BRAK'}")
+        
+        if not self.setup_git():
+            print("❌ GitManager: Błąd setup_git")
+            return False
+            
+        if not self.commit_reports(message):
+            print("❌ GitManager: Błąd commit_reports")
+            return False
+            
+        result = self.push_to_github()
+        print(f"🔗 GitManager: Push result: {result}")
+        return result 

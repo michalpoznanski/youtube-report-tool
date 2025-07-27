@@ -10,6 +10,8 @@ Ultra-lekki, modularny, zero analizy - tylko surowe dane.
 - `!raport` - Generowanie 17-kolumnowego CSV
 - `!status` - Status systemu
 - `!pomoc` - Lista komend
+- `!scheduler` - Status automatyzacji
+- `!git` - Status GitHub integration
 
 ### 📊 **17 Kolumn CSV:**
 1. Channel_Name
@@ -55,13 +57,15 @@ HOOK_BOOST_3.0/
 ├── modules/
 │   ├── sledz_system.py       # System !śledź
 │   ├── raport_system.py      # System !raport (17 kolumn)
-│   └── config_manager.py     # Zarządzanie konfiguracją
+│   ├── config_manager.py     # Zarządzanie konfiguracją
+│   ├── scheduler.py          # Automatyczne raporty
+│   └── git_manager.py        # GitHub integration
 ├── data/
 │   ├── channels_config.json  # Konfiguracja kanałów
-│   ├── quota_usage.json      # Logi quota
 │   └── raw_data/            # Raporty CSV
 │       └── YYYY-MM-DD/      # Struktura dzienna
 ├── requirements.txt
+├── Dockerfile               # Container deployment
 └── README.md
 ```
 
@@ -87,6 +91,7 @@ UCvHFbkohgX29NhaUtmkzLmg
 ### Zmienne środowiskowe:
 - `DISCORD_TOKEN` - Token bota Discord
 - `YOUTUBE_API_KEY` - Klucz YouTube Data API v3
+- `GITHUB_TOKEN` - Token GitHub (dla auto-commit)
 
 ### Quota Management:
 - **ULTRA LEAN MODE** - brak monitorowania quota
@@ -95,6 +100,11 @@ UCvHFbkohgX29NhaUtmkzLmg
   - `!śledź` @handle: 1 quota
   - `!śledź` Channel ID: 0 quota
   - `!raport` per film: 1 quota
+
+### Automatyzacja:
+- **Codzienne raporty** o 06:00 UTC
+- **Automatyczny commit** do GitHub
+- **HTTP server** na porcie 8000 (Render.com)
 
 ## 🎯 FILOZOFIA ULTRA LEAN
 
