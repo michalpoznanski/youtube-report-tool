@@ -11,7 +11,18 @@ logger = logging.getLogger(__name__)
 class StateManager:
     """Zarządza trwałymi danymi systemu"""
     
-    def __init__(self, data_dir: str = "data"):
+    def __init__(self, data_dir: str = None):
+        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog
+        if data_dir is None:
+            import os
+            railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
+            if railway_volume:
+                data_dir = os.path.join(railway_volume, "data")
+                print(f"🚂 Używam Railway Volume Path: {data_dir}")
+            else:
+                data_dir = "data"
+                print(f"📁 Używam domyślnego katalogu: {data_dir}")
+        
         self.data_dir = Path(data_dir)
         
         # Sprawdź i utwórz katalog jeśli nie istnieje

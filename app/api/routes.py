@@ -7,6 +7,7 @@ from ..youtube import YouTubeClient
 from ..scheduler import TaskScheduler
 from ..storage import CSVGenerator
 from ..config import settings
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -318,4 +319,74 @@ async def get_data_stats():
         return stats
     except Exception as e:
         logger.error(f"Błąd podczas pobierania statystyk danych: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/debug/json")
+async def debug_json_files():
+    """Debug endpoint - pokazuje zawartość plików JSON"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        state_manager = task_scheduler.state_manager
+        
+        # Sprawdź czy pliki istnieją
+        channels_exists = state_manager.channels_file.exists()
+        quota_exists = state_manager.quota_file.exists()
+        system_exists = state_manager.system_state_file.exists()
+        
+        # Wczytaj zawartość plików
+        channels_content = None
+        quota_content = None
+        system_content = None
+        
+        if channels_exists:
+            try:
+                with open(state_manager.channels_file, 'r', encoding='utf-8') as f:
+                    channels_content = json.load(f)
+            except Exception as e:
+                channels_content = f"Błąd odczytu: {e}"
+        
+        if quota_exists:
+            try:
+                with open(state_manager.quota_file, 'r', encoding='utf-8') as f:
+                    quota_content = json.load(f)
+            except Exception as e:
+                quota_content = f"Błąd odczytu: {e}"
+        
+        if system_exists:
+            try:
+                with open(state_manager.system_state_file, 'r', encoding='utf-8') as f:
+                    system_content = json.load(f)
+            except Exception as e:
+                system_content = f"Błąd odczytu: {e}"
+        
+        return {
+            "data_directory": str(state_manager.data_dir.absolute()),
+            "files": {
+                "channels.json": {
+                    "exists": channels_exists,
+                    "path": str(state_manager.channels_file.absolute()),
+                    "content": channels_content
+                },
+                "quota_state.json": {
+                    "exists": quota_exists,
+                    "path": str(state_manager.quota_file.absolute()),
+                    "content": quota_content
+                },
+                "system_state.json": {
+                    "exists": system_exists,
+                    "path": str(state_manager.system_state_file.absolute()),
+                    "content": system_content
+                }
+            },
+            "memory_state": {
+                "channels_count": sum(len(channels) for channels in state_manager.channels_data.values()),
+                "quota_used": state_manager.quota_state.get('used', 0),
+                "system_startup": state_manager.system_state.get('last_startup')
+            }
+        }
+    except Exception as e:
+        logger.error(f"Błąd podczas debugowania plików JSON: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 

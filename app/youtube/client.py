@@ -156,6 +156,8 @@ class YouTubeClient:
             end_date = datetime.now(pytz.utc)
             start_date = end_date - timedelta(days=days_back)
             
+            print(f"📅 Pobieranie filmów z ostatnich {days_back} dni (od {start_date} do {end_date})")
+            
             # Pobierz playlistę uploadów kanału
             request = self.service.channels().list(
                 part='contentDetails',
@@ -175,8 +177,14 @@ class YouTubeClient:
             videos = []
             video_ids = []  # Zbierz ID filmów do batch processing
             next_page_token = None
+            total_checked = 0
+            videos_in_range = 0
             
-            while True:
+            # Pobierz więcej filmów aby znaleźć shorts
+            max_pages = 5  # Zwiększ limit stron
+            page_count = 0
+            
+            while page_count < max_pages:
                 request = self.service.playlistItems().list(
                     part='snippet,contentDetails',
                     playlistId=uploads_playlist_id,
@@ -190,6 +198,9 @@ class YouTubeClient:
                 if 'items' not in response:
                     logger.error(f"Nieprawidłowa odpowiedź API dla playlisty: {response}")
                     break
+                
+                page_count += 1
+                total_checked += len(response['items'])
                 
                 for item in response['items']:
                     video_id = item['contentDetails']['videoId']
@@ -205,16 +216,28 @@ class YouTubeClient:
                     if published_at >= start_date:
                         # Zbierz ID filmów do batch processing
                         video_ids.append(video_id)
+                        videos_in_range += 1
+                
+                print(f"📄 Strona {page_count}: sprawdzono {len(response['items'])} filmów, w zakresie: {videos_in_range}")
                 
                 next_page_token = response.get('nextPageToken')
                 if not next_page_token:
                     break
+            
+            print(f"📊 Łącznie sprawdzono {total_checked} filmów, w zakresie czasowym: {videos_in_range}")
             
             # Pobierz szczegóły filmów za pomocą batch processing
             if video_ids:
                 logger.info(f"Pobieranie szczegółów {len(video_ids)} filmów (batch)")
                 video_details = await self._get_video_details_batch(video_ids)
                 videos.extend(video_details)
+                
+                # Sprawdź typy filmów
+                shorts_count = sum(1 for v in video_details if v.get('duration', '') and self._is_short_video(v.get('duration', '')))
+                long_count = len(video_details) - shorts_count
+                print(f"🎬 Znaleziono: {shorts_count} shorts, {long_count} long form")
+            else:
+                print("⚠️ Nie znaleziono filmów w zakresie czasowym")
             
             return videos
             
@@ -457,3 +480,21 @@ class YouTubeClient:
         except Exception as e:
             logger.error(f"Błąd podczas pobierania statystyk cache: {e}")
             return {'error': str(e)} 
+
+    def _is_short_video(self, duration: str) -> bool:
+        """Sprawdza czy film jest krótki (shorts)"""
+        if not duration:
+            return False
+        
+        # Konwertuj ISO 8601 duration na sekundy
+        import re
+        match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
+        if match:
+            hours = int(match.group(1) or 0)
+            minutes = int(match.group(2) or 0)
+            seconds = int(match.group(3) or 0)
+            total_seconds = hours * 3600 + minutes * 60 + seconds
+            
+            return total_seconds <= 60
+        
+        return False 

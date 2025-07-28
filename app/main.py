@@ -77,6 +77,12 @@ templates = Jinja2Templates(directory="templates")
 # Scheduler
 scheduler = TaskScheduler() if TaskScheduler else None
 
+# Upewnij się, że dane są załadowane przed startem API
+if scheduler and scheduler.state_manager:
+    print("🔄 Wymuszanie załadowania danych przed startem API...")
+    scheduler.state_manager.load_all_data()
+    print("✅ Dane załadowane przed startem API")
+
 
 @app.on_event("startup")
 async def startup_event():
