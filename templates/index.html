@@ -20,37 +20,30 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 {
-            color: #333;
             text-align: center;
             margin-bottom: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
         }
         .logo {
-            height: 40px;
+            max-height: 64px;
             width: auto;
             border-radius: 5px;
+            display: block;
+            margin: 0 auto;
         }
         
         /* Responsywność dla logo */
         @media (max-width: 768px) {
-            h1 {
-                flex-direction: column;
-                gap: 10px;
-            }
             .logo {
-                height: 35px;
+                max-height: 48px;
             }
         }
         
         @media (max-width: 480px) {
-            h1 {
-                font-size: 1.2em;
-            }
             .logo {
-                height: 30px;
+                max-height: 40px;
             }
         }
         .section {
@@ -137,7 +130,6 @@
     <div class="container">
         <h1>
             <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
-            🎯 Hook Boost Web - YouTube Analytics
         </h1>
         
         <!-- Status Systemu -->
