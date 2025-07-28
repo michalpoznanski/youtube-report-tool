@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import logging
+import os
 from ..youtube import YouTubeClient
 from ..scheduler import TaskScheduler
 from ..storage import CSVGenerator
