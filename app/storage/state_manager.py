@@ -1,32 +1,34 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-import os
 
 logger = logging.getLogger(__name__)
 
 
 class StateManager:
-    """Zarządza trwałymi danymi systemu"""
+    """Zarządza trwałymi danymi systemu z obsługą Railway Volume Path"""
     
     def __init__(self, data_dir: str = None):
         print(f"[INIT] StateManager initialization started")
         
-        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog
+        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog /mnt/data
         if data_dir is None:
-            import os
             railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
             if railway_volume:
                 data_dir = os.path.join(railway_volume, "data")
                 print(f"[INIT] Using Railway Volume Path: {data_dir}")
+                logger.info(f"Using Railway Volume Path: {data_dir}")
             else:
-                data_dir = "data"
-                print(f"[INIT] Using default directory: {data_dir}")
+                data_dir = "/mnt/data"
+                print(f"[INIT] Using default persistent directory: {data_dir}")
+                logger.info(f"Using default persistent directory: {data_dir}")
         
         self.data_dir = Path(data_dir)
         print(f"[INIT] Data directory set to: {self.data_dir.absolute()}")
+        logger.info(f"Data directory set to: {self.data_dir.absolute()}")
         
         # Sprawdź i utwórz katalog jeśli nie istnieje
         self._ensure_data_directory()
@@ -40,6 +42,7 @@ class StateManager:
         print(f"[INIT]   channels: {self.channels_file.absolute()}")
         print(f"[INIT]   quota: {self.quota_file.absolute()}")
         print(f"[INIT]   system: {self.system_state_file.absolute()}")
+        logger.info(f"File paths - channels: {self.channels_file.absolute()}, quota: {self.quota_file.absolute()}, system: {self.system_state_file.absolute()}")
         
         # Inicjalizacja danych
         self.channels_data = {}
@@ -50,36 +53,96 @@ class StateManager:
         print(f"[INIT] Loading all data...")
         self.load_all_data()
         print(f"[INIT] StateManager initialization completed")
+        logger.info("StateManager initialization completed")
     
     def _ensure_data_directory(self):
         """Sprawdza i tworzy katalog danych z odpowiednimi uprawnieniami"""
         try:
+            print(f"[DIR] Checking data directory: {self.data_dir.absolute()}")
+            logger.info(f"Checking data directory: {self.data_dir.absolute()}")
+            
             if not self.data_dir.exists():
-                print(f"📁 Tworzenie katalogu danych: {self.data_dir.absolute()}")
+                print(f"[DIR] Creating data directory: {self.data_dir.absolute()}")
+                logger.info(f"Creating data directory: {self.data_dir.absolute()}")
                 self.data_dir.mkdir(parents=True, exist_ok=True)
-                print(f"✅ Katalog utworzony: {self.data_dir.absolute()}")
+                print(f"[DIR] Data directory created: {self.data_dir.absolute()}")
+                logger.info(f"Data directory created: {self.data_dir.absolute()}")
             else:
-                print(f"📁 Katalog danych istnieje: {self.data_dir.absolute()}")
+                print(f"[DIR] Data directory exists: {self.data_dir.absolute()}")
+                logger.info(f"Data directory exists: {self.data_dir.absolute()}")
             
             # Sprawdź uprawnienia do zapisu
             test_file = self.data_dir / "test_write.tmp"
             try:
                 test_file.write_text("test")
                 test_file.unlink()
-                print(f"✅ Uprawnienia do zapisu OK: {self.data_dir.absolute()}")
+                print(f"[DIR] Write permissions OK: {self.data_dir.absolute()}")
+                logger.info(f"Write permissions OK: {self.data_dir.absolute()}")
             except Exception as e:
-                print(f"❌ Brak uprawnień do zapisu: {self.data_dir.absolute()} - {e}")
+                print(f"[DIR] Write permission error: {self.data_dir.absolute()} - {e}")
+                logger.error(f"Write permission error: {self.data_dir.absolute()} - {e}")
                 # Spróbuj alternatywny katalog
                 alt_dir = Path("/tmp/data")
-                print(f"🔄 Próba użycia alternatywnego katalogu: {alt_dir}")
+                print(f"[DIR] Trying alternative directory: {alt_dir}")
+                logger.warning(f"Trying alternative directory: {alt_dir}")
                 alt_dir.mkdir(parents=True, exist_ok=True)
                 self.data_dir = alt_dir
                 
         except Exception as e:
-            print(f"❌ Błąd podczas tworzenia katalogu danych: {e}")
+            print(f"[DIR] Error creating data directory: {e}")
+            logger.error(f"Error creating data directory: {e}")
             # Fallback do katalogu roboczego
             self.data_dir = Path("data")
             self.data_dir.mkdir(exist_ok=True)
+            print(f"[DIR] Fallback to working directory: {self.data_dir.absolute()}")
+            logger.warning(f"Fallback to working directory: {self.data_dir.absolute()}")
+    
+    def _safe_write_file(self, file_path: Path, data: dict):
+        """Bezpieczny zapis pliku z flush() i fsync()"""
+        try:
+            print(f"[SAVE] Safe writing to: {file_path.absolute()}")
+            logger.info(f"Safe writing to: {file_path.absolute()}")
+            
+            # Zapisz do pliku tymczasowego
+            temp_file = file_path.with_suffix('.tmp')
+            
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()  # Wymuś zapis do bufora
+                os.fsync(f.fileno())  # Wymuś zapis na dysk
+            
+            # Przenieś plik tymczasowy do docelowego
+            temp_file.replace(file_path)
+            
+            print(f"[SAVE] File written successfully: {file_path.absolute()}")
+            logger.info(f"File written successfully: {file_path.absolute()}")
+            
+        except Exception as e:
+            print(f"[SAVE] Error writing file {file_path}: {e}")
+            logger.error(f"Error writing file {file_path}: {e}")
+            raise
+    
+    def _safe_read_file(self, file_path: Path) -> dict:
+        """Bezpieczny odczyt pliku"""
+        try:
+            print(f"[LOAD] Safe reading from: {file_path.absolute()}")
+            logger.info(f"Safe reading from: {file_path.absolute()}")
+            
+            if file_path.exists():
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                print(f"[LOAD] File read successfully: {file_path.absolute()}")
+                logger.info(f"File read successfully: {file_path.absolute()}")
+                return data
+            else:
+                print(f"[LOAD] File does not exist: {file_path.absolute()}")
+                logger.info(f"File does not exist: {file_path.absolute()}")
+                return {}
+                
+        except Exception as e:
+            print(f"[LOAD] Error reading file {file_path}: {e}")
+            logger.error(f"Error reading file {file_path}: {e}")
+            return {}
     
     def load_all_data(self):
         """Ładuje wszystkie dane z plików"""
@@ -87,6 +150,7 @@ class StateManager:
             print("🔄 Ładowanie danych z plików JSON...")
             print(f"[LOAD_ALL] Starting data load from: {self.data_dir.absolute()}")
             logger.info("🔄 Ładowanie danych z plików JSON...")
+            logger.info(f"Starting data load from: {self.data_dir.absolute()}")
             
             self.load_channels()
             self.load_quota_state()
@@ -101,6 +165,7 @@ class StateManager:
             print(f"[LOAD_ALL]   channels_count: {channels_count}")
             print(f"[LOAD_ALL]   quota_used: {quota_used}")
             print(f"[LOAD_ALL]   last_reset: {last_reset}")
+            print(f"[LOAD_ALL]   data_directory: {self.data_dir.absolute()}")
             
             print(f"✅ Dane wczytane pomyślnie:")
             print(f"   📺 Kanały: {channels_count}")
@@ -109,6 +174,7 @@ class StateManager:
             print(f"   📁 Katalog danych: {self.data_dir.absolute()}")
             
             logger.info(f"✅ Dane wczytane pomyślnie - Kanały: {channels_count}, Quota: {quota_used}")
+            logger.info(f"Data directory: {self.data_dir.absolute()}")
         except Exception as e:
             print(f"[LOAD_ALL] Error loading all data: {e}")
             print(f"❌ Błąd podczas ładowania danych: {e}")
@@ -120,10 +186,9 @@ class StateManager:
             print(f"[LOAD] channels.json exists: {self.channels_file.exists()}")
             print(f"[LOAD] channels.json path: {self.channels_file.absolute()}")
             
-            if self.channels_file.exists():
-                with open(self.channels_file, 'r', encoding='utf-8') as f:
-                    self.channels_data = json.load(f)
-                
+            self.channels_data = self._safe_read_file(self.channels_file)
+            
+            if self.channels_data:
                 print(f"[LOAD] channels content: {self.channels_data}")
                 
                 channels_count = sum(len(channels) for channels in self.channels_data.values())
@@ -138,7 +203,6 @@ class StateManager:
                     for channel in channels:
                         print(f"      - {channel.get('title', 'Unknown')} ({channel.get('id', 'No ID')})")
             else:
-                self.channels_data = {}
                 print("[LOAD] channels.json does not exist - creating empty data")
                 print("📁 Utworzono nowy plik kanałów (brak istniejących danych)")
                 logger.info("Utworzono nowy plik kanałów")
@@ -156,8 +220,7 @@ class StateManager:
             print(f"[SAVE] Saving channels to: {self.channels_file.absolute()}")
             print(f"[SAVE] channels data: {self.channels_data}")
             
-            with open(self.channels_file, 'w', encoding='utf-8') as f:
-                json.dump(self.channels_data, f, ensure_ascii=False, indent=2)
+            self._safe_write_file(self.channels_file, self.channels_data)
             
             print(f"[SAVE] channels saved successfully")
             logger.info("Kanały zapisane pomyślnie")
@@ -171,10 +234,9 @@ class StateManager:
             print(f"[LOAD] quota_state.json exists: {self.quota_file.exists()}")
             print(f"[LOAD] quota_state.json path: {self.quota_file.absolute()}")
             
-            if self.quota_file.exists():
-                with open(self.quota_file, 'r', encoding='utf-8') as f:
-                    self.quota_state = json.load(f)
-                
+            self.quota_state = self._safe_read_file(self.quota_file)
+            
+            if self.quota_state:
                 print(f"[LOAD] quota content: {self.quota_state}")
                 
                 # Sprawdź czy quota nie jest przestarzałe (więcej niż 24h)
@@ -214,8 +276,7 @@ class StateManager:
             print(f"[SAVE] Saving quota to: {self.quota_file.absolute()}")
             print(f"[SAVE] quota data: {self.quota_state}")
             
-            with open(self.quota_file, 'w', encoding='utf-8') as f:
-                json.dump(self.quota_state, f, ensure_ascii=False, indent=2)
+            self._safe_write_file(self.quota_file, self.quota_state)
             
             print(f"[SAVE] quota saved successfully")
             logger.debug("Stan quota zapisany pomyślnie")
@@ -229,10 +290,9 @@ class StateManager:
             print(f"[LOAD] system_state.json exists: {self.system_state_file.exists()}")
             print(f"[LOAD] system_state.json path: {self.system_state_file.absolute()}")
             
-            if self.system_state_file.exists():
-                with open(self.system_state_file, 'r', encoding='utf-8') as f:
-                    self.system_state = json.load(f)
-                
+            self.system_state = self._safe_read_file(self.system_state_file)
+            
+            if self.system_state:
                 print(f"[LOAD] system_state content: {self.system_state}")
                 logger.info("Stan systemu załadowany pomyślnie")
             else:
@@ -261,8 +321,7 @@ class StateManager:
             print(f"[SAVE] Saving system_state to: {self.system_state_file.absolute()}")
             print(f"[SAVE] system_state data: {self.system_state}")
             
-            with open(self.system_state_file, 'w', encoding='utf-8') as f:
-                json.dump(self.system_state, f, ensure_ascii=False, indent=2)
+            self._safe_write_file(self.system_state_file, self.system_state)
             
             print(f"[SAVE] system_state saved successfully")
             logger.debug("Stan systemu zapisany pomyślnie")
@@ -270,59 +329,48 @@ class StateManager:
             print(f"[SAVE] Error saving system_state: {e}")
             logger.error(f"Błąd podczas zapisywania stanu systemu: {e}")
     
-    # Metody do zarządzania kanałami
     def add_channel(self, channel_data: Dict, category: str = "general"):
-        """Dodaje kanał i zapisuje do pliku"""
+        """Dodaje kanał do kategorii"""
         if category not in self.channels_data:
             self.channels_data[category] = []
         
         # Sprawdź czy kanał już istnieje
-        existing_ids = [ch['id'] for ch in self.channels_data[category]]
-        if channel_data['id'] not in existing_ids:
+        channel_id = channel_data.get('id')
+        existing_channels = [c for c in self.channels_data[category] if c.get('id') == channel_id]
+        
+        if not existing_channels:
             self.channels_data[category].append(channel_data)
             self.save_channels()
-            logger.info(f"Dodano kanał {channel_data['title']} do kategorii {category}")
-            return True
+            logger.info(f"Dodano kanał {channel_data.get('title', 'Unknown')} do kategorii {category}")
         else:
-            logger.warning(f"Kanał {channel_data['title']} już istnieje w kategorii {category}")
-            return False
+            logger.warning(f"Kanał {channel_data.get('title', 'Unknown')} już istnieje w kategorii {category}")
     
     def remove_channel(self, channel_id: str, category: str = "general"):
-        """Usuwa kanał i zapisuje do pliku"""
+        """Usuwa kanał z kategorii"""
         if category in self.channels_data:
-            original_count = len(self.channels_data[category])
             self.channels_data[category] = [
-                ch for ch in self.channels_data[category]
-                if ch['id'] != channel_id
+                c for c in self.channels_data[category] if c.get('id') != channel_id
             ]
-            
-            if len(self.channels_data[category]) < original_count:
-                self.save_channels()
-                logger.info(f"Usunięto kanał {channel_id} z kategorii {category}")
-                return True
-            else:
-                logger.warning(f"Kanał {channel_id} nie został znaleziony w kategorii {category}")
-                return False
-        return False
+            self.save_channels()
+            logger.info(f"Usunięto kanał {channel_id} z kategorii {category}")
     
     def get_channels(self) -> Dict[str, List[Dict]]:
         """Zwraca wszystkie kanały"""
         return self.channels_data
     
-    # Metody do zarządzania quota
     def get_quota_used(self) -> int:
-        """Zwraca zużyte quota"""
+        """Zwraca użyte quota"""
         return self.quota_state.get('used', 0)
     
     def add_quota_used(self, amount: int):
-        """Dodaje zużyte quota i zapisuje"""
+        """Dodaje użyte quota"""
         current_used = self.quota_state.get('used', 0)
         self.quota_state['used'] = current_used + amount
         self.save_quota_state()
-        logger.debug(f"Dodano {amount} quota, łącznie: {self.quota_state['used']}")
+        logger.debug(f"Dodano {amount} do quota, łącznie: {self.quota_state['used']}")
     
     def reset_quota(self):
-        """Resetuje quota i zapisuje"""
+        """Resetuje quota"""
         self.quota_state = {
             'used': 0,
             'last_reset': datetime.now().isoformat()
@@ -331,26 +379,21 @@ class StateManager:
         logger.info("Quota zostało zresetowane")
     
     def get_quota_state(self) -> Dict:
-        """Zwraca pełny stan quota"""
+        """Zwraca stan quota"""
         return self.quota_state
     
     def persist_quota(self, quota_used: int):
-        """Zapisuje aktualne zużycie quota do pliku"""
-        try:
-            self.quota_state['used'] = quota_used
-            self.quota_state['last_updated'] = datetime.now().isoformat()
-            self.save_quota_state()
-            logger.info(f"Zapisano quota: {quota_used}")
-        except Exception as e:
-            logger.error(f"Błąd podczas zapisywania quota: {e}")
+        """Zapisuje aktualne zużycie quota"""
+        self.quota_state['used'] = quota_used
+        self.save_quota_state()
+        logger.info(f"Zapisano quota: {quota_used}")
     
     def get_persisted_quota(self) -> int:
-        """Zwraca ostatnie zapisane zużycie quota"""
+        """Zwraca zapisane zużycie quota"""
         return self.quota_state.get('used', 0)
     
-    # Metody do zarządzania stanem systemu
     def update_system_state(self, key: str, value):
-        """Aktualizuje stan systemu i zapisuje"""
+        """Aktualizuje stan systemu"""
         self.system_state[key] = value
         self.save_system_state()
     
@@ -358,10 +401,26 @@ class StateManager:
         """Zwraca stan systemu"""
         return self.system_state
     
-    # Metody do czyszczenia danych
     def clear_all_data(self):
-        """Czyści wszystkie dane (dla testów)"""
+        """Czyści wszystkie dane"""
         try:
+            print(f"[CLEAR] Clearing all data from: {self.data_dir.absolute()}")
+            logger.info(f"Clearing all data from: {self.data_dir.absolute()}")
+            
+            # Usuń pliki
+            if self.channels_file.exists():
+                self.channels_file.unlink()
+                print(f"[CLEAR] Deleted: {self.channels_file.absolute()}")
+            
+            if self.quota_file.exists():
+                self.quota_file.unlink()
+                print(f"[CLEAR] Deleted: {self.quota_file.absolute()}")
+            
+            if self.system_state_file.exists():
+                self.system_state_file.unlink()
+                print(f"[CLEAR] Deleted: {self.system_state_file.absolute()}")
+            
+            # Resetuj dane w pamięci
             self.channels_data = {}
             self.quota_state = {'used': 0, 'last_reset': datetime.now().isoformat()}
             self.system_state = {
@@ -370,30 +429,28 @@ class StateManager:
                 'last_report_date': None
             }
             
-            self.save_channels()
-            self.save_quota_state()
-            self.save_system_state()
+            print(f"[CLEAR] All data cleared successfully")
+            logger.info("All data cleared successfully")
             
-            logger.info("Wszystkie dane zostały wyczyszczone")
         except Exception as e:
-            logger.error(f"Błąd podczas czyszczenia danych: {e}")
+            print(f"[CLEAR] Error clearing data: {e}")
+            logger.error(f"Error clearing data: {e}")
     
     def get_data_stats(self) -> Dict:
         """Zwraca statystyki danych"""
-        try:
-            return {
-                'channels_count': sum(len(channels) for channels in self.channels_data.values()),
-                'categories_count': len(self.channels_data),
-                'quota_used': self.quota_state.get('used', 0),
-                'quota_last_reset': self.quota_state.get('last_reset'),
-                'system_startup': self.system_state.get('last_startup'),
-                'reports_generated': self.system_state.get('total_reports_generated', 0),
-                'data_files': {
-                    'channels_file_size': self.channels_file.stat().st_size if self.channels_file.exists() else 0,
-                    'quota_file_size': self.quota_file.stat().st_size if self.quota_file.exists() else 0,
-                    'system_state_file_size': self.system_state_file.stat().st_size if self.system_state_file.exists() else 0
-                }
+        channels_count = sum(len(channels) for channels in self.channels_data.values())
+        categories = list(self.channels_data.keys())
+        
+        return {
+            'data_directory': str(self.data_dir.absolute()),
+            'channels_count': channels_count,
+            'categories': categories,
+            'quota_used': self.quota_state.get('used', 0),
+            'quota_last_reset': self.quota_state.get('last_reset'),
+            'system_startup': self.system_state.get('last_startup'),
+            'files_exist': {
+                'channels.json': self.channels_file.exists(),
+                'quota_state.json': self.quota_file.exists(),
+                'system_state.json': self.system_state_file.exists()
             }
-        except Exception as e:
-            logger.error(f"Błąd podczas pobierania statystyk danych: {e}")
-            return {'error': str(e)} 
+        } 

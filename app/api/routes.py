@@ -617,3 +617,76 @@ async def check_data_persistence():
     except Exception as e:
         logger.error(f"Błąd podczas sprawdzania trwałości danych: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.get("/debug/persistent-storage")
+async def debug_persistent_storage():
+    """Debug endpoint - sprawdza konfigurację trwałego katalogu danych"""
+    try:
+        import os
+        
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        state_manager = task_scheduler.state_manager
+        
+        # Sprawdź zmienne środowiskowe
+        railway_volume_path = os.getenv("RAILWAY_VOLUME_PATH", "Not set")
+        
+        # Sprawdź katalogi
+        data_dir = state_manager.data_dir
+        channels_file = state_manager.channels_file
+        quota_file = state_manager.quota_file
+        system_file = state_manager.system_state_file
+        
+        # Sprawdź uprawnienia
+        data_dir_writable = os.access(data_dir, os.W_OK) if data_dir.exists() else False
+        channels_writable = os.access(channels_file.parent, os.W_OK) if channels_file.parent.exists() else False
+        
+        # Sprawdź czy pliki istnieją
+        files_exist = {
+            'channels.json': channels_file.exists(),
+            'quota_state.json': quota_file.exists(),
+            'system_state.json': system_file.exists()
+        }
+        
+        # Sprawdź rozmiary plików
+        file_sizes = {}
+        for name, file_path in [('channels.json', channels_file), ('quota_state.json', quota_file), ('system_state.json', system_file)]:
+            if file_path.exists():
+                try:
+                    file_sizes[name] = file_path.stat().st_size
+                except Exception:
+                    file_sizes[name] = -1
+            else:
+                file_sizes[name] = 0
+        
+        return {
+            "environment": {
+                "RAILWAY_VOLUME_PATH": railway_volume_path,
+                "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT", "Not set"),
+                "PWD": os.getcwd()
+            },
+            "directories": {
+                "data_directory": str(data_dir.absolute()),
+                "data_directory_exists": data_dir.exists(),
+                "data_directory_writable": data_dir_writable,
+                "channels_directory_writable": channels_writable
+            },
+            "files": {
+                "channels_file": str(channels_file.absolute()),
+                "quota_file": str(quota_file.absolute()),
+                "system_file": str(system_file.absolute()),
+                "files_exist": files_exist,
+                "file_sizes": file_sizes
+            },
+            "memory_state": {
+                "channels_count": sum(len(channels) for channels in state_manager.channels_data.values()),
+                "quota_used": state_manager.quota_state.get('used', 0),
+                "system_startup": state_manager.system_state.get('last_startup')
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas debugowania trwałego katalogu: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 

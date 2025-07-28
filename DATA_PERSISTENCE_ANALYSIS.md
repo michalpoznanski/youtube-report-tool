@@ -137,9 +137,9 @@ if data_dir is None:
     import os
     railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
     if railway_volume:
-        data_dir = os.path.join(railway_volume, "persistent_data")
+        data_dir = os.path.join(railway_volume, "data")
     else:
-        data_dir = "/tmp/persistent_data"  # Fallback do /tmp
+        data_dir = "/mnt/data"  # Fallback do /mnt/data
 ```
 
 ### **Rozwiązanie 3: Synchronizacja zapisu**
@@ -239,4 +239,122 @@ Railway resetuje kontener przy każdym deployu i selektywnie czyści pliki. `cha
 - 🚨 **Railway Volume Path potrzebny** - kluczowe dla trwałości
 - 🔧 **Backup strategy do implementacji** - dodatkowe zabezpieczenie
 
-**System ma wszystkie narzędzia do debugowania i monitorowania. Główny problem to brak konfiguracji Railway Volume Path!** 🚀 
+**System ma wszystkie narzędzia do debugowania i monitorowania. Główny problem to brak konfiguracji Railway Volume Path!** 🚀
+
+---
+
+## 🆕 **NOWE IMPLEMENTACJE (2025-07-28)**
+
+### **✅ Zaimplementowane ulepszenia:**
+
+#### **1. Trwały katalog danych z RAILWAY_VOLUME_PATH**
+```python
+# StateManager.__init__()
+if data_dir is None:
+    railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
+    if railway_volume:
+        data_dir = os.path.join(railway_volume, "data")
+    else:
+        data_dir = "/mnt/data"  # Domyślny trwały katalog
+```
+
+#### **2. Bezpieczny zapis z flush() i fsync()**
+```python
+def _safe_write_file(self, file_path: Path, data: dict):
+    # Zapisz do pliku tymczasowego
+    temp_file = file_path.with_suffix('.tmp')
+    
+    with open(temp_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.flush()  # Wymuś zapis do bufora
+        os.fsync(f.fileno())  # Wymuś zapis na dysk
+    
+    # Przenieś plik tymczasowy do docelowego
+    temp_file.replace(file_path)
+```
+
+#### **3. Szczegółowe logowanie katalogów i ścieżek**
+```python
+print(f"[INIT] Data directory set to: {self.data_dir.absolute()}")
+logger.info(f"Data directory set to: {self.data_dir.absolute()}")
+print(f"[INIT] File paths:")
+print(f"[INIT]   channels: {self.channels_file.absolute()}")
+print(f"[INIT]   quota: {self.quota_file.absolute()}")
+print(f"[INIT]   system: {self.system_state_file.absolute()}")
+```
+
+#### **4. Automatyczne tworzenie katalogów**
+```python
+def _ensure_data_directory(self):
+    if not self.data_dir.exists():
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        print(f"[DIR] Data directory created: {self.data_dir.absolute()}")
+```
+
+#### **5. Nowy debug endpoint**
+```bash
+# Sprawdź konfigurację trwałego katalogu:
+curl -s https://youtube-report-tool-production.up.railway.app/api/v1/debug/persistent-storage
+```
+
+### **🔧 Nowe funkcje:**
+
+#### **Bezpieczny odczyt/zapis:**
+- `_safe_write_file()` - zapis z flush() i fsync()
+- `_safe_read_file()` - bezpieczny odczyt z obsługą błędów
+- Pliki tymczasowe dla bezpiecznego zapisu
+
+#### **Szczegółowe logowanie:**
+- `[INIT]` - inicjalizacja StateManager
+- `[DIR]` - operacje na katalogach
+- `[SAVE]` - operacje zapisu
+- `[LOAD]` - operacje odczytu
+- `[CLEAR]` - operacje czyszczenia
+
+#### **Konfiguracja katalogów:**
+- Domyślny katalog: `/mnt/data`
+- Railway Volume Path: `$RAILWAY_VOLUME_PATH/data`
+- Automatyczne tworzenie katalogów
+- Sprawdzanie uprawnień
+
+### **🎯 Następne kroki po implementacji:**
+
+#### **1. Test nowej konfiguracji:**
+```bash
+# Sprawdź nowy katalog danych:
+curl -s https://youtube-report-tool-production.up.railway.app/api/v1/debug/persistent-storage
+```
+
+#### **2. Dodaj kanał i sprawdź trwałość:**
+```bash
+# Dodaj kanał:
+curl -X POST https://youtube-report-tool-production.up.railway.app/api/v1/channels \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.youtube.com/@PewDiePie", "category": "test"}'
+
+# Sprawdź czy został zapisany:
+curl -s https://youtube-report-tool-production.up.railway.app/api/v1/debug/check-persistence
+```
+
+#### **3. Konfiguracja Railway Volume Path:**
+```bash
+# W Railway dashboard:
+1. Przejdź do Variables
+2. Dodaj: RAILWAY_VOLUME_PATH=/mnt/data
+3. Restart service
+```
+
+### **📊 Oczekiwane rezultaty:**
+
+#### **Po implementacji:**
+- ✅ **Trwały katalog danych** - `/mnt/data` lub `$RAILWAY_VOLUME_PATH/data`
+- ✅ **Bezpieczny zapis** - flush() i fsync() dla niezawodności
+- ✅ **Szczegółowe logowanie** - pełna widoczność operacji
+- ✅ **Automatyczne tworzenie katalogów** - brak błędów uprawnień
+
+#### **Po konfiguracji Railway Volume Path:**
+- ✅ **Pełna trwałość danych** - dane przetrwają restart
+- ✅ **Wszystkie pliki zachowane** - channels.json, quota_state.json, system_state.json
+- ✅ **Stabilne działanie** - brak utraty danych po deployu
+
+**Nowa implementacja zapewnia maksymalną trwałość danych z automatycznym tworzeniem katalogów i bezpiecznym zapisem!** 🚀 
