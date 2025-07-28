@@ -49,6 +49,10 @@ class StateManager:
         self.quota_state = {}
         self.system_state = {}
         
+        # Mapy do śledzenia kanałów (dla walidacji duplikatów)
+        self.channel_id_map = {}
+        self.channel_url_map = {}
+        
         # Załaduj dane przy starcie
         print(f"[INIT] Loading all data...")
         self.load_all_data()
@@ -181,16 +185,158 @@ class StateManager:
             logger.error(f"Błąd podczas ładowania danych: {e}")
     
     def load_channels(self) -> Dict[str, List[Dict]]:
-        """Ładuje dane kanałów z pliku"""
+        """Ładuje dane kanałów z pliku z walidacją i czyszczeniem"""
         try:
             print(f"[LOAD] channels.json exists: {self.channels_file.exists()}")
             print(f"[LOAD] channels.json path: {self.channels_file.absolute()}")
             
-            self.channels_data = self._safe_read_file(self.channels_file)
+            # Wczytaj surowe dane
+            raw_channels_data = self._safe_read_file(self.channels_file)
             
-            if self.channels_data:
-                print(f"[LOAD] channels content: {self.channels_data}")
+            if raw_channels_data:
+                print(f"[LOAD] Raw channels data loaded: {len(raw_channels_data)} categories")
+                logger.info(f"Raw channels data loaded: {len(raw_channels_data)} categories")
                 
+                # Waliduj i wyczyść dane
+                cleaned_channels_data = {}
+                corrupted_entries = []
+                duplicate_entries = []
+                
+                # Mapy do śledzenia duplikatów
+                channel_id_map = {}
+                channel_url_map = {}
+                
+                for category, channels in raw_channels_data.items():
+                    print(f"[VALIDATE] Processing category: {category} ({len(channels)} channels)")
+                    logger.info(f"Processing category: {category} ({len(channels)} channels)")
+                    
+                    valid_channels = []
+                    
+                    for i, channel in enumerate(channels):
+                        channel_id = channel.get('id', '')
+                        channel_name = channel.get('title', '')
+                        channel_url = channel.get('url', '')
+                        channel_category = category
+                        
+                        # Sprawdź czy kanał ma wszystkie wymagane pola
+                        is_valid = True
+                        validation_errors = []
+                        
+                        # 1. Sprawdź channel_id (zaczyna się od "UC")
+                        if not channel_id or not channel_id.startswith('UC'):
+                            validation_errors.append(f"Invalid channel_id: {channel_id}")
+                            is_valid = False
+                        
+                        # 2. Sprawdź channel_name
+                        if not channel_name:
+                            validation_errors.append("Missing channel_name")
+                            is_valid = False
+                        
+                        # 3. Sprawdź url
+                        if not channel_url:
+                            validation_errors.append("Missing url")
+                            is_valid = False
+                        
+                        # 4. Sprawdź category
+                        if not channel_category:
+                            validation_errors.append("Missing category")
+                            is_valid = False
+                        
+                        # Sprawdź duplikaty
+                        if is_valid:
+                            # Sprawdź duplikat channel_id
+                            if channel_id in channel_id_map:
+                                duplicate_info = channel_id_map[channel_id]
+                                validation_errors.append(f"Duplicate channel_id: {channel_id} (already exists in {duplicate_info['category']}: {duplicate_info['name']})")
+                                is_valid = False
+                                duplicate_entries.append({
+                                    'channel_id': channel_id,
+                                    'channel_name': channel_name,
+                                    'category': category,
+                                    'index': i,
+                                    'conflict_with': duplicate_info
+                                })
+                            
+                            # Sprawdź duplikat url
+                            elif channel_url in channel_url_map:
+                                duplicate_info = channel_url_map[channel_url]
+                                validation_errors.append(f"Duplicate url: {channel_url} (already exists in {duplicate_info['category']}: {duplicate_info['name']})")
+                                is_valid = False
+                                duplicate_entries.append({
+                                    'channel_id': channel_id,
+                                    'channel_name': channel_name,
+                                    'category': category,
+                                    'index': i,
+                                    'conflict_with': duplicate_info
+                                })
+                        
+                        # Jeśli kanał jest niepoprawny, zaloguj i pomiń
+                        if not is_valid:
+                            print(f"[CORRUPTED] Invalid channel in {category}[{i}]: {channel_name} ({channel_id})")
+                            print(f"[CORRUPTED] Errors: {validation_errors}")
+                            logger.warning(f"[CORRUPTED] Invalid channel in {category}[{i}]: {channel_name} ({channel_id}) - Errors: {validation_errors}")
+                            
+                            corrupted_entries.append({
+                                'channel_id': channel_id,
+                                'channel_name': channel_name,
+                                'category': category,
+                                'index': i,
+                                'errors': validation_errors,
+                                'original_data': channel
+                            })
+                            continue
+                        
+                        # Kanał jest poprawny - dodaj do map i listy
+                        channel_id_map[channel_id] = {
+                            'name': channel_name,
+                            'category': category,
+                            'url': channel_url
+                        }
+                        channel_url_map[channel_url] = {
+                            'name': channel_name,
+                            'category': category,
+                            'id': channel_id
+                        }
+                        
+                        valid_channels.append(channel)
+                        print(f"[VALID] Valid channel: {channel_name} ({channel_id}) in {category}")
+                    
+                    # Dodaj kategorię tylko jeśli ma poprawne kanały
+                    if valid_channels:
+                        cleaned_channels_data[category] = valid_channels
+                        print(f"[VALIDATE] Category {category}: {len(valid_channels)} valid channels (removed {len(channels) - len(valid_channels)} invalid)")
+                    else:
+                        print(f"[VALIDATE] Category {category}: all channels invalid, removing category")
+                
+                # Zaktualizuj dane kanałów
+                self.channels_data = cleaned_channels_data
+                
+                # Zaktualizuj mapy
+                self.channel_id_map = channel_id_map
+                self.channel_url_map = channel_url_map
+                
+                # Podsumowanie walidacji
+                total_original = sum(len(channels) for channels in raw_channels_data.values())
+                total_valid = sum(len(channels) for channels in cleaned_channels_data.values())
+                total_corrupted = len(corrupted_entries)
+                total_duplicates = len(duplicate_entries)
+                
+                print(f"[VALIDATE] Validation summary:")
+                print(f"[VALIDATE]   Original channels: {total_original}")
+                print(f"[VALIDATE]   Valid channels: {total_valid}")
+                print(f"[VALIDATE]   Corrupted entries: {total_corrupted}")
+                print(f"[VALIDATE]   Duplicate entries: {total_duplicates}")
+                print(f"[VALIDATE]   Categories: {list(cleaned_channels_data.keys())}")
+                
+                logger.info(f"Validation summary - Original: {total_original}, Valid: {total_valid}, Corrupted: {total_corrupted}, Duplicates: {total_duplicates}")
+                
+                # Jeśli były zmiany, zapisz wyczyszczone dane
+                if total_original != total_valid:
+                    print(f"[VALIDATE] Data was cleaned, saving updated channels.json")
+                    logger.info(f"Data was cleaned, saving updated channels.json")
+                    self.save_channels()
+                
+                # Wyświetl szczegóły kanałów
                 channels_count = sum(len(channels) for channels in self.channels_data.values())
                 categories = list(self.channels_data.keys())
                 
@@ -202,15 +348,35 @@ class StateManager:
                     print(f"   📂 {category}: {len(channels)} kanałów")
                     for channel in channels:
                         print(f"      - {channel.get('title', 'Unknown')} ({channel.get('id', 'No ID')})")
+                
+                # Wyświetl szczegóły błędów jeśli były
+                if corrupted_entries:
+                    print(f"[CORRUPTED] Corrupted entries details:")
+                    for entry in corrupted_entries:
+                        print(f"   - {entry['category']}[{entry['index']}]: {entry['channel_name']} ({entry['channel_id']})")
+                        print(f"     Errors: {entry['errors']}")
+                
+                if duplicate_entries:
+                    print(f"[DUPLICATE] Duplicate entries details:")
+                    for entry in duplicate_entries:
+                        print(f"   - {entry['category']}[{entry['index']}]: {entry['channel_name']} ({entry['channel_id']})")
+                        print(f"     Conflicts with: {entry['conflict_with']['category']}: {entry['conflict_with']['name']}")
+                
             else:
                 print("[LOAD] channels.json does not exist - creating empty data")
                 print("📁 Utworzono nowy plik kanałów (brak istniejących danych)")
                 logger.info("Utworzono nowy plik kanałów")
+                self.channels_data = {}
+                self.channel_id_map = {}
+                self.channel_url_map = {}
+                
         except Exception as e:
             print(f"[LOAD] Error loading channels: {e}")
             print(f"❌ Błąd podczas ładowania kanałów: {e}")
             logger.error(f"Błąd podczas ładowania kanałów: {e}")
             self.channels_data = {}
+            self.channel_id_map = {}
+            self.channel_url_map = {}
         
         return self.channels_data
     
@@ -330,29 +496,135 @@ class StateManager:
             logger.error(f"Błąd podczas zapisywania stanu systemu: {e}")
     
     def add_channel(self, channel_data: Dict, category: str = "general"):
-        """Dodaje kanał do kategorii"""
-        if category not in self.channels_data:
-            self.channels_data[category] = []
-        
-        # Sprawdź czy kanał już istnieje
-        channel_id = channel_data.get('id')
-        existing_channels = [c for c in self.channels_data[category] if c.get('id') == channel_id]
-        
-        if not existing_channels:
+        """Dodaje kanał do kategorii z walidacją duplikatów"""
+        try:
+            channel_id = channel_data.get('id', '')
+            channel_name = channel_data.get('title', '')
+            channel_url = channel_data.get('url', '')
+            
+            print(f"[ADD] Adding channel: {channel_name} ({channel_id}) to category: {category}")
+            logger.info(f"Adding channel: {channel_name} ({channel_id}) to category: {category}")
+            
+            # Sprawdź czy kanał ma wszystkie wymagane pola
+            if not channel_id or not channel_id.startswith('UC'):
+                error_msg = f"Invalid channel_id: {channel_id}"
+                print(f"[ADD] Error: {error_msg}")
+                logger.error(f"[ADD] Error: {error_msg}")
+                raise ValueError(error_msg)
+            
+            if not channel_name:
+                error_msg = "Missing channel_name"
+                print(f"[ADD] Error: {error_msg}")
+                logger.error(f"[ADD] Error: {error_msg}")
+                raise ValueError(error_msg)
+            
+            if not channel_url:
+                error_msg = "Missing channel_url"
+                print(f"[ADD] Error: {error_msg}")
+                logger.error(f"[ADD] Error: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Sprawdź duplikaty
+            if channel_id in self.channel_id_map:
+                existing = self.channel_id_map[channel_id]
+                error_msg = f"Channel with ID {channel_id} already exists in category {existing['category']}: {existing['name']}"
+                print(f"[ADD] Error: {error_msg}")
+                logger.warning(f"[ADD] Error: {error_msg}")
+                raise ValueError(error_msg)
+            
+            if channel_url in self.channel_url_map:
+                existing = self.channel_url_map[channel_url]
+                error_msg = f"Channel with URL {channel_url} already exists in category {existing['category']}: {existing['name']}"
+                print(f"[ADD] Error: {error_msg}")
+                logger.warning(f"[ADD] Error: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Inicjalizuj kategorię jeśli nie istnieje
+            if category not in self.channels_data:
+                self.channels_data[category] = []
+                print(f"[ADD] Created new category: {category}")
+            
+            # Dodaj kanał do danych
             self.channels_data[category].append(channel_data)
+            
+            # Dodaj do map
+            self.channel_id_map[channel_id] = {
+                'name': channel_name,
+                'category': category,
+                'url': channel_url
+            }
+            self.channel_url_map[channel_url] = {
+                'name': channel_name,
+                'category': category,
+                'id': channel_id
+            }
+            
+            # Zapisz zmiany
             self.save_channels()
-            logger.info(f"Dodano kanał {channel_data.get('title', 'Unknown')} do kategorii {category}")
-        else:
-            logger.warning(f"Kanał {channel_data.get('title', 'Unknown')} już istnieje w kategorii {category}")
+            
+            print(f"[ADD] Successfully added channel: {channel_name} ({channel_id}) to category: {category}")
+            logger.info(f"Successfully added channel: {channel_name} ({channel_id}) to category: {category}")
+            
+        except Exception as e:
+            print(f"[ADD] Error adding channel: {e}")
+            logger.error(f"Error adding channel: {e}")
+            raise
     
     def remove_channel(self, channel_id: str, category: str = "general"):
-        """Usuwa kanał z kategorii"""
-        if category in self.channels_data:
-            self.channels_data[category] = [
-                c for c in self.channels_data[category] if c.get('id') != channel_id
-            ]
-            self.save_channels()
-            logger.info(f"Usunięto kanał {channel_id} z kategorii {category}")
+        """Usuwa kanał z kategorii i aktualizuje mapy"""
+        try:
+            print(f"[REMOVE] Removing channel: {channel_id} from category: {category}")
+            logger.info(f"Removing channel: {channel_id} from category: {category}")
+            
+            if category in self.channels_data:
+                # Znajdź kanał do usunięcia
+                channel_to_remove = None
+                for channel in self.channels_data[category]:
+                    if channel.get('id') == channel_id:
+                        channel_to_remove = channel
+                        break
+                
+                if channel_to_remove:
+                    # Usuń z danych
+                    self.channels_data[category] = [
+                        c for c in self.channels_data[category] if c.get('id') != channel_id
+                    ]
+                    
+                    # Usuń z map
+                    if channel_id in self.channel_id_map:
+                        removed_info = self.channel_id_map.pop(channel_id)
+                        print(f"[REMOVE] Removed from channel_id_map: {channel_id}")
+                    
+                    channel_url = channel_to_remove.get('url', '')
+                    if channel_url in self.channel_url_map:
+                        self.channel_url_map.pop(channel_url)
+                        print(f"[REMOVE] Removed from channel_url_map: {channel_url}")
+                    
+                    # Usuń pustą kategorię
+                    if not self.channels_data[category]:
+                        del self.channels_data[category]
+                        print(f"[REMOVE] Removed empty category: {category}")
+                    
+                    # Zapisz zmiany
+                    self.save_channels()
+                    
+                    print(f"[REMOVE] Successfully removed channel: {channel_id} from category: {category}")
+                    logger.info(f"Successfully removed channel: {channel_id} from category: {category}")
+                else:
+                    error_msg = f"Channel {channel_id} not found in category {category}"
+                    print(f"[REMOVE] Error: {error_msg}")
+                    logger.warning(f"[REMOVE] Error: {error_msg}")
+                    raise ValueError(error_msg)
+            else:
+                error_msg = f"Category {category} not found"
+                print(f"[REMOVE] Error: {error_msg}")
+                logger.warning(f"[REMOVE] Error: {error_msg}")
+                raise ValueError(error_msg)
+                
+        except Exception as e:
+            print(f"[REMOVE] Error removing channel: {e}")
+            logger.error(f"Error removing channel: {e}")
+            raise
     
     def get_channels(self) -> Dict[str, List[Dict]]:
         """Zwraca wszystkie kanały"""
@@ -435,6 +707,16 @@ class StateManager:
         except Exception as e:
             print(f"[CLEAR] Error clearing data: {e}")
             logger.error(f"Error clearing data: {e}")
+    
+    def get_channel_maps_status(self) -> Dict:
+        """Zwraca status map kanałów"""
+        return {
+            'channel_id_map_count': len(self.channel_id_map),
+            'channel_url_map_count': len(self.channel_url_map),
+            'channel_id_map_keys': list(self.channel_id_map.keys()),
+            'channel_url_map_keys': list(self.channel_url_map.keys()),
+            'maps_synchronized': len(self.channel_id_map) == len(self.channel_url_map)
+        }
     
     def get_data_stats(self) -> Dict:
         """Zwraca statystyki danych"""

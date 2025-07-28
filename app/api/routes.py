@@ -690,3 +690,97 @@ async def debug_persistent_storage():
     except Exception as e:
         logger.error(f"Błąd podczas debugowania trwałego katalogu: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.get("/debug/channel-validation")
+async def debug_channel_validation():
+    """Debug endpoint - sprawdza walidację kanałów i stan map"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        state_manager = task_scheduler.state_manager
+        
+        # Pobierz statystyki map
+        maps_status = state_manager.get_channel_maps_status()
+        
+        # Pobierz dane kanałów
+        channels = state_manager.get_channels()
+        
+        # Sprawdź integralność danych
+        validation_results = []
+        total_channels = 0
+        
+        for category, category_channels in channels.items():
+            category_validation = {
+                'category': category,
+                'channel_count': len(category_channels),
+                'valid_channels': [],
+                'invalid_channels': []
+            }
+            
+            for i, channel in enumerate(category_channels):
+                channel_id = channel.get('id', '')
+                channel_name = channel.get('title', '')
+                channel_url = channel.get('url', '')
+                
+                # Sprawdź walidację
+                is_valid = True
+                validation_errors = []
+                
+                if not channel_id or not channel_id.startswith('UC'):
+                    validation_errors.append(f"Invalid channel_id: {channel_id}")
+                    is_valid = False
+                
+                if not channel_name:
+                    validation_errors.append("Missing channel_name")
+                    is_valid = False
+                
+                if not channel_url:
+                    validation_errors.append("Missing channel_url")
+                    is_valid = False
+                
+                # Sprawdź czy jest w mapach
+                in_id_map = channel_id in state_manager.channel_id_map
+                in_url_map = channel_url in state_manager.channel_url_map
+                
+                if not in_id_map:
+                    validation_errors.append("Not in channel_id_map")
+                    is_valid = False
+                
+                if not in_url_map:
+                    validation_errors.append("Not in channel_url_map")
+                    is_valid = False
+                
+                channel_info = {
+                    'index': i,
+                    'channel_id': channel_id,
+                    'channel_name': channel_name,
+                    'channel_url': channel_url,
+                    'in_id_map': in_id_map,
+                    'in_url_map': in_url_map,
+                    'validation_errors': validation_errors
+                }
+                
+                if is_valid:
+                    category_validation['valid_channels'].append(channel_info)
+                else:
+                    category_validation['invalid_channels'].append(channel_info)
+                
+                total_channels += 1
+            
+            validation_results.append(category_validation)
+        
+        return {
+            "maps_status": maps_status,
+            "validation_results": validation_results,
+            "summary": {
+                "total_channels": total_channels,
+                "total_categories": len(channels),
+                "maps_synchronized": maps_status['maps_synchronized']
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas debugowania walidacji kanałów: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
