@@ -66,9 +66,13 @@ class YouTubeClient:
             else:
                 raise ValueError("Nieprawidłowy format URL z handle. Użyj: https://www.youtube.com/@NazwaKanału")
         
+        # Sprawdź format /channel/UC...
+        channel_id_match = re.search(r'youtube\.com/channel/(UC[a-zA-Z0-9_-]{22})', url)
+        if channel_id_match:
+            return channel_id_match.group(1)
+        
         # Sprawdź inne formaty URL
         patterns = [
-            r'(?:youtube\.com/channel/)([a-zA-Z0-9_-]+)',
             r'(?:youtube\.com/c/)([a-zA-Z0-9_-]+)',
             r'(?:youtube\.com/user/)([a-zA-Z0-9_-]+)'
         ]
@@ -78,7 +82,7 @@ class YouTubeClient:
             if match:
                 return match.group(1)
         
-        raise ValueError("Nieprawidłowy URL kanału YouTube. Użyj linku do kanału zawierającego @handle.")
+        raise ValueError("Nieprawidłowy URL kanału YouTube. Użyj linku do kanału zawierającego @handle lub /channel/UC...")
     
     async def get_channel_info(self, channel_url: str) -> Dict:
         """Pobiera informacje o kanale"""

@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +236,9 @@ class StateManager:
                         # 3. Sprawdź url
                         if not channel_url:
                             validation_errors.append("Missing url")
+                            is_valid = False
+                        elif not self._validate_youtube_url(channel_url):
+                            validation_errors.append(f"Invalid YouTube URL format: {channel_url}")
                             is_valid = False
                         
                         # 4. Sprawdź category
@@ -524,6 +528,12 @@ class StateManager:
                 logger.error(f"[ADD] Error: {error_msg}")
                 raise ValueError(error_msg)
             
+            if not self._validate_youtube_url(channel_url):
+                error_msg = f"Invalid YouTube URL format: {channel_url}"
+                print(f"[ADD] Error: {error_msg}")
+                logger.error(f"[ADD] Error: {error_msg}")
+                raise ValueError(error_msg)
+            
             # Sprawdź duplikaty
             if channel_id in self.channel_id_map:
                 existing = self.channel_id_map[channel_id]
@@ -736,3 +746,35 @@ class StateManager:
                 'system_state.json': self.system_state_file.exists()
             }
         } 
+
+    def _validate_youtube_url(self, url: str) -> bool:
+        """Waliduje URL YouTube - akceptuje @handle i /channel/UC..."""
+        
+        if not url:
+            return False
+        
+        # Sprawdź podstawowy format YouTube
+        if not url.startswith('https://www.youtube.com/'):
+            return False
+        
+        # Sprawdź format @handle
+        if '@' in url:
+            handle_match = re.search(r'youtube\.com/@([a-zA-Z0-9_-]+)', url)
+            return handle_match is not None
+        
+        # Sprawdź format /channel/UC...
+        channel_id_match = re.search(r'youtube\.com/channel/(UC[a-zA-Z0-9_-]{22})', url)
+        if channel_id_match:
+            return True
+        
+        # Sprawdź inne formaty
+        other_patterns = [
+            r'youtube\.com/c/[a-zA-Z0-9_-]+',
+            r'youtube\.com/user/[a-zA-Z0-9_-]+'
+        ]
+        
+        for pattern in other_patterns:
+            if re.search(pattern, url):
+                return True
+        
+        return False 
