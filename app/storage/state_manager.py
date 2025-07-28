@@ -637,8 +637,19 @@ class StateManager:
             raise
     
     def get_channels(self) -> Dict[str, List[Dict]]:
-        """Zwraca wszystkie kanały"""
-        return self.channels_data
+        """Zwraca wszystkie kanały z dodanym polem category"""
+        # Dodaj pole category do każdego kanału
+        channels_with_category = {}
+        
+        for category, channels in self.channels_data.items():
+            channels_with_category[category] = []
+            for channel in channels:
+                # Skopiuj kanał i dodaj pole category
+                channel_with_category = channel.copy()
+                channel_with_category['category'] = category
+                channels_with_category[category].append(channel_with_category)
+        
+        return channels_with_category
     
     def get_quota_used(self) -> int:
         """Zwraca użyte quota"""
