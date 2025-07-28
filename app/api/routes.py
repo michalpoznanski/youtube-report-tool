@@ -49,6 +49,7 @@ class StatusResponse(BaseModel):
     categories: List[str]
     quota_usage: Dict
     next_report: Optional[str]
+    cache_stats: Optional[Dict] = None
 
 
 @router.post("/channels", response_model=ChannelResponse)
@@ -231,12 +232,16 @@ async def get_status():
         scheduler_status = task_scheduler.get_status()
         quota_info = youtube_client.get_quota_usage()
         
+        # Pobierz statystyki cache
+        cache_stats = youtube_client.get_cache_stats()
+        
         return StatusResponse(
             scheduler_running=scheduler_status['running'],
             channels_count=scheduler_status['channels_count'],
             categories=scheduler_status['categories'],
             quota_usage=quota_info,
-            next_report=scheduler_status['next_run']
+            next_report=scheduler_status['next_run'],
+            cache_stats=cache_stats
         )
         
     except Exception as e:
@@ -267,4 +272,26 @@ async def stop_scheduler():
         return {"message": "Scheduler zatrzymany"}
     except Exception as e:
         logger.error(f"Błąd podczas zatrzymywania schedulera: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/cache/stats")
+async def get_cache_stats():
+    """Zwraca statystyki cache"""
+    try:
+        cache_stats = youtube_client.get_cache_stats()
+        return cache_stats
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania statystyk cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/cache/cleanup")
+async def cleanup_cache():
+    """Czyści przestarzały cache"""
+    try:
+        cleaned_count = youtube_client.cleanup_cache()
+        return {"message": f"Usunięto {cleaned_count} przestarzałych wpisów z cache"}
+    except Exception as e:
+        logger.error(f"Błąd podczas czyszczenia cache: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
