@@ -45,7 +45,13 @@ class Settings(BaseSettings):
     @property
     def reports_path(self) -> Path:
         """Ścieżka do katalogu z raportami"""
-        return Path(self.reports_dir)
+        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog
+        import os
+        railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
+        if railway_volume:
+            return Path(railway_volume) / "reports"
+        else:
+            return Path(self.reports_dir)
     
     @property
     def backup_path(self) -> Path:
@@ -54,10 +60,28 @@ class Settings(BaseSettings):
     
     def create_directories(self):
         """Tworzy wymagane katalogi"""
-        self.data_path.mkdir(exist_ok=True)
-        self.reports_path.mkdir(exist_ok=True)
-        self.backup_path.mkdir(exist_ok=True)
-        Path("logs").mkdir(exist_ok=True)
+        try:
+            print(f"📁 Tworzenie katalogów...")
+            
+            # Katalog danych
+            self.data_path.mkdir(exist_ok=True)
+            print(f"✅ Katalog danych: {self.data_path.absolute()}")
+            
+            # Katalog raportów (trwały)
+            self.reports_path.mkdir(parents=True, exist_ok=True)
+            print(f"✅ Katalog raportów: {self.reports_path.absolute()}")
+            
+            # Katalog backupów
+            self.backup_path.mkdir(exist_ok=True)
+            print(f"✅ Katalog backupów: {self.backup_path.absolute()}")
+            
+            # Katalog logów
+            Path("logs").mkdir(exist_ok=True)
+            print(f"✅ Katalog logów: logs/")
+            
+        except Exception as e:
+            print(f"❌ Błąd podczas tworzenia katalogów: {e}")
+            raise
 
 
 # Instancja ustawień

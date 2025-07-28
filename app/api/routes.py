@@ -171,22 +171,57 @@ async def list_reports():
     """Zwraca listę dostępnych raportów"""
     try:
         import os
-        reports = []
+        from datetime import datetime
         
-        for file in os.listdir(settings.reports_path):
-            if file.endswith('.csv'):
-                file_path = settings.reports_path / file
+        reports = []
+        reports_dir = settings.reports_path
+        
+        print(f"📂 Szukanie raportów w: {reports_dir.absolute()}")
+        logger.info(f"Szukanie raportów w: {reports_dir.absolute()}")
+        
+        # Sprawdź czy katalog istnieje
+        if not reports_dir.exists():
+            print(f"⚠️ Katalog raportów nie istnieje: {reports_dir.absolute()}")
+            logger.warning(f"Katalog raportów nie istnieje: {reports_dir.absolute()}")
+            # Utwórz katalog
+            reports_dir.mkdir(parents=True, exist_ok=True)
+            print(f"✅ Utworzono katalog raportów: {reports_dir.absolute()}")
+            logger.info(f"Utworzono katalog raportów: {reports_dir.absolute()}")
+        
+        # Listuj pliki CSV
+        csv_files = list(reports_dir.glob("*.csv"))
+        print(f"📄 Znaleziono {len(csv_files)} plików CSV")
+        logger.info(f"Znaleziono {len(csv_files)} plików CSV")
+        
+        for file_path in csv_files:
+            try:
                 stats = os.stat(file_path)
                 reports.append({
-                    'filename': file,
+                    'filename': file_path.name,
                     'size': stats.st_size,
                     'created': stats.st_ctime,
-                    'path': str(file_path)
+                    'created_date': datetime.fromtimestamp(stats.st_ctime).isoformat(),
+                    'path': str(file_path.absolute())
                 })
+                print(f"   📄 {file_path.name} ({stats.st_size} bytes)")
+            except Exception as e:
+                print(f"   ❌ Błąd podczas czytania {file_path.name}: {e}")
+                logger.error(f"Błąd podczas czytania {file_path.name}: {e}")
         
-        return {"reports": sorted(reports, key=lambda x: x['created'], reverse=True)}
+        # Sortuj po dacie utworzenia (najnowsze pierwsze)
+        sorted_reports = sorted(reports, key=lambda x: x['created'], reverse=True)
+        
+        print(f"✅ Zwracam {len(sorted_reports)} raportów")
+        logger.info(f"Zwracam {len(sorted_reports)} raportów")
+        
+        return {
+            "reports": sorted_reports,
+            "total_count": len(sorted_reports),
+            "reports_directory": str(reports_dir.absolute())
+        }
         
     except Exception as e:
+        print(f"❌ Błąd podczas listowania raportów: {e}")
         logger.error(f"Błąd podczas listowania raportów: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -389,4 +424,71 @@ async def debug_json_files():
         }
     except Exception as e:
         logger.error(f"Błąd podczas debugowania plików JSON: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.get("/debug/reports")
+async def debug_reports():
+    """Debug endpoint - pokazuje informacje o katalogu raportów"""
+    try:
+        import os
+        from datetime import datetime
+        
+        reports_dir = settings.reports_path
+        
+        # Sprawdź czy katalog istnieje
+        exists = reports_dir.exists()
+        absolute_path = str(reports_dir.absolute())
+        
+        # Sprawdź uprawnienia
+        can_write = False
+        can_read = False
+        if exists:
+            try:
+                test_file = reports_dir / "test_write.tmp"
+                test_file.write_text("test")
+                test_file.unlink()
+                can_write = True
+            except Exception:
+                can_write = False
+            
+            try:
+                list(reports_dir.iterdir())
+                can_read = True
+            except Exception:
+                can_read = False
+        
+        # Listuj pliki
+        csv_files = []
+        if exists and can_read:
+            for file_path in reports_dir.glob("*.csv"):
+                try:
+                    stats = os.stat(file_path)
+                    csv_files.append({
+                        'name': file_path.name,
+                        'size': stats.st_size,
+                        'created': datetime.fromtimestamp(stats.st_ctime).isoformat(),
+                        'modified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                        'path': str(file_path.absolute())
+                    })
+                except Exception as e:
+                    csv_files.append({
+                        'name': file_path.name,
+                        'error': str(e)
+                    })
+        
+        return {
+            "reports_directory": {
+                "path": absolute_path,
+                "exists": exists,
+                "can_write": can_write,
+                "can_read": can_read
+            },
+            "csv_files": csv_files,
+            "total_csv_files": len(csv_files),
+            "railway_volume_path": os.getenv("RAILWAY_VOLUME_PATH", "Not set")
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas debugowania raportów: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 

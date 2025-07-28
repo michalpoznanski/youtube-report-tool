@@ -92,10 +92,21 @@ class CSVGenerator:
             filename = f"{category}_{timestamp}.csv"
             filepath = settings.reports_path / filename
             
+            # Upewnij się, że katalog raportów istnieje
+            settings.reports_path.mkdir(parents=True, exist_ok=True)
+            
             # Zapisz CSV
             df.to_csv(filepath, index=False, encoding='utf-8')
             
+            print(f"📊 Wygenerowano raport CSV: {filepath.absolute()}")
+            print(f"   📄 Nazwa pliku: {filename}")
+            print(f"   📁 Katalog: {settings.reports_path.absolute()}")
+            print(f"   📈 Liczba wierszy: {len(df)}")
+            print(f"   💾 Rozmiar pliku: {filepath.stat().st_size} bytes")
+            
             logger.info(f"Wygenerowano CSV: {filepath}")
+            logger.info(f"Raport CSV: {filename}, {len(df)} wierszy, {filepath.stat().st_size} bytes")
+            
             return str(filepath)
             
         except Exception as e:
@@ -191,11 +202,22 @@ class CSVGenerator:
             filename = f"summary_{timestamp}.csv"
             filepath = settings.reports_path / filename
             
+            # Upewnij się, że katalog raportów istnieje
+            settings.reports_path.mkdir(parents=True, exist_ok=True)
+            
             # Utwórz DataFrame z odpowiednimi kolumnami
             df = pd.DataFrame(all_rows, columns=self.columns + ['Category'])
             df.to_csv(filepath, index=False, encoding='utf-8')
             
+            print(f"📊 Wygenerowano raport podsumowujący CSV: {filepath.absolute()}")
+            print(f"   📄 Nazwa pliku: {filename}")
+            print(f"   📁 Katalog: {settings.reports_path.absolute()}")
+            print(f"   📈 Liczba wierszy: {len(df)}")
+            print(f"   💾 Rozmiar pliku: {filepath.stat().st_size} bytes")
+            
             logger.info(f"Wygenerowano podsumowanie CSV: {filepath}")
+            logger.info(f"Raport podsumowujący CSV: {filename}, {len(df)} wierszy, {filepath.stat().st_size} bytes")
+            
             return str(filepath)
             
         except Exception as e:
