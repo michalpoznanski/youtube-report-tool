@@ -148,13 +148,10 @@ class TaskScheduler:
             channel_info = await self.youtube_client.get_channel_info(channel_url)
             
             # Dodaj do state manager
-            success = self.state_manager.add_channel(channel_info, category)
+            self.state_manager.add_channel(channel_info, category)
             
-            if success:
-                logger.info(f"Dodano kanał: {channel_info['title']} do kategorii {category}")
-                return channel_info
-            else:
-                raise ValueError(f"Kanał {channel_info['title']} już istnieje w kategorii {category}")
+            logger.info(f"Dodano kanał: {channel_info['title']} do kategorii {category}")
+            return channel_info
                 
         except Exception as e:
             logger.error(f"Błąd podczas dodawania kanału: {e}")
