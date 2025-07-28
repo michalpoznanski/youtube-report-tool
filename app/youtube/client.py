@@ -21,8 +21,23 @@ class YouTubeClient:
         """Wyciąga ID kanału z różnych formatów URL"""
         import re
         
+        # Sprawdź czy URL zawiera watch?v= (link do filmu)
+        if 'watch?v=' in url:
+            raise ValueError("To jest link do filmu, nie do kanału. Użyj linku do kanału YouTube.")
+        
+        # Sprawdź czy URL zawiera @handle
+        if '@' in url:
+            # Wyciągnij handle z URL
+            handle_match = re.search(r'youtube\.com/@([a-zA-Z0-9_-]+)', url)
+            if handle_match:
+                return f"@{handle_match.group(1)}"
+            else:
+                raise ValueError("Nieprawidłowy format URL z handle. Użyj: https://www.youtube.com/@NazwaKanału")
+        
+        # Sprawdź inne formaty URL
         patterns = [
-            r'(?:youtube\.com/channel/|youtube\.com/c/|youtube\.com/@)([a-zA-Z0-9_-]+)',
+            r'(?:youtube\.com/channel/)([a-zA-Z0-9_-]+)',
+            r'(?:youtube\.com/c/)([a-zA-Z0-9_-]+)',
             r'(?:youtube\.com/user/)([a-zA-Z0-9_-]+)'
         ]
         
@@ -31,27 +46,37 @@ class YouTubeClient:
             if match:
                 return match.group(1)
         
-        return None
+        raise ValueError("Nieprawidłowy URL kanału YouTube. Użyj linku do kanału zawierającego @handle.")
     
     async def get_channel_info(self, channel_url: str) -> Dict:
         """Pobiera informacje o kanale"""
         try:
             channel_id = self._extract_channel_id(channel_url)
-            if not channel_id:
-                raise ValueError("Nieprawidłowy URL kanału YouTube")
             
             # Sprawdź czy to handle (@username)
-            if channel_url.startswith('@'):
+            if channel_id.startswith('@'):
+                handle = channel_id[1:]  # Usuń @ z początku
+                logger.info(f"Wyszukiwanie kanału po handle: {handle}")
+                
+                # Wyszukaj kanał po handle
                 request = self.service.search().list(
                     part='snippet',
-                    q=channel_url,
+                    q=handle,
                     type='channel',
                     maxResults=1
                 )
                 response = request.execute()
-                if response['items']:
-                    channel_id = response['items'][0]['snippet']['channelId']
-                    self.quota_used += 100  # search.list = 100 quota
+                self.quota_used += 100  # search.list = 100 quota
+                
+                # Sprawdź czy znaleziono kanał
+                if 'items' not in response or len(response['items']) == 0:
+                    logger.error(f"Nie znaleziono kanału dla handle: {handle}")
+                    logger.error(f"Odpowiedź API: {response}")
+                    raise ValueError(f"Nie znaleziono kanału YouTube dla: {handle}")
+                
+                # Pobierz channelId z wyniku wyszukiwania
+                channel_id = response['items'][0]['snippet']['channelId']
+                logger.info(f"Znaleziono channelId: {channel_id} dla handle: {handle}")
             
             # Pobierz szczegóły kanału
             request = self.service.channels().list(
@@ -61,27 +86,34 @@ class YouTubeClient:
             response = request.execute()
             self.quota_used += 1  # channels.list = 1 quota
             
-            if not response['items']:
-                raise ValueError("Kanał nie został znaleziony")
+            # Sprawdź czy znaleziono kanał
+            if 'items' not in response or len(response['items']) == 0:
+                logger.error(f"Nie znaleziono szczegółów kanału dla ID: {channel_id}")
+                logger.error(f"Odpowiedź API: {response}")
+                raise ValueError("Nie znaleziono kanału YouTube")
             
             channel = response['items'][0]
             return {
                 'id': channel['id'],
                 'title': channel['snippet']['title'],
                 'description': channel['snippet']['description'],
-                'subscriber_count': channel['statistics'].get('subscriberCount', 0),
-                'video_count': channel['statistics'].get('videoCount', 0),
-                'view_count': channel['statistics'].get('viewCount', 0),
+                'subscriber_count': int(channel['statistics'].get('subscriberCount', 0)),
+                'video_count': int(channel['statistics'].get('videoCount', 0)),
+                'view_count': int(channel['statistics'].get('viewCount', 0)),
                 'thumbnail': channel['snippet']['thumbnails']['default']['url'],
                 'published_at': channel['snippet']['publishedAt']
             }
             
         except HttpError as e:
             logger.error(f"Błąd YouTube API: {e}")
+            logger.error(f"Szczegóły błędu: {e.resp.status} {e.content}")
+            raise ValueError(f"Błąd YouTube API: {e}")
+        except ValueError:
+            # Przekaż błędy walidacji bez zmian
             raise
         except Exception as e:
             logger.error(f"Błąd podczas pobierania informacji o kanale: {e}")
-            raise
+            raise ValueError(f"Błąd podczas pobierania informacji o kanale: {e}")
     
     async def get_channel_videos(self, channel_id: str, days_back: int = 3) -> List[Dict]:
         """Pobiera filmy z kanału z ostatnich N dni"""
@@ -98,7 +130,8 @@ class YouTubeClient:
             response = request.execute()
             self.quota_used += 1  # channels.list = 1 quota
             
-            if not response['items']:
+            if 'items' not in response or len(response['items']) == 0:
+                logger.error(f"Nie znaleziono kanału dla ID: {channel_id}")
                 return []
             
             uploads_playlist_id = response['items'][0]['contentDetails']['relatedPlaylists']['uploads']
@@ -116,6 +149,10 @@ class YouTubeClient:
                 )
                 response = request.execute()
                 self.quota_used += 1  # playlistItems.list = 1 quota
+                
+                if 'items' not in response:
+                    logger.error(f"Nieprawidłowa odpowiedź API dla playlisty: {response}")
+                    break
                 
                 for item in response['items']:
                     video_id = item['contentDetails']['videoId']
@@ -153,7 +190,8 @@ class YouTubeClient:
             response = request.execute()
             self.quota_used += 1  # videos.list = 1 quota
             
-            if not response['items']:
+            if 'items' not in response or len(response['items']) == 0:
+                logger.error(f"Nie znaleziono filmu dla ID: {video_id}")
                 return None
             
             video = response['items'][0]
