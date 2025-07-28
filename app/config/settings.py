@@ -61,5 +61,4 @@ class Settings(BaseSettings):
 
 
 # Instancja ustawień
-settings = Settings()
-settings.create_directories() 
+settings = Settings() 

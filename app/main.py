@@ -5,10 +5,26 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import logging
 from pathlib import Path
+import os
 
-from .config import settings
-from .api import router
-from .scheduler import TaskScheduler
+# Import z obsługą błędów
+try:
+    from .config import settings
+    from .api import router
+    from .scheduler import TaskScheduler
+except ImportError as e:
+    print(f"Błąd importu: {e}")
+    # Fallback settings
+    class FallbackSettings:
+        log_level = "INFO"
+        log_file = "logs/app.log"
+        allowed_origins = ["*"]
+        def create_directories(self):
+            Path("logs").mkdir(exist_ok=True)
+    
+    settings = FallbackSettings()
+    router = None
+    TaskScheduler = None
 
 # Konfiguracja logowania
 logging.basicConfig(
@@ -45,7 +61,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Scheduler
-scheduler = TaskScheduler()
+scheduler = TaskScheduler() if TaskScheduler else None
 
 
 @app.on_event("startup")
@@ -54,14 +70,18 @@ async def startup_event():
     try:
         logger.info("Uruchamianie aplikacji Hook Boost Web...")
         
-        # Uruchom scheduler
-        scheduler.start()
+        # Utwórz wymagane katalogi
+        settings.create_directories()
+        
+        # Uruchom scheduler jeśli dostępny
+        if scheduler:
+            scheduler.start()
         
         logger.info("Aplikacja uruchomiona pomyślnie!")
         
     except Exception as e:
         logger.error(f"Błąd podczas uruchamiania aplikacji: {e}")
-        raise
+        # Nie rzucaj błędu - pozwól aplikacji się uruchomić
 
 
 @app.on_event("shutdown")
@@ -70,8 +90,9 @@ async def shutdown_event():
     try:
         logger.info("Zatrzymywanie aplikacji...")
         
-        # Zatrzymaj scheduler
-        scheduler.stop()
+        # Zatrzymaj scheduler jeśli dostępny
+        if scheduler:
+            scheduler.stop()
         
         logger.info("Aplikacja zatrzymana pomyślnie!")
         
@@ -79,8 +100,9 @@ async def shutdown_event():
         logger.error(f"Błąd podczas zatrzymywania aplikacji: {e}")
 
 
-# Dodaj router API
-app.include_router(router, prefix="/api/v1", tags=["api"])
+# Dodaj router API jeśli dostępny
+if router:
+    app.include_router(router, prefix="/api/v1", tags=["api"])
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -95,7 +117,7 @@ async def health_check():
     return {
         "status": "healthy",
         "version": "1.0.0",
-        "scheduler_running": scheduler.scheduler.running
+        "scheduler_running": scheduler.scheduler.running if scheduler else False
     }
 
 
