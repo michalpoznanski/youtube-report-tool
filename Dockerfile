@@ -1,4 +1,4 @@
-FROM python:3.11-slim-buster
+FROM python:3.11-slim
 
 # Ustaw zmienne środowiskowe
 ENV PYTHONDONTWRITEBYTECODE=1
