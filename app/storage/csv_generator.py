@@ -143,17 +143,56 @@ class CSVGenerator:
             
             for category, videos in all_data.items():
                 for video in videos:
-                    # Dodaj kategorię do danych
-                    video['category'] = category
-                    all_rows.append(video)
+                    # Wyciągnij nazwiska
+                    from ..analysis import NameExtractor
+                    extractor = NameExtractor()
+                    names = extractor.extract_from_video_data(video)
+                    
+                    # Określ typ filmu (shorts vs long)
+                    video_type = self._determine_video_type(video.get('duration', ''), video.get('id', ''), video.get('url', ''))
+                    
+                    # Przygotuj datę (offset-aware)
+                    published_at = datetime.fromisoformat(
+                        video['published_at'].replace('Z', '+00:00')
+                    )
+                    # Upewnij się, że ma strefę czasową UTC
+                    if published_at.tzinfo is None:
+                        published_at = published_at.replace(tzinfo=pytz.utc)
+                    date_str = published_at.strftime('%Y-%m-%d')
+                    hour_str = published_at.strftime('%H:%M')
+                    
+                    row = {
+                        'Channel_Name': video.get('channel_title', ''),
+                        'Channel_ID': video.get('channel_id', ''),
+                        'Date_of_Publishing': date_str,
+                        'Hour_GMT2': hour_str,
+                        'Title': video.get('title', ''),
+                        'Description': video.get('description', ''),
+                        'Tags': ', '.join(video.get('tags', [])),
+                        'video_type': video_type,
+                        'View_Count': video.get('view_count', 0),
+                        'Like_Count': video.get('like_count', 0),
+                        'Comment_Count': video.get('comment_count', 0),
+                        'Favorite_Count': video.get('favorite_count', 0),
+                        'Definition': video.get('definition', ''),
+                        'Has_Captions': video.get('caption', ''),
+                        'Licensed_Content': video.get('licensed_content', False),
+                        'Topic_Categories': video.get('category_id', ''),
+                        'Names_Extracted': ', '.join(names),
+                        'Video_ID': video.get('id', ''),
+                        'Duration': video.get('duration', ''),
+                        'Thumbnail_URL': video.get('thumbnail', ''),
+                        'Category': category
+                    }
+                    all_rows.append(row)
             
             # Generuj nazwę pliku
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"summary_{timestamp}.csv"
             filepath = settings.reports_path / filename
             
-            # Utwórz DataFrame i zapisz
-            df = pd.DataFrame(all_rows)
+            # Utwórz DataFrame z odpowiednimi kolumnami
+            df = pd.DataFrame(all_rows, columns=self.columns + ['Category'])
             df.to_csv(filepath, index=False, encoding='utf-8')
             
             logger.info(f"Wygenerowano podsumowanie CSV: {filepath}")
