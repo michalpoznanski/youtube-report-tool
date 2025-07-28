@@ -27,14 +27,24 @@ except ImportError as e:
     TaskScheduler = None
 
 # Konfiguracja logowania
-logging.basicConfig(
-    level=getattr(logging, settings.log_level),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(settings.log_file),
-        logging.StreamHandler()
-    ]
-)
+try:
+    logging.basicConfig(
+        level=getattr(logging, settings.log_level),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(settings.log_file),
+            logging.StreamHandler()
+        ]
+    )
+except Exception:
+    # Fallback - tylko console logging
+    logging.basicConfig(
+        level=getattr(logging, settings.log_level),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler()
+        ]
+    )
 
 logger = logging.getLogger(__name__)
 
