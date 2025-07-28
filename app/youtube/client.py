@@ -3,6 +3,7 @@ from googleapiclient.errors import HttpError
 from typing import List, Dict, Optional
 import logging
 from datetime import datetime, timedelta
+import pytz
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -118,8 +119,8 @@ class YouTubeClient:
     async def get_channel_videos(self, channel_id: str, days_back: int = 3) -> List[Dict]:
         """Pobiera filmy z kanału z ostatnich N dni"""
         try:
-            # Oblicz datę początkową
-            end_date = datetime.utcnow()
+            # Oblicz datę początkową (offset-aware)
+            end_date = datetime.now(pytz.utc)
             start_date = end_date - timedelta(days=days_back)
             
             # Pobierz playlistę uploadów kanału
@@ -159,6 +160,10 @@ class YouTubeClient:
                     published_at = datetime.fromisoformat(
                         item['snippet']['publishedAt'].replace('Z', '+00:00')
                     )
+                    
+                    # Upewnij się, że published_at ma strefę czasową UTC
+                    if published_at.tzinfo is None:
+                        published_at = published_at.replace(tzinfo=pytz.utc)
                     
                     # Sprawdź czy film jest z ostatnich N dni
                     if published_at >= start_date:

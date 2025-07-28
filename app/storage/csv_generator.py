@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import List, Dict
 from datetime import datetime
+import pytz
 import logging
 from pathlib import Path
 from ..config import settings
@@ -49,10 +50,13 @@ class CSVGenerator:
                 # Określ typ filmu (shorts vs long)
                 video_type = self._determine_video_type(video.get('duration', ''))
                 
-                # Przygotuj datę
+                # Przygotuj datę (offset-aware)
                 published_at = datetime.fromisoformat(
                     video['published_at'].replace('Z', '+00:00')
                 )
+                # Upewnij się, że ma strefę czasową UTC
+                if published_at.tzinfo is None:
+                    published_at = published_at.replace(tzinfo=pytz.utc)
                 date_str = published_at.strftime('%Y-%m-%d')
                 hour_str = published_at.strftime('%H:%M')
                 
