@@ -271,7 +271,8 @@ class YouTubeClient:
                 'definition': video['contentDetails']['definition'],
                 'caption': video['contentDetails']['caption'],
                 'licensed_content': video['contentDetails']['licensedContent'],
-                'thumbnail': video['snippet']['thumbnails']['default']['url']
+                'thumbnail': video['snippet']['thumbnails']['default']['url'],
+                'url': f"https://www.youtube.com/watch?v={video['id']}"
             }
             
             # Zapisz do cache
@@ -350,7 +351,8 @@ class YouTubeClient:
                                 'definition': video['contentDetails']['definition'],
                                 'caption': video['contentDetails']['caption'],
                                 'licensed_content': video['contentDetails']['licensedContent'],
-                                'thumbnail': video['snippet']['thumbnails']['default']['url']
+                                'thumbnail': video['snippet']['thumbnails']['default']['url'],
+                                'url': f"https://www.youtube.com/watch?v={video['id']}"
                             }
                             
                             # Zapisz do cache

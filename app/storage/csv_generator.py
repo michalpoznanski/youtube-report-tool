@@ -48,7 +48,7 @@ class CSVGenerator:
                 names = extractor.extract_from_video_data(video)
                 
                 # Określ typ filmu (shorts vs long)
-                video_type = self._determine_video_type(video.get('duration', ''))
+                video_type = self._determine_video_type(video.get('duration', ''), video.get('id', ''), video.get('url', ''))
                 
                 # Przygotuj datę (offset-aware)
                 published_at = datetime.fromisoformat(
@@ -102,8 +102,8 @@ class CSVGenerator:
             logger.error(f"Błąd podczas generowania CSV: {e}")
             raise
     
-    def _determine_video_type(self, duration: str) -> str:
-        """Określa typ filmu na podstawie długości"""
+    def _determine_video_type(self, duration: str, video_id: str = None, video_url: str = None) -> str:
+        """Określa typ filmu na podstawie długości i URL"""
         if not duration:
             return "unknown"
         
@@ -116,7 +116,20 @@ class CSVGenerator:
             seconds = int(match.group(3) or 0)
             total_seconds = hours * 3600 + minutes * 60 + seconds
             
-            if total_seconds <= 60:  # 1 minuta lub mniej
+            # Sprawdź czy URL zawiera "/shorts/"
+            is_shorts_url = False
+            if video_url and "/shorts/" in video_url:
+                is_shorts_url = True
+            elif video_id:
+                # Sprawdź czy film może być dostępny jako shorts
+                # YouTube Shorts URL format: https://www.youtube.com/shorts/VIDEO_ID
+                shorts_url = f"https://www.youtube.com/shorts/{video_id}"
+                # Dla uproszczenia, jeśli duration < 60s, uznajemy za potencjalny shorts
+                if total_seconds <= 60:
+                    is_shorts_url = True
+            
+            # Logika: Jeśli duration < 60s i URL zawiera "/shorts/" to SHORTS, inaczej LONG
+            if total_seconds <= 60 and is_shorts_url:
                 return "shorts"
             else:
                 return "long"

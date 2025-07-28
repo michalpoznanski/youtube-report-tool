@@ -200,6 +200,20 @@ class StateManager:
         """Zwraca pełny stan quota"""
         return self.quota_state
     
+    def persist_quota(self, quota_used: int):
+        """Zapisuje aktualne zużycie quota do pliku"""
+        try:
+            self.quota_state['used'] = quota_used
+            self.quota_state['last_updated'] = datetime.now().isoformat()
+            self.save_quota_state()
+            logger.info(f"Zapisano quota: {quota_used}")
+        except Exception as e:
+            logger.error(f"Błąd podczas zapisywania quota: {e}")
+    
+    def get_persisted_quota(self) -> int:
+        """Zwraca ostatnie zapisane zużycie quota"""
+        return self.quota_state.get('used', 0)
+    
     # Metody do zarządzania stanem systemu
     def update_system_state(self, key: str, value):
         """Aktualizuje stan systemu i zapisuje"""

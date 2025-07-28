@@ -100,6 +100,14 @@ class TaskScheduler:
                     logger.info(f"Wygenerowano raport podsumowujący: {summary_path}")
                 except Exception as e:
                     logger.error(f"Błąd podczas generowania raportu podsumowującego: {e}")
+                
+                # Zapisz aktualne zużycie quota po wygenerowaniu raportów
+                try:
+                    current_quota = self.youtube_client.get_quota_usage()
+                    self.state_manager.persist_quota(current_quota['used'])
+                    logger.info(f"Zapisano quota po wygenerowaniu raportów: {current_quota['used']}")
+                except Exception as e:
+                    logger.error(f"Błąd podczas zapisywania quota: {e}")
             
             # Log quota usage
             quota_state = self.state_manager.get_quota_state()
