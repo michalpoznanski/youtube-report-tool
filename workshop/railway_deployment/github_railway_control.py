@@ -139,7 +139,10 @@ class GitHubRailwayControl:
 def test_github_railway_control():
     """Testuje GitHub Railway Control"""
     
-    GITHUB_TOKEN = "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"
+    # 🛡️ BEZPIECZEŃSTWO: Token usunięty!
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+if not GITHUB_TOKEN:
+    raise ValueError("❌ Brak GITHUB_TOKEN w zmiennych środowiskowych!")
     
     controller = GitHubRailwayControl(GITHUB_TOKEN)
     

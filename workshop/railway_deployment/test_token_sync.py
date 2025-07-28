@@ -10,7 +10,10 @@ from railway_sync_v2 import RailwaySyncV2
 from datetime import datetime
 
 # Twój GitHub token
-GITHUB_TOKEN = "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"
+# 🛡️ BEZPIECZEŃSTWO: Token usunięty!
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+if not GITHUB_TOKEN:
+    raise ValueError("❌ Brak GITHUB_TOKEN w zmiennych środowiskowych!")
 
 def test_token_sync():
     """Testuje automatyczną synchronizację z tokenem"""

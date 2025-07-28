@@ -112,7 +112,10 @@ def start_ultimate_auto_sync():
     """Uruchamia ultimate auto sync"""
     
     # GitHub token
-    GITHUB_TOKEN = "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"
+    # 🛡️ BEZPIECZEŃSTWO: Token usunięty!
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+    if not GITHUB_TOKEN:
+        raise ValueError("❌ Brak GITHUB_TOKEN w zmiennych środowiskowych!")
     
     # Ścieżka do warsztatu
     workshop_path = Path("/Users/maczek/Desktop/BOT/workshop/railway_deployment/hook_boost_railway")

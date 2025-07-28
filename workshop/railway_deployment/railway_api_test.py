@@ -10,7 +10,10 @@ import requests
 import json
 
 # Token z Railway
-RAILWAY_TOKEN = "01cb5053-0fac-4ffe-9618-c7af6466902d"
+# 🛡️ BEZPIECZEŃSTWO: Token usunięty!
+RAILWAY_TOKEN = os.getenv("RAILWAY_TOKEN")
+if not RAILWAY_TOKEN:
+    raise ValueError("❌ Brak RAILWAY_TOKEN w zmiennych środowiskowych!")
 
 def test_railway_api():
     """Testuje różne Railway API endpointy"""

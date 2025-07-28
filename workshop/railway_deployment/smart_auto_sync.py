@@ -131,8 +131,11 @@ def start_smart_auto_sync():
     """Uruchamia inteligentny auto sync"""
     
     # Tokens
-    GITHUB_TOKEN = "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"
-    RAILWAY_TOKEN = "01cb5053-0fac-4ffe-9618-c7af6466902d"
+    # 🛡️ BEZPIECZEŃSTWO: Tokeny usunięte!
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+    RAILWAY_TOKEN = os.getenv("RAILWAY_TOKEN")
+    if not GITHUB_TOKEN or not RAILWAY_TOKEN:
+        raise ValueError("❌ Brak GITHUB_TOKEN lub RAILWAY_TOKEN w zmiennych środowiskowych!")
     
     # Ścieżka do warsztatu
     workshop_path = Path("/Users/maczek/Desktop/BOT/workshop/railway_deployment/hook_boost_railway")

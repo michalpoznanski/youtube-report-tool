@@ -5,10 +5,15 @@
 echo "🚀 Ustawiam środowisko dla Bot V2..."
 
 # Discord Bot Token
-export DISCORD_TOKEN="MTM5NTcyNzA3OTE1MjAyOTc2Ng.GiIrWA.K8UgzKgCMut7m1-uONE3dPGBRNwBBAqRecSkZ8"
+# 🛡️ BEZPIECZEŃSTWO: Użyj pliku .env zamiast hardcodowania!
+# export DISCORD_TOKEN="USUŃ_STARY_TOKEN_I_UŻYJ_.ENV" 
+echo "⚠️  UWAGA: Ten plik zawierał hardcodowane tokeny!"
+echo "📝 Użyj pliku .env do przechowywania tokenów"
+echo "💡 Zobacz: SECURITY_SETUP.md"
 
 # YouTube Data API v3 Key  
-export YOUTUBE_API_KEY="AIzaSyCpWQ8QXUIXEy3hOda2Wa0UAUFIq-Ivm30"
+# 🛡️ BEZPIECZEŃSTWO: Użyj pliku .env zamiast hardcodowania!
+# export YOUTUBE_API_KEY="USUŃ_STARY_TOKEN_I_UŻYJ_.ENV"
 
 echo "✅ Zmienne środowiskowe ustawione:"
 echo "   DISCORD_TOKEN: ${DISCORD_TOKEN:0:20}..."

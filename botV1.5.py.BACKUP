@@ -26,7 +26,10 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 # Get environment variables
-DISCORD_BOT_TOKEN = "MTM5NTcyNzA3OTE1MjAyOTc2Ng.GiIrWA.K8UgzKgCMut7m1-uONE3dPGBRNwBBAqRecSkZ8"
+# 🛡️ BEZPIECZEŃSTWO: Token został usunięty z kodu!
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+if not DISCORD_BOT_TOKEN:
+    raise ValueError("❌ Brak DISCORD_BOT_TOKEN w zmiennych środowiskowych!")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
