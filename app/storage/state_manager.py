@@ -305,12 +305,12 @@ class StateManager:
                         valid_channels.append(channel)
                         print(f"[VALID] Valid channel: {channel_name} ({channel_id}) in {category}")
                     
-                    # Dodaj kategorię tylko jeśli ma poprawne kanały
+                    # Dodaj kategorię (nawet jeśli pusta)
+                    cleaned_channels_data[category] = valid_channels
                     if valid_channels:
-                        cleaned_channels_data[category] = valid_channels
                         print(f"[VALIDATE] Category {category}: {len(valid_channels)} valid channels (removed {len(channels) - len(valid_channels)} invalid)")
                     else:
-                        print(f"[VALIDATE] Category {category}: all channels invalid, removing category")
+                        print(f"[VALIDATE] Category {category}: no valid channels, keeping empty category")
                 
                 # Zaktualizuj dane kanałów
                 self.channels_data = cleaned_channels_data
@@ -756,7 +756,98 @@ class StateManager:
                 'quota_state.json': self.quota_file.exists(),
                 'system_state.json': self.system_state_file.exists()
             }
-        } 
+        }
+
+    def add_category(self, category_name: str) -> Dict:
+        """Dodaje nową kategorię"""
+        try:
+            if not category_name or not category_name.strip():
+                raise ValueError("Nazwa kategorii nie może być pusta")
+            
+            category_name = category_name.strip()
+            
+            if category_name in self.channels_data:
+                raise ValueError(f"Kategoria '{category_name}' już istnieje")
+            
+            # Dodaj nową kategorię
+            self.channels_data[category_name] = []
+            
+            # Zapisz zmiany
+            self.save_channels()
+            
+            print(f"[CATEGORY] Added new category: {category_name}")
+            logger.info(f"Added new category: {category_name}")
+            
+            return {
+                'name': category_name,
+                'channels_count': 0,
+                'message': f'Kategoria "{category_name}" została dodana'
+            }
+            
+        except Exception as e:
+            print(f"[CATEGORY] Error adding category: {e}")
+            logger.error(f"Error adding category: {e}")
+            raise
+
+    def remove_category(self, category_name: str, force: bool = False) -> Dict:
+        """Usuwa kategorię"""
+        try:
+            if category_name not in self.channels_data:
+                raise ValueError(f"Kategoria '{category_name}' nie istnieje")
+            
+            channels_count = len(self.channels_data[category_name])
+            
+            if channels_count > 0 and not force:
+                raise ValueError(
+                    f"Kategoria '{category_name}' zawiera {channels_count} kanałów. "
+                    "Użyj force=true aby usunąć kategorię wraz z kanałami."
+                )
+            
+            # Usuń kanały z map
+            for channel in self.channels_data[category_name]:
+                channel_id = channel.get('id')
+                channel_url = channel.get('url')
+                
+                if channel_id in self.channel_id_map:
+                    self.channel_id_map.pop(channel_id)
+                    print(f"[CATEGORY] Removed from channel_id_map: {channel_id}")
+                
+                if channel_url in self.channel_url_map:
+                    self.channel_url_map.pop(channel_url)
+                    print(f"[CATEGORY] Removed from channel_url_map: {channel_url}")
+            
+            # Usuń kategorię
+            del self.channels_data[category_name]
+            
+            # Zapisz zmiany
+            self.save_channels()
+            
+            print(f"[CATEGORY] Removed category: {category_name} ({channels_count} channels)")
+            logger.info(f"Removed category: {category_name} ({channels_count} channels)")
+            
+            return {
+                'name': category_name,
+                'channels_count': channels_count,
+                'message': f'Kategoria "{category_name}" została usunięta ({channels_count} kanałów)'
+            }
+            
+        except Exception as e:
+            print(f"[CATEGORY] Error removing category: {e}")
+            logger.error(f"Error removing category: {e}")
+            raise
+
+    def get_categories(self) -> List[Dict]:
+        """Zwraca listę kategorii z liczbą kanałów"""
+        categories = []
+        
+        for category_name, channels in self.channels_data.items():
+            categories.append({
+                'name': category_name,
+                'channels_count': len(channels),
+                'channels': [{'id': c['id'], 'title': c['title']} for c in channels]
+            })
+        
+        return categories
 
     def _validate_youtube_url(self, url: str) -> bool:
         """Waliduje URL YouTube - akceptuje @handle i /channel/UC..."""

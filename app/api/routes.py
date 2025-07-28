@@ -54,6 +54,22 @@ class StatusResponse(BaseModel):
     cache_stats: Optional[Dict] = None
 
 
+class CategoryRequest(BaseModel):
+    name: str
+
+
+class CategoryResponse(BaseModel):
+    name: str
+    channels_count: int
+    message: str
+
+
+class CategoryInfo(BaseModel):
+    name: str
+    channels_count: int
+    channels: List[Dict]
+
+
 @router.post("/channels", response_model=ChannelResponse)
 async def add_channel(channel_request: ChannelRequest):
     """Dodaje kanał YouTube do monitorowania"""
@@ -98,6 +114,53 @@ async def remove_channel(channel_id: str, category: str = "general"):
         return {"message": f"Kanał {channel_id} został usunięty z kategorii {category}"}
     except Exception as e:
         logger.error(f"Błąd podczas usuwania kanału: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/categories", response_model=CategoryResponse)
+async def add_category(category_request: CategoryRequest):
+    """Dodaje nową kategorię"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        result = task_scheduler.add_category(category_request.name)
+        logger.info(f"Dodano kategorię: {category_request.name}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas dodawania kategorii: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/categories/{category_name}")
+async def remove_category(category_name: str, force: bool = False):
+    """Usuwa kategorię (z opcją force dla usunięcia z kanałami)"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        result = task_scheduler.remove_category(category_name, force)
+        logger.info(f"Usunięto kategorię: {category_name} (force={force})")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas usuwania kategorii: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/categories", response_model=List[CategoryInfo])
+async def get_categories():
+    """Zwraca listę wszystkich kategorii z liczbą kanałów"""
+    try:
+        if not task_scheduler:
+            return []
+        
+        categories = task_scheduler.get_categories()
+        return categories
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania kategorii: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

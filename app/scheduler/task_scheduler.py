@@ -171,4 +171,16 @@ class TaskScheduler:
     
     def cleanup_cache(self) -> int:
         """Czyści przestarzały cache"""
-        return self.youtube_client.cleanup_cache() 
+        return self.youtube_client.cleanup_cache()
+
+    def add_category(self, category_name: str) -> Dict:
+        """Dodaje nową kategorię"""
+        return self.state_manager.add_category(category_name)
+
+    def remove_category(self, category_name: str, force: bool = False) -> Dict:
+        """Usuwa kategorię"""
+        return self.state_manager.remove_category(category_name, force)
+
+    def get_categories(self) -> List[Dict]:
+        """Zwraca listę kategorii"""
+        return self.state_manager.get_categories() 
