@@ -116,6 +116,14 @@ async def shutdown_event():
 
 # Dodaj router API jeśli dostępny
 if router:
+    # Przekaż instancję schedulera do API
+    try:
+        from .api.routes import set_task_scheduler
+        if scheduler:
+            set_task_scheduler(scheduler)
+    except ImportError:
+        pass
+    
     app.include_router(router, prefix="/api/v1", tags=["api"])
 
 

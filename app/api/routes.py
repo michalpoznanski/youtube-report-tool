@@ -12,7 +12,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 youtube_client = YouTubeClient(settings.youtube_api_key)
-task_scheduler = TaskScheduler()
+# Używamy globalnej instancji z main.py
+task_scheduler = None
+
+def set_task_scheduler(scheduler_instance):
+    """Ustawia globalną instancję schedulera"""
+    global task_scheduler
+    task_scheduler = scheduler_instance
 
 
 # Pydantic models
@@ -49,6 +55,9 @@ class StatusResponse(BaseModel):
 async def add_channel(channel_request: ChannelRequest):
     """Dodaje kanał YouTube do monitorowania"""
     try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+            
         # Pobierz informacje o kanale
         channel_info = await youtube_client.get_channel_info(channel_request.url)
         
@@ -70,6 +79,8 @@ async def add_channel(channel_request: ChannelRequest):
 async def get_channels():
     """Zwraca listę wszystkich kanałów"""
     try:
+        if not task_scheduler:
+            return {}
         channels = task_scheduler.get_channels()
         return channels
     except Exception as e:
@@ -81,6 +92,8 @@ async def get_channels():
 async def remove_channel(channel_id: str, category: str = "general"):
     """Usuwa kanał z monitorowania"""
     try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
         task_scheduler.remove_channel(channel_id, category)
         return {"message": f"Kanał {channel_id} został usunięty z kategorii {category}"}
     except Exception as e:
@@ -92,6 +105,9 @@ async def remove_channel(channel_id: str, category: str = "general"):
 async def generate_report(report_request: ReportRequest):
     """Generuje raport CSV dla określonej kategorii"""
     try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+            
         channels = task_scheduler.get_channels()
         
         if report_request.category and report_request.category not in channels:
@@ -203,6 +219,15 @@ async def download_report(filename: str):
 async def get_status():
     """Zwraca status systemu"""
     try:
+        if not task_scheduler:
+            return StatusResponse(
+                scheduler_running=False,
+                channels_count=0,
+                categories=[],
+                quota_usage=youtube_client.get_quota_usage(),
+                next_report=None
+            )
+            
         scheduler_status = task_scheduler.get_status()
         quota_info = youtube_client.get_quota_usage()
         
@@ -223,6 +248,8 @@ async def get_status():
 async def start_scheduler():
     """Uruchamia scheduler"""
     try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
         task_scheduler.start()
         return {"message": "Scheduler uruchomiony"}
     except Exception as e:
@@ -234,6 +261,8 @@ async def start_scheduler():
 async def stop_scheduler():
     """Zatrzymuje scheduler"""
     try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
         task_scheduler.stop()
         return {"message": "Scheduler zatrzymany"}
     except Exception as e:
