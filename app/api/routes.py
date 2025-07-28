@@ -492,3 +492,33 @@ async def debug_reports():
     except Exception as e:
         logger.error(f"Błąd podczas debugowania raportów: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.get("/debug/env")
+async def debug_environment():
+    """Debug endpoint - pokazuje zmienne środowiskowe"""
+    try:
+        import os
+        
+        env_vars = {
+            "RAILWAY_VOLUME_PATH": os.getenv("RAILWAY_VOLUME_PATH", "Not set"),
+            "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT", "Not set"),
+            "RAILWAY_PROJECT_ID": os.getenv("RAILWAY_PROJECT_ID", "Not set"),
+            "RAILWAY_SERVICE_ID": os.getenv("RAILWAY_SERVICE_ID", "Not set"),
+            "PWD": os.getcwd(),
+            "HOME": os.getenv("HOME", "Not set"),
+            "USER": os.getenv("USER", "Not set"),
+        }
+        
+        return {
+            "environment_variables": env_vars,
+            "current_working_directory": os.getcwd(),
+            "data_directory_exists": os.path.exists("/app/data"),
+            "data_directory_writable": os.access("/app/data", os.W_OK) if os.path.exists("/app/data") else False,
+            "reports_directory_exists": os.path.exists("/app/reports"),
+            "reports_directory_writable": os.access("/app/reports", os.W_OK) if os.path.exists("/app/reports") else False,
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas debugowania zmiennych środowiskowych: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
