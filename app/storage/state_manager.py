@@ -13,7 +13,9 @@ class StateManager:
     
     def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
-        self.data_dir.mkdir(exist_ok=True)
+        
+        # Sprawdź i utwórz katalog jeśli nie istnieje
+        self._ensure_data_directory()
         
         # Pliki z danymi
         self.channels_file = self.data_dir / "channels.json"
@@ -28,14 +30,60 @@ class StateManager:
         # Załaduj dane przy starcie
         self.load_all_data()
     
+    def _ensure_data_directory(self):
+        """Sprawdza i tworzy katalog danych z odpowiednimi uprawnieniami"""
+        try:
+            if not self.data_dir.exists():
+                print(f"📁 Tworzenie katalogu danych: {self.data_dir.absolute()}")
+                self.data_dir.mkdir(parents=True, exist_ok=True)
+                print(f"✅ Katalog utworzony: {self.data_dir.absolute()}")
+            else:
+                print(f"📁 Katalog danych istnieje: {self.data_dir.absolute()}")
+            
+            # Sprawdź uprawnienia do zapisu
+            test_file = self.data_dir / "test_write.tmp"
+            try:
+                test_file.write_text("test")
+                test_file.unlink()
+                print(f"✅ Uprawnienia do zapisu OK: {self.data_dir.absolute()}")
+            except Exception as e:
+                print(f"❌ Brak uprawnień do zapisu: {self.data_dir.absolute()} - {e}")
+                # Spróbuj alternatywny katalog
+                alt_dir = Path("/tmp/data")
+                print(f"🔄 Próba użycia alternatywnego katalogu: {alt_dir}")
+                alt_dir.mkdir(parents=True, exist_ok=True)
+                self.data_dir = alt_dir
+                
+        except Exception as e:
+            print(f"❌ Błąd podczas tworzenia katalogu danych: {e}")
+            # Fallback do katalogu roboczego
+            self.data_dir = Path("data")
+            self.data_dir.mkdir(exist_ok=True)
+    
     def load_all_data(self):
         """Ładuje wszystkie dane z plików"""
         try:
+            print("🔄 Ładowanie danych z plików JSON...")
+            logger.info("🔄 Ładowanie danych z plików JSON...")
+            
             self.load_channels()
             self.load_quota_state()
             self.load_system_state()
-            logger.info("Wszystkie dane załadowane pomyślnie")
+            
+            # Wyświetl podsumowanie wczytanych danych
+            channels_count = sum(len(channels) for channels in self.channels_data.values())
+            quota_used = self.quota_state.get('used', 0)
+            last_reset = self.quota_state.get('last_reset', 'Nieznana')
+            
+            print(f"✅ Dane wczytane pomyślnie:")
+            print(f"   📺 Kanały: {channels_count}")
+            print(f"   📊 Quota użyte: {quota_used}")
+            print(f"   🕐 Ostatni reset: {last_reset}")
+            print(f"   📁 Katalog danych: {self.data_dir.absolute()}")
+            
+            logger.info(f"✅ Dane wczytane pomyślnie - Kanały: {channels_count}, Quota: {quota_used}")
         except Exception as e:
+            print(f"❌ Błąd podczas ładowania danych: {e}")
             logger.error(f"Błąd podczas ładowania danych: {e}")
     
     def load_channels(self) -> Dict[str, List[Dict]]:
@@ -44,11 +92,24 @@ class StateManager:
             if self.channels_file.exists():
                 with open(self.channels_file, 'r', encoding='utf-8') as f:
                     self.channels_data = json.load(f)
-                logger.info(f"Załadowano {sum(len(channels) for channels in self.channels_data.values())} kanałów")
+                
+                channels_count = sum(len(channels) for channels in self.channels_data.values())
+                categories = list(self.channels_data.keys())
+                
+                print(f"📺 Załadowano {channels_count} kanałów z kategorii: {categories}")
+                logger.info(f"Załadowano {channels_count} kanałów z kategorii: {categories}")
+                
+                # Wyświetl szczegóły kanałów
+                for category, channels in self.channels_data.items():
+                    print(f"   📂 {category}: {len(channels)} kanałów")
+                    for channel in channels:
+                        print(f"      - {channel.get('title', 'Unknown')} ({channel.get('id', 'No ID')})")
             else:
                 self.channels_data = {}
+                print("📁 Utworzono nowy plik kanałów (brak istniejących danych)")
                 logger.info("Utworzono nowy plik kanałów")
         except Exception as e:
+            print(f"❌ Błąd podczas ładowania kanałów: {e}")
             logger.error(f"Błąd podczas ładowania kanałów: {e}")
             self.channels_data = {}
         
@@ -75,6 +136,7 @@ class StateManager:
                 if last_reset:
                     last_reset_date = datetime.fromisoformat(last_reset)
                     if datetime.now() - last_reset_date > timedelta(hours=24):
+                        print("🔄 Quota przestarzałe - reset")
                         logger.info("Quota przestarzałe - reset")
                         self.quota_state = {'used': 0, 'last_reset': datetime.now().isoformat()}
                         self.save_quota_state()
@@ -82,12 +144,17 @@ class StateManager:
                     self.quota_state = {'used': 0, 'last_reset': datetime.now().isoformat()}
                     self.save_quota_state()
                 
-                logger.info(f"Załadowano stan quota: {self.quota_state.get('used', 0)}")
+                quota_used = self.quota_state.get('used', 0)
+                last_reset = self.quota_state.get('last_reset', 'Nieznana')
+                print(f"📊 Załadowano stan quota: {quota_used} użyte, ostatni reset: {last_reset}")
+                logger.info(f"Załadowano stan quota: {quota_used}")
             else:
                 self.quota_state = {'used': 0, 'last_reset': datetime.now().isoformat()}
                 self.save_quota_state()
+                print("📁 Utworzono nowy stan quota (brak istniejących danych)")
                 logger.info("Utworzono nowy stan quota")
         except Exception as e:
+            print(f"❌ Błąd podczas ładowania stanu quota: {e}")
             logger.error(f"Błąd podczas ładowania stanu quota: {e}")
             self.quota_state = {'used': 0, 'last_reset': datetime.now().isoformat()}
         
