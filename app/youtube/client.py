@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 class YouTubeClient:
     """Klient YouTube Data API v3"""
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, state_manager=None):
         self.api_key = api_key
         self.service = build('youtube', 'v3', developerKey=api_key)
-        self.quota_used = 0
         self.quota_limit = 10000  # Dzienny limit
+        self.state_manager = state_manager
         
         # Cache system
         self.video_cache = {}
@@ -98,7 +98,8 @@ class YouTubeClient:
                     maxResults=1
                 )
                 response = request.execute()
-                self.quota_used += 100  # search.list = 100 quota
+                if self.state_manager:
+                    self.state_manager.add_quota_used(100)  # search.list = 100 quota
                 
                 # Sprawdź czy znaleziono kanał
                 if 'items' not in response or len(response['items']) == 0:
@@ -116,7 +117,8 @@ class YouTubeClient:
                 id=channel_id
             )
             response = request.execute()
-            self.quota_used += 1  # channels.list = 1 quota
+            if self.state_manager:
+                self.state_manager.add_quota_used(1)  # channels.list = 1 quota
             
             # Sprawdź czy znaleziono kanał
             if 'items' not in response or len(response['items']) == 0:
@@ -160,7 +162,8 @@ class YouTubeClient:
                 id=channel_id
             )
             response = request.execute()
-            self.quota_used += 1  # channels.list = 1 quota
+            if self.state_manager:
+                self.state_manager.add_quota_used(1)  # channels.list = 1 quota
             
             if 'items' not in response or len(response['items']) == 0:
                 logger.error(f"Nie znaleziono kanału dla ID: {channel_id}")
@@ -181,7 +184,8 @@ class YouTubeClient:
                     pageToken=next_page_token
                 )
                 response = request.execute()
-                self.quota_used += 1  # playlistItems.list = 1 quota
+                if self.state_manager:
+                    self.state_manager.add_quota_used(1)  # playlistItems.list = 1 quota
                 
                 if 'items' not in response:
                     logger.error(f"Nieprawidłowa odpowiedź API dla playlisty: {response}")
@@ -244,7 +248,8 @@ class YouTubeClient:
                 id=video_id
             )
             response = request.execute()
-            self.quota_used += 1  # videos.list = 1 quota
+            if self.state_manager:
+                self.state_manager.add_quota_used(1)  # videos.list = 1 quota
             
             if 'items' not in response or len(response['items']) == 0:
                 logger.error(f"Nie znaleziono filmu dla ID: {video_id}")
@@ -325,7 +330,8 @@ class YouTubeClient:
                         id=','.join(batch_ids)
                     )
                     response = request.execute()
-                    self.quota_used += 1  # Tylko 1 quota za 50 filmów!
+                    if self.state_manager:
+                        self.state_manager.add_quota_used(1)  # Tylko 1 quota za 50 filmów!
                     
                     if 'items' in response:
                         for video in response['items']:
@@ -379,16 +385,26 @@ class YouTubeClient:
     
     def get_quota_usage(self) -> Dict:
         """Zwraca informacje o zużyciu quota"""
-        return {
-            'used': self.quota_used,
-            'limit': self.quota_limit,
-            'remaining': self.quota_limit - self.quota_used,
-            'percentage': (self.quota_used / self.quota_limit) * 100
-        }
+        if self.state_manager:
+            quota_used = self.state_manager.get_quota_used()
+            return {
+                'used': quota_used,
+                'limit': self.quota_limit,
+                'remaining': self.quota_limit - quota_used,
+                'percentage': (quota_used / self.quota_limit) * 100
+            }
+        else:
+            return {
+                'used': 0,
+                'limit': self.quota_limit,
+                'remaining': self.quota_limit,
+                'percentage': 0
+            }
     
     def reset_quota(self):
         """Resetuje licznik quota (wywoływane codziennie)"""
-        self.quota_used = 0
+        if self.state_manager:
+            self.state_manager.reset_quota()
         logger.info("Quota zostało zresetowane")
     
     def cleanup_cache(self, max_age_hours: int = 24):

@@ -6,6 +6,7 @@ from typing import Dict, List
 from ..config import settings
 from ..youtube import YouTubeClient
 from ..storage import CSVGenerator
+from ..storage.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,9 @@ class TaskScheduler:
     
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
-        self.youtube_client = YouTubeClient(settings.youtube_api_key)
+        self.state_manager = StateManager()  # Zarządza trwałymi danymi
+        self.youtube_client = YouTubeClient(settings.youtube_api_key, self.state_manager)
         self.csv_generator = CSVGenerator()
-        self.channels_data = {}  # Przechowuje dane kanałów
     
     def start(self):
         """Uruchamia scheduler"""
@@ -53,13 +54,13 @@ class TaskScheduler:
         try:
             logger.info("Rozpoczęcie codziennego zadania raportowania")
             
-            # Reset quota
-            self.youtube_client.reset_quota()
+            # Reset quota (tylko raz dziennie)
+            self.state_manager.reset_quota()
             
             # Pobierz dane ze wszystkich kanałów
             all_videos = {}
             
-            for category, channels in self.channels_data.items():
+            for category, channels in self.state_manager.get_channels().items():
                 category_videos = []
                 
                 for channel in channels:
@@ -101,8 +102,8 @@ class TaskScheduler:
                     logger.error(f"Błąd podczas generowania raportu podsumowującego: {e}")
             
             # Log quota usage
-            quota_info = self.youtube_client.get_quota_usage()
-            logger.info(f"Zużycie quota: {quota_info['used']}/{quota_info['limit']} ({quota_info['percentage']:.1f}%)")
+            quota_state = self.state_manager.get_quota_state()
+            logger.info(f"Zużycie quota: {quota_state['used']}/10000 ({quota_state['used']/100:.1f}%)")
             
             logger.info("Codzienne zadanie raportowania zakończone")
             
@@ -111,36 +112,58 @@ class TaskScheduler:
     
     def add_channel(self, channel_data: Dict, category: str = "general"):
         """Dodaje kanał do monitorowania"""
-        if category not in self.channels_data:
-            self.channels_data[category] = []
-        
-        # Sprawdź czy kanał już istnieje
-        existing_ids = [ch['id'] for ch in self.channels_data[category]]
-        if channel_data['id'] not in existing_ids:
-            self.channels_data[category].append(channel_data)
-            logger.info(f"Dodano kanał {channel_data['title']} do kategorii {category}")
-        else:
-            logger.warning(f"Kanał {channel_data['title']} już istnieje w kategorii {category}")
+        return self.state_manager.add_channel(channel_data, category)
     
     def remove_channel(self, channel_id: str, category: str = "general"):
         """Usuwa kanał z monitorowania"""
-        if category in self.channels_data:
-            self.channels_data[category] = [
-                ch for ch in self.channels_data[category] 
-                if ch['id'] != channel_id
-            ]
-            logger.info(f"Usunięto kanał {channel_id} z kategorii {category}")
+        return self.state_manager.remove_channel(channel_id, category)
     
     def get_channels(self) -> Dict[str, List[Dict]]:
         """Zwraca listę wszystkich kanałów"""
-        return self.channels_data
+        return self.state_manager.get_channels()
     
     def get_status(self) -> Dict:
         """Zwraca status schedulera"""
+        channels = self.state_manager.get_channels()
         return {
             'running': self.scheduler.running,
             'jobs': len(self.scheduler.get_jobs()),
-            'channels_count': sum(len(channels) for channels in self.channels_data.values()),
-            'categories': list(self.channels_data.keys()),
+            'channels_count': sum(len(channels) for channels in channels.values()),
+            'categories': list(channels.keys()),
             'next_run': self.scheduler.get_job('daily_report').next_run_time.isoformat() if self.scheduler.get_job('daily_report') else None
-        } 
+        }
+    
+    async def add_channel(self, channel_url: str, category: str = "general"):
+        """Dodaje kanał do monitorowania"""
+        try:
+            # Pobierz informacje o kanale
+            channel_info = await self.youtube_client.get_channel_info(channel_url)
+            
+            # Dodaj do state manager
+            success = self.state_manager.add_channel(channel_info, category)
+            
+            if success:
+                logger.info(f"Dodano kanał: {channel_info['title']} do kategorii {category}")
+                return channel_info
+            else:
+                raise ValueError(f"Kanał {channel_info['title']} już istnieje w kategorii {category}")
+                
+        except Exception as e:
+            logger.error(f"Błąd podczas dodawania kanału: {e}")
+            raise
+    
+    async def get_channel_videos(self, channel_id: str, days_back: int = 3):
+        """Pobiera filmy z kanału"""
+        return await self.youtube_client.get_channel_videos(channel_id, days_back)
+    
+    def get_quota_usage(self) -> Dict:
+        """Zwraca informacje o zużyciu quota"""
+        return self.youtube_client.get_quota_usage()
+    
+    def get_cache_stats(self) -> Dict:
+        """Zwraca statystyki cache"""
+        return self.youtube_client.get_cache_stats()
+    
+    def cleanup_cache(self) -> int:
+        """Czyści przestarzały cache"""
+        return self.youtube_client.cleanup_cache() 

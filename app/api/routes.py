@@ -11,7 +11,6 @@ from ..config import settings
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-youtube_client = YouTubeClient(settings.youtube_api_key)
 # Używamy globalnej instancji z main.py
 task_scheduler = None
 
@@ -59,11 +58,8 @@ async def add_channel(channel_request: ChannelRequest):
         if not task_scheduler:
             raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
             
-        # Pobierz informacje o kanale
-        channel_info = await youtube_client.get_channel_info(channel_request.url)
-        
-        # Dodaj do schedulera
-        task_scheduler.add_channel(channel_info, channel_request.category)
+        # Dodaj kanał przez scheduler
+        channel_info = await task_scheduler.add_channel(channel_request.url, channel_request.category)
         
         # Dodaj kategorię do odpowiedzi
         channel_info['category'] = channel_request.category
@@ -125,7 +121,7 @@ async def generate_report(report_request: ReportRequest):
                 
                 for channel in channels[category]:
                     try:
-                        videos = await youtube_client.get_channel_videos(
+                        videos = await task_scheduler.get_channel_videos(
                             channel['id'], 
                             report_request.days_back
                         )
@@ -225,15 +221,15 @@ async def get_status():
                 scheduler_running=False,
                 channels_count=0,
                 categories=[],
-                quota_usage=youtube_client.get_quota_usage(),
+                quota_usage=task_scheduler.get_quota_usage(),
                 next_report=None
             )
             
         scheduler_status = task_scheduler.get_status()
-        quota_info = youtube_client.get_quota_usage()
+        quota_info = task_scheduler.get_quota_usage()
         
         # Pobierz statystyki cache
-        cache_stats = youtube_client.get_cache_stats()
+        cache_stats = task_scheduler.get_cache_stats()
         
         return StatusResponse(
             scheduler_running=scheduler_status['running'],
@@ -279,7 +275,7 @@ async def stop_scheduler():
 async def get_cache_stats():
     """Zwraca statystyki cache"""
     try:
-        cache_stats = youtube_client.get_cache_stats()
+        cache_stats = task_scheduler.get_cache_stats()
         return cache_stats
     except Exception as e:
         logger.error(f"Błąd podczas pobierania statystyk cache: {e}")
@@ -290,8 +286,36 @@ async def get_cache_stats():
 async def cleanup_cache():
     """Czyści przestarzały cache"""
     try:
-        cleaned_count = youtube_client.cleanup_cache()
+        cleaned_count = task_scheduler.cleanup_cache()
         return {"message": f"Usunięto {cleaned_count} przestarzałych wpisów z cache"}
     except Exception as e:
         logger.error(f"Błąd podczas czyszczenia cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/data/clear")
+async def clear_all_data():
+    """Czyści wszystkie dane (dla testów)"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        task_scheduler.state_manager.clear_all_data()
+        return {"message": "Wszystkie dane zostały wyczyszczone"}
+    except Exception as e:
+        logger.error(f"Błąd podczas czyszczenia danych: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/data/stats")
+async def get_data_stats():
+    """Zwraca statystyki danych"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        stats = task_scheduler.state_manager.get_data_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania statystyk danych: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
