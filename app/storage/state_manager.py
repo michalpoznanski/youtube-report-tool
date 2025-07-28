@@ -14,7 +14,7 @@ class StateManager:
     def __init__(self, data_dir: str = None):
         print(f"[INIT] StateManager initialization started")
         
-        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog /mnt/data
+        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog /mnt/volume
         if data_dir is None:
             railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
             if railway_volume:
@@ -22,7 +22,7 @@ class StateManager:
                 print(f"[INIT] Using Railway Volume Path: {data_dir}")
                 logger.info(f"Using Railway Volume Path: {data_dir}")
             else:
-                data_dir = "/mnt/data"
+                data_dir = "/mnt/volume/data"
                 print(f"[INIT] Using default persistent directory: {data_dir}")
                 logger.info(f"Using default persistent directory: {data_dir}")
         

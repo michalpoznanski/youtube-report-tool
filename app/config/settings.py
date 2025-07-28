@@ -40,12 +40,12 @@ class Settings(BaseSettings):
     @property
     def data_path(self) -> Path:
         """Ścieżka do katalogu z danymi"""
-        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog /mnt/data
+        # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie domyślny katalog /mnt/volume
         railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
         if railway_volume:
             return Path(railway_volume) / "data"
         else:
-            return Path("/mnt/data")
+            return Path("/mnt/volume/data")
     
     @property
     def reports_path(self) -> Path:
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
         if railway_volume:
             return Path(railway_volume) / "reports"
         else:
-            return Path("/mnt/data/reports")
+            return Path("/mnt/volume/reports")
     
     @property
     def backup_path(self) -> Path:
