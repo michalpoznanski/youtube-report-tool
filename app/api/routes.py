@@ -1,0 +1,241 @@
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from typing import List, Dict, Optional
+import logging
+from ..youtube import YouTubeClient
+from ..scheduler import TaskScheduler
+from ..storage import CSVGenerator
+from ..config import settings
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+youtube_client = YouTubeClient(settings.youtube_api_key)
+task_scheduler = TaskScheduler()
+
+
+# Pydantic models
+class ChannelRequest(BaseModel):
+    url: str
+    category: str = "general"
+
+
+class ChannelResponse(BaseModel):
+    id: str
+    title: str
+    description: str
+    subscriber_count: int
+    video_count: int
+    view_count: int
+    thumbnail: str
+    category: str
+
+
+class ReportRequest(BaseModel):
+    category: Optional[str] = None
+    days_back: int = 3
+
+
+class StatusResponse(BaseModel):
+    scheduler_running: bool
+    channels_count: int
+    categories: List[str]
+    quota_usage: Dict
+    next_report: Optional[str]
+
+
+@router.post("/channels", response_model=ChannelResponse)
+async def add_channel(channel_request: ChannelRequest):
+    """Dodaje kanał YouTube do monitorowania"""
+    try:
+        # Pobierz informacje o kanale
+        channel_info = await youtube_client.get_channel_info(channel_request.url)
+        
+        # Dodaj do schedulera
+        task_scheduler.add_channel(channel_info, channel_request.category)
+        
+        # Dodaj kategorię do odpowiedzi
+        channel_info['category'] = channel_request.category
+        
+        logger.info(f"Dodano kanał: {channel_info['title']} do kategorii {channel_request.category}")
+        return channel_info
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas dodawania kanału: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/channels", response_model=Dict[str, List[ChannelResponse]])
+async def get_channels():
+    """Zwraca listę wszystkich kanałów"""
+    try:
+        channels = task_scheduler.get_channels()
+        return channels
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania kanałów: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/channels/{channel_id}")
+async def remove_channel(channel_id: str, category: str = "general"):
+    """Usuwa kanał z monitorowania"""
+    try:
+        task_scheduler.remove_channel(channel_id, category)
+        return {"message": f"Kanał {channel_id} został usunięty z kategorii {category}"}
+    except Exception as e:
+        logger.error(f"Błąd podczas usuwania kanału: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/reports/generate")
+async def generate_report(report_request: ReportRequest):
+    """Generuje raport CSV dla określonej kategorii"""
+    try:
+        channels = task_scheduler.get_channels()
+        
+        if report_request.category and report_request.category not in channels:
+            raise HTTPException(status_code=404, detail=f"Kategoria {report_request.category} nie istnieje")
+        
+        all_videos = {}
+        
+        # Pobierz dane z kanałów
+        target_categories = [report_request.category] if report_request.category else channels.keys()
+        
+        for category in target_categories:
+            if category in channels:
+                category_videos = []
+                
+                for channel in channels[category]:
+                    try:
+                        videos = await youtube_client.get_channel_videos(
+                            channel['id'], 
+                            report_request.days_back
+                        )
+                        
+                        # Dodaj informacje o kanale
+                        for video in videos:
+                            video['channel_title'] = channel['title']
+                            video['channel_id'] = channel['id']
+                        
+                        category_videos.extend(videos)
+                        
+                    except Exception as e:
+                        logger.error(f"Błąd podczas pobierania filmów z kanału {channel['title']}: {e}")
+                
+                if category_videos:
+                    all_videos[category] = category_videos
+        
+        if not all_videos:
+            raise HTTPException(status_code=404, detail="Brak danych do wygenerowania raportu")
+        
+        # Generuj CSV
+        csv_generator = CSVGenerator()
+        
+        if report_request.category:
+            # Raport dla jednej kategorii
+            csv_path = csv_generator.generate_csv(all_videos[report_request.category], report_request.category)
+        else:
+            # Raport podsumowujący
+            csv_path = csv_generator.generate_summary_csv(all_videos)
+        
+        return FileResponse(
+            path=csv_path,
+            filename=csv_path.split('/')[-1],
+            media_type='text/csv'
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Błąd podczas generowania raportu: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/reports/list")
+async def list_reports():
+    """Zwraca listę dostępnych raportów"""
+    try:
+        import os
+        reports = []
+        
+        for file in os.listdir(settings.reports_path):
+            if file.endswith('.csv'):
+                file_path = settings.reports_path / file
+                stats = os.stat(file_path)
+                reports.append({
+                    'filename': file,
+                    'size': stats.st_size,
+                    'created': stats.st_ctime,
+                    'path': str(file_path)
+                })
+        
+        return {"reports": sorted(reports, key=lambda x: x['created'], reverse=True)}
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas listowania raportów: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/reports/download/{filename}")
+async def download_report(filename: str):
+    """Pobiera konkretny raport"""
+    try:
+        file_path = settings.reports_path / filename
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Raport nie istnieje")
+        
+        return FileResponse(
+            path=str(file_path),
+            filename=filename,
+            media_type='text/csv'
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania raportu: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/status", response_model=StatusResponse)
+async def get_status():
+    """Zwraca status systemu"""
+    try:
+        scheduler_status = task_scheduler.get_status()
+        quota_info = youtube_client.get_quota_usage()
+        
+        return StatusResponse(
+            scheduler_running=scheduler_status['running'],
+            channels_count=scheduler_status['channels_count'],
+            categories=scheduler_status['categories'],
+            quota_usage=quota_info,
+            next_report=scheduler_status['next_run']
+        )
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania statusu: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/scheduler/start")
+async def start_scheduler():
+    """Uruchamia scheduler"""
+    try:
+        task_scheduler.start()
+        return {"message": "Scheduler uruchomiony"}
+    except Exception as e:
+        logger.error(f"Błąd podczas uruchamiania schedulera: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/scheduler/stop")
+async def stop_scheduler():
+    """Zatrzymuje scheduler"""
+    try:
+        task_scheduler.stop()
+        return {"message": "Scheduler zatrzymany"}
+    except Exception as e:
+        logger.error(f"Błąd podczas zatrzymywania schedulera: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
