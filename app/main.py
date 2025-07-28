@@ -65,7 +65,11 @@ app.add_middleware(
 )
 
 # Statyczne pliki
-app.mount("/static", StaticFiles(directory="static"), name="static")
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+except RuntimeError:
+    # Jeśli katalog static nie istnieje, pomiń montowanie
+    pass
 
 # Templates
 templates = Jinja2Templates(directory="templates")
