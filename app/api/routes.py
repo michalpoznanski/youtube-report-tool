@@ -522,3 +522,95 @@ async def debug_environment():
     except Exception as e:
         logger.error(f"Błąd podczas debugowania zmiennych środowiskowych: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.post("/debug/test-persistence")
+async def test_data_persistence():
+    """Test endpoint - sprawdza trwałość danych"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        state_manager = task_scheduler.state_manager
+        
+        # Dodaj testowy kanał
+        test_channel = {
+            "id": "TEST_CHANNEL_123",
+            "title": "Test Channel",
+            "description": "Test channel for persistence",
+            "subscriber_count": 1000,
+            "video_count": 50,
+            "view_count": 100000,
+            "thumbnail": "https://example.com/thumb.jpg",
+            "published_at": "2020-01-01T00:00:00Z"
+        }
+        
+        # Zapisz kanał
+        state_manager.add_channel(test_channel, "test_persistence")
+        
+        # Sprawdź czy został zapisany
+        channels = state_manager.get_channels()
+        test_channels = channels.get("test_persistence", [])
+        
+        # Sprawdź czy plik istnieje
+        channels_file_exists = state_manager.channels_file.exists()
+        
+        return {
+            "test_channel_added": len(test_channels) > 0,
+            "test_channel_id": test_channels[0]["id"] if test_channels else None,
+            "channels_file_exists": channels_file_exists,
+            "channels_file_path": str(state_manager.channels_file.absolute()),
+            "total_channels": sum(len(channels) for channels in channels.values()),
+            "message": "Test kanał został dodany. Sprawdź czy przetrwa restart Railway."
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas testowania trwałości danych: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.get("/debug/check-persistence")
+async def check_data_persistence():
+    """Sprawdza czy dane są trwałe po restarcie"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        state_manager = task_scheduler.state_manager
+        
+        # Sprawdź czy pliki istnieją
+        channels_exists = state_manager.channels_file.exists()
+        quota_exists = state_manager.quota_file.exists()
+        system_exists = state_manager.system_state_file.exists()
+        
+        # Sprawdź dane w pamięci
+        channels_count = sum(len(channels) for channels in state_manager.channels_data.values())
+        quota_used = state_manager.quota_state.get('used', 0)
+        system_startup = state_manager.system_state.get('last_startup')
+        
+        # Sprawdź czy są testowe kanały
+        test_channels = state_manager.channels_data.get("test_persistence", [])
+        has_test_channel = any(channel.get("id") == "TEST_CHANNEL_123" for channel in test_channels)
+        
+        return {
+            "files_exist": {
+                "channels.json": channels_exists,
+                "quota_state.json": quota_exists,
+                "system_state.json": system_exists
+            },
+            "memory_data": {
+                "channels_count": channels_count,
+                "quota_used": quota_used,
+                "system_startup": system_startup
+            },
+            "test_persistence": {
+                "has_test_channel": has_test_channel,
+                "test_channels_count": len(test_channels)
+            },
+            "data_directory": str(state_manager.data_dir.absolute()),
+            "railway_volume_path": os.getenv("RAILWAY_VOLUME_PATH", "Not set")
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas sprawdzania trwałości danych: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
