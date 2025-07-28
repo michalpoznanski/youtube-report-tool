@@ -135,7 +135,8 @@ class YouTubeClient:
                 'video_count': int(channel['statistics'].get('videoCount', 0)),
                 'view_count': int(channel['statistics'].get('viewCount', 0)),
                 'thumbnail': channel['snippet']['thumbnails']['default']['url'],
-                'published_at': channel['snippet']['publishedAt']
+                'published_at': channel['snippet']['publishedAt'],
+                'url': channel_url  # Dodaj oryginalny URL
             }
             
         except HttpError as e:
