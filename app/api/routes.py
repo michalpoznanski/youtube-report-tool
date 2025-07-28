@@ -574,6 +574,8 @@ async def test_data_persistence():
 async def check_data_persistence():
     """Sprawdza czy dane są trwałe po restarcie"""
     try:
+        import os
+        
         if not task_scheduler:
             raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
         
