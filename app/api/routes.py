@@ -941,6 +941,9 @@ async def debug_volume_config():
 async def create_system_backup():
     """Tworzy pełny backup systemu"""
     try:
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         from backup_system import BackupSystem
         
         backup_system = BackupSystem()
