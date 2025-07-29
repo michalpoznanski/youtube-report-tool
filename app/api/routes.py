@@ -937,28 +937,29 @@ async def debug_volume_config():
         raise HTTPException(status_code=500, detail=str(e)) 
 
 
-@router.post("/backup/create")
-async def create_system_backup():
-    """Tworzy pełny backup systemu"""
-    try:
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        from backup_system import BackupSystem
-        
-        backup_system = BackupSystem()
-        backup_path = backup_system.create_backup()
-        
-        # Zweryfikuj backup
-        verification_result = backup_system.verify_backup(backup_path)
-        
-        return {
-            "message": "Backup utworzony pomyślnie",
-            "backup_path": backup_path,
-            "verification": "success" if verification_result else "failed",
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"Błąd podczas tworzenia backupu: {e}")
-        raise HTTPException(status_code=500, detail=f"Błąd podczas tworzenia backupu: {str(e)}") 
+# Endpoint backup usunięty - plik backup_system.py przeniesiony do archiwum
+# @router.post("/backup/create")
+# async def create_system_backup():
+#     """Tworzy pełny backup systemu"""
+#     try:
+#         import sys
+#         import os
+#         sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+#         from backup_system import BackupSystem
+#         
+#         backup_system = BackupSystem()
+#         backup_path = backup_system.create_backup()
+#         
+#         # Zweryfikuj backup
+#         verification_result = backup_system.verify_backup(backup_path)
+#         
+#         return {
+#             "message": "Backup utworzony pomyślnie",
+#             "backup_path": backup_path,
+#             "verification": "success" if verification_result else "failed",
+#             "timestamp": datetime.now().isoformat()
+#         }
+#         
+#     except Exception as e:
+#         logger.error(f"Błąd podczas tworzenia backupu: {e}")
+#         raise HTTPException(status_code=500, detail=f"Błąd podczas tworzenia backupu: {str(e)}") 
