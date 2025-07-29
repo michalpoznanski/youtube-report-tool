@@ -10,6 +10,7 @@ from ..storage import CSVGenerator
 from ..config import settings
 import json
 from pathlib import Path
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -934,3 +935,27 @@ async def debug_volume_config():
     except Exception as e:
         logger.error(f"Błąd podczas debugowania konfiguracji volume: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.post("/backup/create")
+async def create_system_backup():
+    """Tworzy pełny backup systemu"""
+    try:
+        from backup_system import BackupSystem
+        
+        backup_system = BackupSystem()
+        backup_path = backup_system.create_backup()
+        
+        # Zweryfikuj backup
+        verification_result = backup_system.verify_backup(backup_path)
+        
+        return {
+            "message": "Backup utworzony pomyślnie",
+            "backup_path": backup_path,
+            "verification": "success" if verification_result else "failed",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas tworzenia backupu: {e}")
+        raise HTTPException(status_code=500, detail=f"Błąd podczas tworzenia backupu: {str(e)}") 

@@ -94,12 +94,13 @@ class TaskScheduler:
                     except Exception as e:
                         logger.error(f"Błąd podczas generowania raportu dla kategorii {category}: {e}")
                 
-                # Raport podsumowujący
-                try:
-                    summary_path = self.csv_generator.generate_summary_csv(all_videos)
-                    logger.info(f"Wygenerowano raport podsumowujący: {summary_path}")
-                except Exception as e:
-                    logger.error(f"Błąd podczas generowania raportu podsumowującego: {e}")
+                # Raport podsumowujący - WYŁĄCZONY w schedulerze cyklicznym
+                # Raport zbiorczy dostępny tylko jako opcja manualna z UI/API
+                # try:
+                #     summary_path = self.csv_generator.generate_summary_csv(all_videos)
+                #     logger.info(f"Wygenerowano raport podsumowujący: {summary_path}")
+                # except Exception as e:
+                #     logger.error(f"Błąd podczas generowania raportu podsumowującego: {e}")
                 
                 # Zapisz aktualne zużycie quota po wygenerowaniu raportów
                 try:
