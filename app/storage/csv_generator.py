@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Any
 from datetime import datetime
 import pytz
 import logging
@@ -225,7 +225,7 @@ class CSVGenerator:
             logger.error(f"Błąd podczas generowania podsumowania CSV: {e}")
             raise
 
-    def rename_old_reports(self) -> Dict[str, any]:
+    def rename_old_reports(self) -> Dict[str, Any]:
         """Przemianowuje stare raporty na nowy format nazewnictwa"""
         renamed_count = 0
         errors = []
