@@ -963,3 +963,29 @@ async def debug_volume_config():
 #     except Exception as e:
 #         logger.error(f"Błąd podczas tworzenia backupu: {e}")
 #         raise HTTPException(status_code=500, detail=f"Błąd podczas tworzenia backupu: {str(e)}") 
+
+
+@router.post("/reports/rename-old-format")
+async def rename_old_format_reports():
+    """Przemianowuje stare raporty na nowy format nazewnictwa"""
+    try:
+        from ..storage.csv_generator import CSVGenerator
+        csv_generator = CSVGenerator()
+        result = csv_generator.rename_old_reports()
+        
+        print(f"🔄 API: Przemianowanie zakończone - {result['message']}")
+        logger.info(f"Przemianowanie raportów: {result['message']}")
+        
+        return {
+            "success": True,
+            "message": result['message'],
+            "renamed_count": result['renamed'],
+            "errors": result['errors'],
+            "renamed_files": result.get('renamed_files', [])
+        }
+        
+    except Exception as e:
+        error_msg = f"Błąd podczas przemianowania raportów: {e}"
+        print(f"❌ API: {error_msg}")
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg) 

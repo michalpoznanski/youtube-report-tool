@@ -5,17 +5,18 @@ import pytz
 import logging
 from pathlib import Path
 from ..config import settings
+import re
 
 logger = logging.getLogger(__name__)
 
 
 class CSVGenerator:
-    """Generator plików CSV z danymi YouTube"""
+    """Generator raportów CSV z danych YouTube"""
     
     def __init__(self):
         self.columns = [
             'Channel_Name',
-            'Channel_ID',
+            'Channel_ID', 
             'Date_of_Publishing',
             'Hour_GMT2',
             'Title',
@@ -87,9 +88,9 @@ class CSVGenerator:
             # Utwórz DataFrame
             df = pd.DataFrame(rows, columns=self.columns)
             
-            # Generuj nazwę pliku
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"{category}_{timestamp}.csv"
+            # Generuj nazwę pliku w nowym formacie: report_{KATEGORIA}_{YYYY-MM-DD}.csv
+            timestamp = datetime.now().strftime('%Y-%m-%d')
+            filename = f"report_{category.upper()}_{timestamp}.csv"
             filepath = settings.reports_path / filename
             
             # Upewnij się, że katalog raportów istnieje
@@ -197,9 +198,9 @@ class CSVGenerator:
                     }
                     all_rows.append(row)
             
-            # Generuj nazwę pliku
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"summary_{timestamp}.csv"
+            # Generuj nazwę pliku w nowym formacie: report_SUMMARY_{YYYY-MM-DD}.csv
+            timestamp = datetime.now().strftime('%Y-%m-%d')
+            filename = f"report_SUMMARY_{timestamp}.csv"
             filepath = settings.reports_path / filename
             
             # Upewnij się, że katalog raportów istnieje
@@ -222,4 +223,119 @@ class CSVGenerator:
             
         except Exception as e:
             logger.error(f"Błąd podczas generowania podsumowania CSV: {e}")
-            raise 
+            raise
+
+    def rename_old_reports(self) -> Dict[str, any]:
+        """Przemianowuje stare raporty na nowy format nazewnictwa"""
+        renamed_count = 0
+        errors = []
+        renamed_files = []
+        
+        try:
+            print(f"🔄 Rozpoczynam przemianowanie starych raportów...")
+            print(f"📁 Katalog raportów: {settings.reports_path.absolute()}")
+            
+            # Upewnij się, że katalog istnieje
+            settings.reports_path.mkdir(parents=True, exist_ok=True)
+            
+            for file_path in settings.reports_path.glob("*.csv"):
+                old_name = file_path.name
+                
+                # Sprawdź czy to stary format: {category}_{YYYYMMDD_HHMMSS}.csv
+                # lub summary_{YYYYMMDD_HHMMSS}.csv
+                if re.match(r'^[A-Z_]+_\d{8}_\d{6}\.csv$', old_name):
+                    # Wyciągnij kategorię i datę
+                    parts = old_name.replace('.csv', '').split('_')
+                    if len(parts) >= 3:
+                        category = parts[0]
+                        date_part = parts[1]  # YYYYMMDD
+                        
+                        # Konwertuj YYYYMMDD na YYYY-MM-DD
+                        try:
+                            date_obj = datetime.strptime(date_part, '%Y%m%d')
+                            new_date = date_obj.strftime('%Y-%m-%d')
+                            
+                            # Określ nową nazwę
+                            if category.lower() == 'summary':
+                                new_name = f"report_SUMMARY_{new_date}.csv"
+                            else:
+                                new_name = f"report_{category.upper()}_{new_date}.csv"
+                            
+                            # Sprawdź czy plik o nowej nazwie już istnieje
+                            new_path = file_path.parent / new_name
+                            if new_path.exists():
+                                # Dodaj timestamp do nazwy aby uniknąć konfliktu
+                                timestamp = datetime.now().strftime('%H%M%S')
+                                new_name = f"report_{category.upper()}_{new_date}_{timestamp}.csv"
+                                new_path = file_path.parent / new_name
+                            
+                            # Przemianuj plik
+                            file_path.rename(new_path)
+                            renamed_count += 1
+                            renamed_files.append({
+                                'old_name': old_name,
+                                'new_name': new_name
+                            })
+                            print(f"✅ Przemianowano: {old_name} → {new_name}")
+                            
+                        except ValueError as e:
+                            error_msg = f"Nieprawidłowa data w {old_name}: {e}"
+                            errors.append(error_msg)
+                            print(f"❌ {error_msg}")
+                
+                elif re.match(r'^summary_\d{8}_\d{6}\.csv$', old_name):
+                    # Specjalny przypadek dla summary
+                    parts = old_name.replace('.csv', '').split('_')
+                    if len(parts) >= 3:
+                        date_part = parts[1]  # YYYYMMDD
+                        
+                        try:
+                            date_obj = datetime.strptime(date_part, '%Y%m%d')
+                            new_date = date_obj.strftime('%Y-%m-%d')
+                            new_name = f"report_SUMMARY_{new_date}.csv"
+                            
+                            # Sprawdź czy plik o nowej nazwie już istnieje
+                            new_path = file_path.parent / new_name
+                            if new_path.exists():
+                                # Dodaj timestamp do nazwy aby uniknąć konfliktu
+                                timestamp = datetime.now().strftime('%H%M%S')
+                                new_name = f"report_SUMMARY_{new_date}_{timestamp}.csv"
+                                new_path = file_path.parent / new_name
+                            
+                            # Przemianuj plik
+                            file_path.rename(new_path)
+                            renamed_count += 1
+                            renamed_files.append({
+                                'old_name': old_name,
+                                'new_name': new_name
+                            })
+                            print(f"✅ Przemianowano: {old_name} → {new_name}")
+                            
+                        except ValueError as e:
+                            error_msg = f"Nieprawidłowa data w {old_name}: {e}"
+                            errors.append(error_msg)
+                            print(f"❌ {error_msg}")
+            
+            print(f"✅ Zakończono przemianowanie: {renamed_count} plików przemianowano")
+            if errors:
+                print(f"⚠️ Wystąpiły błędy: {len(errors)}")
+                for error in errors:
+                    print(f"   - {error}")
+            
+            return {
+                "renamed": renamed_count,
+                "errors": errors,
+                "renamed_files": renamed_files,
+                "message": f"Przemianowano {renamed_count} plików"
+            }
+            
+        except Exception as e:
+            error_msg = f"Błąd podczas przemianowania: {e}"
+            logger.error(error_msg)
+            errors.append(error_msg)
+            return {
+                "renamed": renamed_count,
+                "errors": errors,
+                "renamed_files": renamed_files,
+                "message": f"Błąd: {error_msg}"
+            } 
