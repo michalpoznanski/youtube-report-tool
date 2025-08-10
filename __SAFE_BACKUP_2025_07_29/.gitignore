@@ -101,5 +101,4 @@ name_candidates.json
 # ===== DEPLOYMENT =====
 .railway/
 .render/
-.heroku/ __SAFE_BACKUP_*
-hook-boost-web/
+.heroku/ 

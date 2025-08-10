@@ -4,28 +4,33 @@
 
 FROM python:3.11-slim
 
-# Set working directory
+# Ustaw zmienne środowiskowe
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Ustaw katalog roboczy
 WORKDIR /app
 
-# Install git for auto-commit functionality
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Zainstaluj zależności systemowe
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install dependencies
+# Skopiuj plik requirements i zainstaluj zależności Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
+# Skopiuj kod aplikacji
 COPY . .
 
-# Create raw_data directory for CSV outputs
-RUN mkdir -p raw_data
+# Utwórz katalogi dla danych
+RUN mkdir -p data reports backups logs
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
+# Ustaw uprawnienia
+RUN chmod +x /app/start.sh
 
-# Expose port (Railway requirement)
-EXPOSE 8080
+# Eksponuj port
+EXPOSE 8000
 
-# Start the Discord bot
-CMD ["python", "main.py"] 
+# Uruchom aplikację
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-8000}"] 
