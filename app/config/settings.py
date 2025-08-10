@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = "logs/app.log"
     
+    # Trend Module
+    enable_trend: bool = False
+    
     class Config:
         env_file = ".env"
         case_sensitive = False

@@ -11,7 +11,7 @@ def analyze_category(category: str, df: pd.DataFrame) -> Dict[str, Any]:
         rank = podcast_an.rank_names(df)
         stats = publish_hour_stats(df)
         return {"type":"podcast", "rank_top": rank.head(50).to_dict(orient="records"), "stats": stats}
-    if cat == "MOTORYZACJA":
+    if cat == "MOTO":
         res = moto_an.analyze(df)
         stats = publish_hour_stats(df)
         return {"type":"moto", **res, "stats": stats}

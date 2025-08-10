@@ -6,6 +6,10 @@ from fastapi.responses import HTMLResponse
 import logging
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import z obsługą błędów
 try:
