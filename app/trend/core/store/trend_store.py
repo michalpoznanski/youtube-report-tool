@@ -1,5 +1,7 @@
 import os, json, datetime as dt
 from typing import Dict, Any
+from datetime import datetime, timedelta
+from pathlib import Path
 
 def base_dir():
     root = os.environ.get("RAILWAY_VOLUME_PATH", "/mnt/volume")
@@ -30,3 +32,24 @@ def save_json(path: str, data: Dict[str, Any]):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+def growth_file_for_date(category: str, date_str: str) -> str:
+    # istnieje już growth_path(category, date_str), użyj go
+    return growth_path(category, date_str)
+
+def previous_date_str(date_str: str) -> str | None:
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+        return (d - timedelta(days=1)).strftime("%Y-%m-%d")
+    except Exception:
+        return None
+
+def load_growth_map_for_date(category: str, date_str: str) -> dict[str, dict]:
+    """Zwraca mapę video_id -> record z growth.json dla wskazanej daty; puste gdy brak."""
+    p = growth_file_for_date(category, date_str)
+    if not p or not Path(p).exists():
+        return {}
+    with open(p, "r", encoding="utf-8") as f:
+        data = json.load(f) or {}
+    items = (data.get("growth") or [])
+    return {x.get("video_id"): x for x in items if x.get("video_id")}

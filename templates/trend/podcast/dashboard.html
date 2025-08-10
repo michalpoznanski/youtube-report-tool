@@ -2,7 +2,11 @@
 <body>
 <h1>Trend – Podcast ({{ report_date or "brak daty" }})</h1>
 
-{% set items = (growth.growth if growth and growth.growth is defined else []) | sort(attribute='views_today', reverse=True) %}
+{% set items_all = (growth.growth if growth and growth.growth is defined else []) %}
+{% set items_sorted = items_all | sort(attribute='views_today', reverse=True) %}
+{% set longs = items_sorted | selectattr('is_short', 'equalto', false) | list %}
+{% set shorts = items_sorted | selectattr('is_short', 'equalto', true) | list %}
+
 <style>
   table{border-collapse:collapse;width:100%;font-family:system-ui,Arial,sans-serif}
   th,td{border:1px solid #ddd;padding:8px}
@@ -11,9 +15,9 @@
   .muted{color:#777}
 </style>
 
-<h2>Top dzienne przyrosty (filmy)</h2>
+<h2>Top dzienne przyrosty (Long-form)</h2>
 
-{% if items and items|length > 0 %}
+{% if longs and longs|length > 0 %}
 <table>
   <thead>
     <tr>
@@ -25,7 +29,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for row in items[:50] %}
+    {% for row in longs[:50] %}
       <tr>
         <td>{{ loop.index }}</td>
         <td>
@@ -41,7 +45,40 @@
   </tbody>
 </table>
 {% else %}
-  <p class="muted">Brak danych do wyświetlenia.</p>
+  <p class="muted">Brak danych Long-form do wyświetlenia.</p>
+{% endif %}
+
+<h2 style="margin-top:24px;">Top dzienne przyrosty (Shorts)</h2>
+
+{% if shorts and shorts|length > 0 %}
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Tytuł</th>
+      <th>Dzisiejsze</th>
+      <th>Wczoraj</th>
+      <th>Δ</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in shorts[:50] %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          <a href="https://www.youtube.com/watch?v={{ row.video_id }}" target="_blank" rel="noopener">
+            {{ row.title }}
+          </a>
+        </td>
+        <td>{{ row.views_today | default('-') }}</td>
+        <td>{{ row.views_yesterday | default('-') }}</td>
+        <td>{{ row.delta | default('-') }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p class="muted">Brak danych Shorts do wyświetlenia.</p>
 {% endif %}
 
 <h3>Popularne godziny publikacji</h3>

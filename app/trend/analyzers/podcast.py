@@ -1,6 +1,15 @@
 import pandas as pd, re
 from ..core.utils import safe_int
 
+def infer_is_short(title: str, duration: int | None = None) -> bool:
+    if duration is not None:
+        try:
+            return int(duration) < 60
+        except Exception:
+            pass
+    t = (title or "").lower()
+    return "#shorts" in t or " shorts" in t or "[shorts]" in t
+
 STOP = {"podcast","odcinek","live","część","czesc","ft","feat","ep","premiera","rozmowa",
         "gość","gosc","prowadzący","z","u","vs","x"}
 

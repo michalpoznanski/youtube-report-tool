@@ -7,7 +7,7 @@ from pathlib import Path
 from ..core.loader import load_latest
 from ..core.dispatcher import analyze_category
 from ..core.growth import update_growth
-from ..core.store.trend_store import stats_path, growth_path, save_json
+from ..core.store.trend_store import stats_path, growth_path, save_json, previous_date_str, load_growth_map_for_date
 from ..core.stats import publish_hour_stats
 
 log = logging.getLogger("trend")
@@ -21,10 +21,40 @@ def run(category: str):
     if df is None: return JSONResponse({"error":"no report found"}, status_code=404)
     summary = analyze_category(category, df)
     glist = update_growth(category, df, report_date)
+    
+    # wzbogacenie o wczorajsze wartości i deltę
+    if report_date:
+        prev_str = previous_date_str(report_date)
+        prev_map = load_growth_map_for_date(category, prev_str) if prev_str else {}
+        
+        for item in glist:
+            vid = item.get("video_id")
+            prev = prev_map.get(vid)
+            if prev:
+                vy = prev.get("views_today")
+                try:
+                    item["views_yesterday"] = int(vy) if vy is not None else None
+                except Exception:
+                    item["views_yesterday"] = None
+                try:
+                    if item.get("views_today") is not None and item.get("views_yesterday") is not None:
+                        item["delta"] = int(item["views_today"]) - int(item["views_yesterday"])
+                    else:
+                        item["delta"] = None
+                except Exception:
+                    item["delta"] = None
+            else:
+                # brak wczorajszego odpowiednika
+                item.setdefault("views_yesterday", None)
+                item.setdefault("delta", None)
+    
     # zapisz statystyki godzin
     st = publish_hour_stats(df)
     if report_date:
         save_json(stats_path(category, report_date), st)
+        # zapisz wzbogacony growth
+        save_json(growth_path(category, report_date), {"date": report_date, "growth": glist})
+    
     return {"ok": True, "category": category, "report_date": report_date,
             "summary_count": len(summary.get("rank_top", [])), "growth_count": len(glist)}
 
