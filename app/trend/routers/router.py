@@ -101,10 +101,10 @@ def page(category: str, request: Request):
     except Exception:
         data_growth = None
     
-    # 3. Jeśli brak growth JSON lub niekompletne dane - zbuduj z CSV
+    # 3. Jeśli brak growth JSON lub niekompletne dane - zbuduj z CSV lub użyj fallback
     if not data_growth:
         from app.trend.core.growth import build_growth_from_csv, save_growth_and_stats
-        from app.trend.core.store.trend_store import list_report_files
+        from app.trend.core.store.trend_store import list_report_files, list_growth_files
         from datetime import datetime, date
         
         try:
@@ -127,8 +127,24 @@ def page(category: str, request: Request):
                 report_date = report_dt.strftime("%Y-%m-%d")
                 
             else:
-                logger.warning(f'[TREND/CSV] No CSV files found for {category}')
-                data_growth = {"growth": []}
+                # Fallback: użyj istniejącego growth JSON
+                logger.warning(f'[TREND/CSV] No CSV files found for {category}, trying growth JSON fallback')
+                growth_files = list_growth_files(category)
+                if growth_files:
+                    # Weź najnowszy growth JSON
+                    latest_date, latest_path = growth_files[-1]
+                    report_date = latest_date.strftime("%Y-%m-%d")
+                    
+                    try:
+                        with open(latest_path, "r", encoding="utf-8") as f:
+                            data_growth = json.load(f)
+                        logger.info(f'[TREND/FALLBACK] Loaded growth from {latest_path}')
+                    except Exception as e:
+                        logger.error(f'[TREND/FALLBACK] Error loading growth: {e}')
+                        data_growth = {"growth": []}
+                else:
+                    logger.warning(f'[TREND/CSV] No growth files found for {category}')
+                    data_growth = {"growth": []}
                 
         except Exception as e:
             logger.exception(f'[TREND/CSV] Error building growth from CSV: {e}')
