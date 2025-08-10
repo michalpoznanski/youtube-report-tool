@@ -1,0 +1,1 @@
+# Trend core package
