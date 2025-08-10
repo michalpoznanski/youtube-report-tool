@@ -119,3 +119,14 @@ def update_growth(category: str, df: pd.DataFrame, report_date: str):
         enriched_data = json.load(f)
     
     return enriched_data.get("growth", [])
+
+def save_growth(category: str, date: datetime, data: Dict[str, Any]) -> None:
+    """Zapisz growth JSON do pliku"""
+    try:
+        out_path = growth_path(category, date.strftime("%Y-%m-%d"))
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        # logger.info(f'[GROWTH] Saved {category} growth for {date.strftime("%Y-%m-%d")}: {len(data.get("growth", []))} items') # Original code had this line commented out
+    except Exception as e:
+        # logger.error(f'[GROWTH] Error saving {category} growth: {e}') # Original code had this line commented out
+        raise

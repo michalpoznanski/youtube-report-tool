@@ -73,3 +73,44 @@ def get_prev_growth_path(category: str, today_date: datetime):
     files = list_growth_files(category)
     prev = [p for (d, p) in files if d < today_date]
     return prev[-1][1] if prev else None
+
+def report_dir() -> Path:
+    """Katalog z raportami CSV"""
+    return Path("/mnt/volume/reports")
+
+def report_glob(category: str) -> str:
+    """Wzorzec nazw plików CSV dla kategorii"""
+    return f"report_{category.upper()}_*.csv"
+
+def list_report_files(category: str) -> list[tuple[datetime, Path]]:
+    """Lista plików CSV z datami dla kategorii"""
+    root = report_dir()
+    if not root.exists():
+        return []
+    
+    out = []
+    pattern = report_glob(category)
+    for p in root.glob(pattern):
+        try:
+            # report_PODCAST_2025-08-09.csv -> 2025-08-09
+            date_str = p.stem.split("_", 2)[2]
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            out.append((dt, p))
+        except Exception:
+            pass
+    
+    return sorted(out, key=lambda x: x[0])
+
+def get_report_path(category: str, date: datetime) -> Path | None:
+    """Ścieżka do pliku CSV dla kategorii i daty"""
+    target_date = date.strftime("%Y-%m-%d")
+    for dt, path in list_report_files(category):
+        if dt.strftime("%Y-%m-%d") == target_date:
+            return path
+    return None
+
+def get_prev_date(category: str, today_date: datetime) -> datetime | None:
+    """Najbliższa wcześniejsza data z CSV dla kategorii"""
+    files = list_report_files(category)
+    prev = [dt for dt, _ in files if dt < today_date]
+    return prev[-1] if prev else None

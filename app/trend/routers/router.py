@@ -62,113 +62,74 @@ def run(category: str):
 def page(category: str, request: Request):
     # HTML strona kategorii
     # ładowanie growth i stats jeśli istnieją (z najnowszego dnia – prosto: bierzemy plik z load_latest)
+    
+    # 1. Ustal report_date - spróbuj z load_latest, fallback z najnowszego CSV
     df, report_date = load_latest(category)
+    if not report_date:
+        # Fallback: znajdź najnowszy CSV
+        from app.trend.core.store.trend_store import list_report_files
+        from datetime import datetime
+        
+        csv_files = list_report_files(category)
+        if csv_files:
+            report_date = csv_files[-1][0].strftime("%Y-%m-%d")
+        else:
+            return templates.TemplateResponse(
+                f"trend/{category.lower()}/dashboard.html",
+                {"request": request, "category": category, "error": "Brak danych CSV"}
+            )
     
-    # a) Budowanie mapy metadata po video_id z df
-    meta = {}
+    # 2. Spróbuj wczytać growth JSON
+    data_growth = None
+    data_stats = None
+    
     try:
-        for _, row in df.iterrows():
-            vid = str(row.get("video_id", "")).strip()
-            if not vid:
-                continue
+        # Sprawdź czy istnieje growth JSON
+        growth_file = growth_path(category, report_date)
+        if Path(growth_file).exists():
+            with open(growth_file, "r", encoding="utf-8") as f:
+                data_growth = json.load(f)
                 
-            short_heuristic = False
-            # Sprawdź video_url zawiera '/shorts/'
-            if 'video_url' in df.columns and row.get('video_url'):
-                short_heuristic = short_heuristic or '/shorts/' in str(row.get('video_url', ''))
-            # Sprawdź title zawiera '#shorts'
-            if 'title' in df.columns and row.get('title'):
-                short_heuristic = short_heuristic or '#shorts' in str(row.get('title', '')).lower()
-            # Sprawdź duration_seconds < 60
-            if 'duration_seconds' in df.columns and row.get('duration_seconds'):
-                try:
-                    duration = float(row.get('duration_seconds', 0))
-                    short_heuristic = short_heuristic or duration < 60
-                except (ValueError, TypeError):
-                    pass
+                # Sprawdź czy ma views_yesterday/delta
+                has_complete_data = all(
+                    item.get("views_yesterday") is not None and item.get("delta") is not None
+                    for item in data_growth.get("growth", [])
+                )
+                
+                if not has_complete_data:
+                    data_growth = None  # Wymuś przebudowanie z CSV
+    except Exception:
+        data_growth = None
+    
+    # 3. Jeśli brak growth JSON lub niekompletne dane - zbuduj z CSV
+    if not data_growth:
+        from app.trend.core.loader import build_growth_from_csvs
+        from app.trend.core.growth import save_growth
+        from datetime import datetime
+        
+        try:
+            report_dt = datetime.strptime(report_date, "%Y-%m-%d")
+            data_growth = build_growth_from_csvs(category, report_dt)
             
-            meta[vid] = {
-                'is_short': bool(short_heuristic),
-                'channel_title': row.get('channel_title') if 'channel_title' in df.columns else None,
-                'published_at': row.get('published_at') if 'published_at' in df.columns else None
-            }
-    except Exception as e:
-        logger.warning('[TREND] Error building metadata: %s', e)
-        meta = {}
-    
-    data_growth = {"growth":[]}
-    data_stats = {}
-    if report_date:
-        try:
-            gp = growth_path(category, report_date)
-            if gp and Path(gp).exists():
-                with open(gp, 'r', encoding='utf-8') as f:
-                    data_growth = json.load(f)
-            else:
-                logger.warning('[TREND] growth file missing: %s', gp)
+            # Zapisz do JSON
+            save_growth(category, report_dt, data_growth)
+            
         except Exception as e:
-            logger.exception('[TREND] growth read error: %s', e)
-        try:
-            sp = stats_path(category, report_date)
-            if sp and sp and Path(sp).exists():
-                with open(sp, 'r', encoding='utf-8') as f:
-                    data_stats = json.load(f)
-            else:
-                logger.warning('[TREND] stats file missing: %s', sp)
-        except Exception as e:
-            logger.exception('[TREND] stats read error: %s', e)
+            logger.error(f'[TREND] Error building growth from CSV: {e}')
+            data_growth = {"growth": []}
     
-    # b) Wzbogacenie growth o metadata
-    growth_data = data_growth.get("growth", [])
-    try:
-        for item in growth_data:
-            vid = item.get("video_id", "")
-            if vid in meta:
-                item["is_short"] = meta[vid]["is_short"]
-                if meta[vid]["channel_title"]:
-                    item["channel_title"] = meta[vid]["channel_title"]
-                if meta[vid]["published_at"]:
-                    item["published_at"] = meta[vid]["published_at"]
-            else:
-                item["is_short"] = False
-    except Exception as e:
-        logger.warning('[TREND] Error enriching growth data: %s', e)
+    # 4. Policz statystyki
+    growth_items = data_growth.get("growth", [])
+    total = len(growth_items)
     
-    # zbuduj mapa CSV: video_id -> {channel_title, duration_seconds, title, video_url}
-    csv_map = {}
-    if df is not None:
-        # dopasuj do realnych nazw kolumn w Twoim CSV:
-        # np. 'video_id','channel_title','duration_seconds','title','video_url'
-        for _, row in df.iterrows():
-            vid = str(row.get("video_id") or "").strip()
-            if not vid: 
-                continue
-            csv_map[vid] = {
-                "channel_title": row.get("channel_title"),
-                "duration_seconds": row.get("duration_seconds"),
-                "title": row.get("title"),
-                "video_url": row.get("video_url"),
-            }
-
-    items = list(data_growth.get("growth") or [])
-    # fallback uzupełniania
-    for it in items:
-        vid = it.get("video_id")
-        csv_row = csv_map.get(vid) or {}
-        if not it.get("channel"):
-            it["channel"] = csv_row.get("channel_title") or "-"
-        if it.get("is_short") in (None, ""):
-            it["is_short"] = _detect_is_short_from_csv_row(csv_row)
-
-    # rozdziel
-    long_items = [x for x in items if not x.get("is_short")]
-    short_items = [x for x in items if x.get("is_short")]
-
-    # sortowanie po dzisiejszych
+    long_items = [x for x in growth_items if not x.get("is_short", False)]
+    short_items = [x for x in growth_items if x.get("is_short", False)]
+    
+    # Sortowanie po views_today malejąco
     long_items = sorted(long_items, key=lambda r: int(r.get("views_today") or 0), reverse=True)[:50]
     short_items = sorted(short_items, key=lambda r: int(r.get("views_today") or 0), reverse=True)[:50]
-
-    logger.info(f'[TREND] {category}: report_date={report_date}, items={len(items)}, long={len(long_items)}, short={len(short_items)}')
+    
+    logger.info(f'[TREND] {category}: report_date={report_date}, total={total}, long={len(long_items)}, short={len(short_items)}')
     
     return templates.TemplateResponse(
         f"trend/{category.lower()}/dashboard.html",
@@ -176,7 +137,7 @@ def page(category: str, request: Request):
             "request": request,
             "category": category,
             "report_date": report_date,
-            "items": items,
+            "total": total,
             "long_items": long_items,
             "short_items": short_items,
             "stats": data_stats or {},
@@ -214,3 +175,98 @@ def debug(category: str):
     except Exception as e:
         out["growth_error"] = str(e)
     return out
+
+@router.get("/{category}/_debug_prev")
+def debug_prev(category: str):
+    """Debug endpoint pokazujący CSV i growth dla dzisiejszej i wczorajszej daty"""
+    from app.trend.core.store.trend_store import list_report_files, get_prev_date
+    from app.trend.core.loader import load_csv
+    from datetime import datetime
+    
+    out = {
+        "category": category,
+        "today_report_date": None,
+        "today_csv": None,
+        "prev_date": None,
+        "prev_csv": None,
+        "today_rows": 0,
+        "prev_rows": 0,
+        "sample_today": [],
+        "sample_prev": []
+    }
+    
+    try:
+        # Znajdź najnowszy CSV
+        csv_files = list_report_files(category)
+        if csv_files:
+            today_dt = csv_files[-1][0]
+            today_csv_path = csv_files[-1][1]
+            out["today_report_date"] = today_dt.strftime("%Y-%m-%d")
+            out["today_csv"] = str(today_csv_path)
+            
+            # Wczytaj dzisiejszy CSV
+            today_rows = load_csv(category, today_dt)
+            out["today_rows"] = len(today_rows)
+            out["sample_today"] = today_rows[:3] if today_rows else []
+            
+            # Znajdź wczorajszy CSV
+            prev_dt = get_prev_date(category, today_dt)
+            if prev_dt:
+                out["prev_date"] = prev_dt.strftime("%Y-%m-%d")
+                
+                # Znajdź ścieżkę do wczorajszego CSV
+                for dt, path in csv_files:
+                    if dt == prev_dt:
+                        out["prev_csv"] = str(path)
+                        break
+                
+                # Wczytaj wczorajszy CSV
+                prev_rows = load_csv(category, prev_dt)
+                out["prev_rows"] = len(prev_rows)
+                out["sample_prev"] = prev_rows[:3] if prev_rows else []
+    
+    except Exception as e:
+        out["error"] = str(e)
+    
+    return out
+
+@router.get("/{category}/rebuild-from-csv")
+def rebuild_from_csv(category: str, date: str = None):
+    """Przebuduj growth z CSV dla wskazanej daty"""
+    from app.trend.core.loader import build_growth_from_csvs
+    from app.trend.core.growth import save_growth
+    from app.trend.core.store.trend_store import list_report_files
+    from datetime import datetime
+    
+    try:
+        if date:
+            # Użyj wskazanej daty
+            target_date = datetime.strptime(date, "%Y-%m-%d")
+        else:
+            # Użyj najnowszego CSV
+            csv_files = list_report_files(category)
+            if not csv_files:
+                return {"ok": False, "error": "Brak plików CSV"}
+            target_date = csv_files[-1][0]
+        
+        # Zbuduj growth z CSV
+        data_growth = build_growth_from_csvs(category, target_date)
+        
+        # Zapisz do JSON
+        save_growth(category, target_date, data_growth)
+        
+        # Sprawdź czy użyto wczorajszego CSV
+        from app.trend.core.store.trend_store import get_prev_date
+        prev_date = get_prev_date(category, target_date)
+        used_prev = prev_date is not None
+        
+        return {
+            "ok": True,
+            "category": category,
+            "date": target_date.strftime("%Y-%m-%d"),
+            "items": len(data_growth.get("growth", [])),
+            "used_prev": used_prev
+        }
+        
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
