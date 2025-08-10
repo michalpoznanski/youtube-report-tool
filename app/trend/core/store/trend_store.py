@@ -96,10 +96,15 @@ def list_report_files(category: str) -> list[tuple[datetime, Path]]:
     for p in root.glob(pattern):
         try:
             # report_PODCAST_2025-08-09.csv -> 2025-08-09
-            date_str = p.stem.split("_", 2)[2]
+            parts = p.stem.split("_", 2)
+            if len(parts) < 3:
+                continue
+            date_str = parts[2]
             dt = datetime.strptime(date_str, "%Y-%m-%d")
             out.append((dt, p))
-        except Exception:
+        except Exception as e:
+            # Log błędu dla debugowania
+            print(f"Error parsing {p}: {e}")
             pass
     
     return sorted(out, key=lambda x: x[0])
