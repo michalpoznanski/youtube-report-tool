@@ -13,6 +13,7 @@ from ..core.stats import publish_hour_stats
 log = logging.getLogger("trend")
 templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger(__name__)
+logger.info("[TREND/ROUTER] Router module loaded successfully")
 router = APIRouter(prefix="/trend", tags=["trend"])
 
 @router.api_route("/{category}/run", methods=["GET", "POST"])
