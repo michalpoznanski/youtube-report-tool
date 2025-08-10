@@ -3,11 +3,9 @@
 <h1>Trend – Podcast ({{ report_date or "brak daty" }})</h1>
 
 <!-- Streszczenie -->
-<p><strong>Łącznie: {{ counts.all }} | Long‑form: {{ counts.long }} | Shorts: {{ counts.shorts }}</strong></p>
+<p><strong>Łącznie: {{ items|length }} | Long‑form: {{ long_items|length }} | Shorts: {{ short_items|length }}</strong></p>
 
-<!-- Sortowanie -->
-{% set long_items_sorted = (long_items | sort(attribute='views_today', reverse=True)) %}
-{% set short_items_sorted = (short_items | sort(attribute='views_today', reverse=True)) %}
+<!-- Dane już posortowane w routerze -->
 
 <style>
   table{border-collapse:collapse;width:100%;font-family:system-ui,Arial,sans-serif}
@@ -22,7 +20,7 @@
 
 <h2>Top dzienne przyrosty (Long-form)</h2>
 
-{% if long_items_sorted and long_items_sorted|length > 0 %}
+{% if long_items and long_items|length > 0 %}
 <table>
   <thead>
     <tr>
@@ -35,7 +33,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for row in long_items_sorted[:50] %}
+    {% for row in long_items %}
       <tr>
         <td>{{ loop.index }}</td>
         <td>
@@ -57,7 +55,7 @@
 
 <h2 style="margin-top:24px;">Top dzienne przyrosty (Shorts)</h2>
 
-{% if short_items_sorted and short_items_sorted|length > 0 %}
+{% if short_items and short_items|length > 0 %}
 <table>
   <thead>
     <tr>
@@ -70,7 +68,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for row in short_items_sorted[:50] %}
+    {% for row in short_items %}
       <tr>
         <td>{{ loop.index }}</td>
         <td>

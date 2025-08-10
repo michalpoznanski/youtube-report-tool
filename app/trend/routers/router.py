@@ -134,6 +134,72 @@ def page(category: str, request: Request):
     except Exception as e:
         logger.warning('[TREND] Error enriching growth data: %s', e)
     
+    # Fallback: uzupełnij brakujące flagi is_short (gdy JSON jest starszy)
+    def _safe_lower(s):
+        try:
+            return str(s).lower()
+        except Exception:
+            return ""
+
+    def _parse_duration_to_seconds(v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        if not s or s.lower() in ("nan", "none"):
+            return None
+        parts = s.split(":")
+        try:
+            parts = [int(p) for p in parts]
+        except Exception:
+            return None
+        if len(parts) == 3:  # H:MM:SS
+            h, m, sec = parts
+            return h*3600 + m*60 + sec
+        if len(parts) == 2:  # MM:SS
+            m, sec = parts
+            return m*60 + sec
+        if len(parts) == 1:  # SS
+            return parts[0]
+        return None
+
+    def _detect_is_short_from_row(row: dict) -> bool:
+        url = None
+        for k in ("video_url", "url", "link", "watch_url"):
+            if k in row and row[k]:
+                url = _safe_lower(row[k])
+                break
+        title = _safe_lower(row.get("title"))
+        duration_sec = None
+        for k in ("duration_seconds", "duration_secs", "seconds"):
+            if k in row and row[k] not in (None, ""):
+                try:
+                    duration_sec = int(float(row[k]))
+                except Exception:
+                    pass
+                break
+        if duration_sec is None:
+            for k in ("duration", "length", "time"):
+                if k in row and row[k]:
+                    duration_sec = _parse_duration_to_seconds(row[k])
+                    if duration_sec is not None:
+                        break
+
+        if url and "/shorts/" in url:
+            return True
+        if "#shorts" in title:
+            return True
+        if duration_sec is not None and duration_sec < 60:
+            return True
+        return False
+
+    # uzupełnij brakujące flagi:
+    try:
+        for row in growth_data:
+            if "is_short" not in row or row["is_short"] in (None, ""):
+                row["is_short"] = _detect_is_short_from_row(row)
+    except Exception as e:
+        logger.warning('[TREND] Error in fallback is_short detection: %s', e)
+    
     # c) Rozdzielenie na long_items i short_items
     try:
         long_items = [r for r in growth_data if not r.get("is_short", False)]
@@ -175,19 +241,25 @@ def page(category: str, request: Request):
     except Exception as e:
         logger.warning('[TREND] Error in previous day logic: %s', e)
     
-    # e) Przygotowanie counts
+    # e) Przygotowanie counts i sortowanie
     counts = {
         "long": len(long_items),
         "shorts": len(short_items),
         "all": len(growth_data)
     }
     
+    # Sortowanie po views_today malejąco
+    key_fn = lambda r: int(r.get("views_today") or 0)
+    long_items = sorted(long_items, key=key_fn, reverse=True)[:50]
+    short_items = sorted(short_items, key=key_fn, reverse=True)[:50]
+    
     logger.info(f'[TREND] {category}: report_date={report_date}, counts={counts}')
     
     return templates.TemplateResponse(f"trend/{category.lower()}/dashboard.html",
-                                     {"request": request, "category": category, "growth": growth_data, 
-                                      "long_items": long_items, "short_items": short_items, "counts": counts,
-                                      "stats": data_stats, "report_date": report_date})
+                                     {"request": request, "category": category, "growth": data_growth, 
+                                      "stats": data_stats, "report_date": report_date,
+                                      "items": growth_data, "long_items": long_items, "short_items": short_items,
+                                      "counts": counts})
 
 @router.get("/{category}/growth")
 def api_growth(category: str):
