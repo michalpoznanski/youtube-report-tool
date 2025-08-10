@@ -5,13 +5,13 @@
 <table border="1" cellpadding="6">
 <thead><tr><th>#</th><th>Tytuł</th><th>Dzisiejsze</th><th>Wczoraj</th><th>Δ</th></tr></thead>
 <tbody>
-{% for i, row in enumerate(growth.growth[:50], start=1) %}
+{% for row in growth.growth[:50] %}
 <tr>
-<td>{{ i }}</td>
+<td>{{ loop.index }}</td>
 <td>{{ row.title }}</td>
-<td>{{ row.views_today }}</td>
-<td>{{ row.views_yesterday if row.views_yesterday is not none else "-" }}</td>
-<td>{{ row.delta if row.delta is not none else "-" }}</td>
+<td>{{ row.views_today | default('-') }}</td>
+<td>{{ row.views_yesterday | default('-') }}</td>
+<td>{{ row.delta | default('-') }}</td>
 </tr>
 {% endfor %}
 </tbody>
