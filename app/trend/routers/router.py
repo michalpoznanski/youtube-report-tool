@@ -63,6 +63,8 @@ def page(category: str, request: Request):
     # HTML strona kategorii
     # ładowanie growth i stats jeśli istnieją (z najnowszego dnia – prosto: bierzemy plik z load_latest)
     
+    logger.info(f'[TREND/PAGE] Loading page for category: {category}')
+    
     # 1. Ustal report_date - spróbuj z load_latest, fallback z najnowszego CSV
     df, report_date = load_latest(category)
     if not report_date:
@@ -130,15 +132,18 @@ def page(category: str, request: Request):
                 # Fallback: użyj istniejącego growth JSON
                 logger.warning(f'[TREND/CSV] No CSV files found for {category}, trying growth JSON fallback')
                 growth_files = list_growth_files(category)
+                logger.info(f'[TREND/FALLBACK] Found {len(growth_files)} growth files for {category}')
+                
                 if growth_files:
                     # Weź najnowszy growth JSON
                     latest_date, latest_path = growth_files[-1]
                     report_date = latest_date.strftime("%Y-%m-%d")
+                    logger.info(f'[TREND/FALLBACK] Using growth file: {latest_path} from {report_date}')
                     
                     try:
                         with open(latest_path, "r", encoding="utf-8") as f:
                             data_growth = json.load(f)
-                        logger.info(f'[TREND/FALLBACK] Loaded growth from {latest_path}')
+                        logger.info(f'[TREND/FALLBACK] Loaded growth from {latest_path}, items: {len(data_growth.get("growth", []))}')
                     except Exception as e:
                         logger.error(f'[TREND/FALLBACK] Error loading growth: {e}')
                         data_growth = {"growth": []}
@@ -162,6 +167,7 @@ def page(category: str, request: Request):
     short_items = sorted(short_items, key=lambda r: int(r.get("views_today") or 0), reverse=True)[:50]
     
     logger.info(f'[TREND] {category}: report_date={report_date}, total={total}, long={len(long_items)}, short={len(short_items)}')
+    logger.info(f'[TREND] Final data_growth keys: {list(data_growth.keys()) if data_growth else "None"}')
     
     return templates.TemplateResponse(
         f"trend/{category.lower()}/dashboard.html",
