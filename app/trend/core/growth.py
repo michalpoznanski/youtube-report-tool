@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 from datetime import datetime
+from typing import Dict, Any, List
 from .store.trend_store import load_json, save_json, trends_path, growth_path, get_prev_growth_path
 
 def _parse_duration_to_seconds(s):
@@ -18,7 +19,7 @@ def _parse_duration_to_seconds(s):
         return parts[0]
     return None
 
-def _detect_is_short_from_csv_row(row):
+def _detect_is_short_from_csv_row(row: Dict[str, Any]) -> bool:
     title = (row.get("title") or "").lower()
     url = (row.get("video_url") or "").lower()
     dur = row.get("duration_seconds") or row.get("duration")
@@ -27,8 +28,10 @@ def _detect_is_short_from_csv_row(row):
         sec = int(dur) if str(dur).isdigit() else _parse_duration_to_seconds(dur)
     except Exception:
         pass
-    if "/shorts/" in url or "#shorts" in title: return True
-    if sec is not None and sec < 60: return True
+    if "/shorts/" in url or "#shorts" in title: 
+        return True
+    if sec is not None and sec < 60:
+        return True
     return False
 
 def build_and_save_growth(category, report_date, today_rows, today_csv_map, out_path):
@@ -53,7 +56,7 @@ def build_and_save_growth(category, report_date, today_rows, today_csv_map, out_
         views_yesterday = prev_views.get(vid)
         delta = views_today - views_yesterday if isinstance(views_yesterday, int) else None
         out = dict(r)
-        out["channel"] = chan
+        out["channel"] = channel
         out["is_short"] = bool(is_short)
         out["views_yesterday"] = views_yesterday
         out["delta"] = delta

@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from ..core.loader import load_latest
 from ..core.dispatcher import analyze_category
-from ..core.growth import update_growth
+from ..core.growth import update_growth, _detect_is_short_from_csv_row
 from ..core.store.trend_store import stats_path, growth_path, save_json, previous_date_str, load_growth_map_for_date
 from ..core.stats import publish_hour_stats
 
@@ -134,91 +134,54 @@ def page(category: str, request: Request):
     except Exception as e:
         logger.warning('[TREND] Error enriching growth data: %s', e)
     
-    # Fallback: wczytaj dzisiejszy CSV i uzupełnij brakujące dane
-    try:
-        from app.trend.core.growth import _detect_is_short_from_csv_row
-        
-        # Stwórz mapę CSV dla fallback
-        csv_map = {}
-        for _, r in df.iterrows():
-            vid = str(r.get("Video_ID", "")).strip()
-            if vid:
-                csv_map[vid] = r.to_dict()
-        
-        # Uzupełnij brakujące dane z CSV
-        for row in growth_data:
-            vid = row.get("video_id")
-            if vid in csv_map:
-                csv_row = csv_map[vid]
-                # Uzupełnij channel jeśli brakuje
-                if "channel" not in row or not row.get("channel"):
-                    row["channel"] = csv_row.get("channel_title") or "-"
-                # Uzupełnij is_short jeśli brakuje
-                if "is_short" not in row or row.get("is_short") in (None, ""):
-                    row["is_short"] = _detect_is_short_from_csv_row(csv_row)
-    except Exception as e:
-        logger.warning('[TREND] Error in CSV fallback: %s', e)
+    # zbuduj mapa CSV: video_id -> {channel_title, duration_seconds, title, video_url}
+    csv_map = {}
+    if df is not None:
+        # dopasuj do realnych nazw kolumn w Twoim CSV:
+        # np. 'video_id','channel_title','duration_seconds','title','video_url'
+        for _, row in df.iterrows():
+            vid = str(row.get("video_id") or "").strip()
+            if not vid: 
+                continue
+            csv_map[vid] = {
+                "channel_title": row.get("channel_title"),
+                "duration_seconds": row.get("duration_seconds"),
+                "title": row.get("title"),
+                "video_url": row.get("video_url"),
+            }
+
+    items = list(data_growth.get("growth") or [])
+    # fallback uzupełniania
+    for it in items:
+        vid = it.get("video_id")
+        csv_row = csv_map.get(vid) or {}
+        if not it.get("channel"):
+            it["channel"] = csv_row.get("channel_title") or "-"
+        if it.get("is_short") in (None, ""):
+            it["is_short"] = _detect_is_short_from_csv_row(csv_row)
+
+    # rozdziel
+    long_items = [x for x in items if not x.get("is_short")]
+    short_items = [x for x in items if x.get("is_short")]
+
+    # sortowanie po dzisiejszych
+    long_items = sorted(long_items, key=lambda r: int(r.get("views_today") or 0), reverse=True)[:50]
+    short_items = sorted(short_items, key=lambda r: int(r.get("views_today") or 0), reverse=True)[:50]
+
+    logger.info(f'[TREND] {category}: report_date={report_date}, items={len(items)}, long={len(long_items)}, short={len(short_items)}')
     
-    # c) Rozdzielenie na long_items i short_items
-    try:
-        long_items = [r for r in growth_data if not r.get("is_short", False)]
-        short_items = [r for r in growth_data if r.get("is_short", False)]
-    except Exception as e:
-        logger.warning('[TREND] Error splitting items: %s', e)
-        long_items = growth_data
-        short_items = []
-    
-    # d) Opcjonalnie: dociągnięcie danych z dnia poprzedniego
-    try:
-        if report_date:
-            # Oblicz prev_date = report_date - 1 dzień
-            from datetime import datetime, timedelta
-            try:
-                prev_date = datetime.strptime(report_date, "%Y-%m-%d") - timedelta(days=1)
-                prev_date_str = prev_date.strftime("%Y-%m-%d")
-                
-                # Sprawdź czy plik growth dla prev_date istnieje
-                prev_gp = growth_path(category, prev_date_str)
-                if prev_gp and Path(prev_gp).exists():
-                    with open(prev_gp, 'r', encoding='utf-8') as f:
-                        prev_data = json.load(f)
-                        prev_map = {item.get("video_id"): item.get("views_today") for item in prev_data.get("growth", [])}
-                        
-                        # Wzbogacenie o wczorajsze wartości i deltę
-                        for r in long_items + short_items:
-                            if r.get("views_yesterday") is None:
-                                r["views_yesterday"] = prev_map.get(r.get("video_id"))
-                            # Oblicz delta jeśli obie wartości są liczbowe
-                            if (r.get("views_today") is not None and 
-                                r.get("views_yesterday") is not None):
-                                try:
-                                    r["delta"] = int(r["views_today"]) - int(r["views_yesterday"])
-                                except (ValueError, TypeError):
-                                    r["delta"] = None
-            except Exception as e:
-                logger.warning('[TREND] Error processing previous day data: %s', e)
-    except Exception as e:
-        logger.warning('[TREND] Error in previous day logic: %s', e)
-    
-    # e) Przygotowanie counts i sortowanie
-    counts = {
-        "long": len(long_items),
-        "shorts": len(short_items),
-        "all": len(growth_data)
-    }
-    
-    # Sortowanie po views_today malejąco
-    key_fn = lambda r: int(r.get("views_today") or 0)
-    long_items = sorted(long_items, key=key_fn, reverse=True)[:50]
-    short_items = sorted(short_items, key=key_fn, reverse=True)[:50]
-    
-    logger.info(f'[TREND] {category}: report_date={report_date}, counts={counts}')
-    
-    return templates.TemplateResponse(f"trend/{category.lower()}/dashboard.html",
-                                     {"request": request, "category": category, "growth": data_growth, 
-                                      "stats": data_stats, "report_date": report_date,
-                                      "items": growth_data, "long_items": long_items, "short_items": short_items,
-                                      "counts": counts})
+    return templates.TemplateResponse(
+        f"trend/{category.lower()}/dashboard.html",
+        {
+            "request": request,
+            "category": category,
+            "report_date": report_date,
+            "items": items,
+            "long_items": long_items,
+            "short_items": short_items,
+            "stats": data_stats or {},
+        }
+    )
 
 @router.get("/{category}/growth")
 def api_growth(category: str):
@@ -229,3 +192,25 @@ def api_growth(category: str):
             return json.load(f)
     except Exception:
         return {"growth": []}
+
+@router.get("/{category}/_debug")
+def debug(category: str):
+    df, report_date = load_latest(category)
+    out = {
+        "report_date": str(report_date) if report_date else None,
+        "csv_rows": int(df.shape[0]) if df is not None else 0,
+    }
+    try:
+        with open(growth_path(category, report_date), "r", encoding="utf-8") as f:
+            g = json.load(f).get("growth", [])
+        out["growth_count"] = len(g)
+        # policz ile ma pola i_short True/False
+        t = sum(1 for x in g if x.get("is_short") is True)
+        f_ = sum(1 for x in g if x.get("is_short") is False)
+        out["is_short_true"] = t
+        out["is_short_false"] = f_
+        out["has_views_yesterday"] = sum(1 for x in g if x.get("views_yesterday") is not None)
+        out["sample"] = g[:3]
+    except Exception as e:
+        out["growth_error"] = str(e)
+    return out

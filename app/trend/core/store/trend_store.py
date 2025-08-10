@@ -59,9 +59,11 @@ def list_growth_files(category: str):
     if not root.exists():
         return []
     out = []
-    for p in root.glob("growth_*.json"):
+    for p in root.glob("video_growth_*.json"):  # Dopasowane do growth_path()
         try:
-            dt = datetime.strptime(p.stem.split("_", 1)[1], "%Y-%m-%d")
+            # video_growth_YYYY-MM-DD.json
+            date_str = p.stem.split("_", 2)[2]  # Split na 3 części
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
             out.append((dt, p))
         except Exception:
             pass
