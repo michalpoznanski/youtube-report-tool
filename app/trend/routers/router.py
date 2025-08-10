@@ -84,8 +84,12 @@ def page(category: str, request: Request):
                 logger.warning('[TREND] stats file missing: %s', sp)
         except Exception as e:
             logger.exception('[TREND] stats read error: %s', e)
+    # Debug: sprawdź co przekazujemy
+    growth_data = data_growth.get("growth", [])
+    logger.info(f'[TREND] {category}: report_date={report_date}, growth_count={len(growth_data)}, data_growth_keys={list(data_growth.keys())}')
+    
     return templates.TemplateResponse(f"trend/{category.lower()}/dashboard.html",
-                                     {"request": request, "category": category, "growth": data_growth.get("growth", []), "stats": data_stats, "report_date": report_date})
+                                     {"request": request, "category": category, "growth": growth_data, "stats": data_stats, "report_date": report_date})
 
 @router.get("/{category}/growth")
 def api_growth(category: str):
