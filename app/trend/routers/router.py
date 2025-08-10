@@ -90,7 +90,8 @@ def page(category: str, request: Request):
     
     # Tymczasowo dodaj pole is_short do każdego elementu
     for item in growth_data:
-        if "is_short" not in item:
+        # Sprawdź czy pole nie istnieje lub ma wartość None/null
+        if "is_short" not in item or item.get("is_short") is None:
             # Proste rozpoznawanie po tytule (tymczasowe)
             title = item.get("title", "").lower()
             item["is_short"] = "#shorts" in title or " shorts" in title or "[shorts]" in title
