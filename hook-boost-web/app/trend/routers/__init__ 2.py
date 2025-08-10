@@ -1,1 +1,0 @@
-# Trend routers package

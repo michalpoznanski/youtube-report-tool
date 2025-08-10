@@ -1,1 +1,0 @@
-# Trend store package
