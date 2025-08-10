@@ -1,25 +1,50 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Trend – Podcast</title></head>
 <body>
 <h1>Trend – Podcast ({{ report_date or "brak daty" }})</h1>
-<h2>Top dzienne przyrosty (filmy)</h2>
-<table border="1" cellpadding="6">
-<thead><tr><th>#</th><th>Tytuł</th><th>Dzisiejsze</th><th>Wczoraj</th><th>Δ</th></tr></thead>
-<tbody>
-{% for row in growth.growth[:50] %}
-<tr>
-<td>{{ loop.index }}</td>
-<td>{{ row.title }}</td>
-<td>{{ row.views_today | default('-') }}</td>
-<td>{{ row.views_yesterday | default('-') }}</td>
-<td>{{ row.delta | default('-') }}</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
 
-<h2>Popularne godziny publikacji</h2>
-<div>
-<p><b>Long-form – top godzina:</b> {{ stats.longs.top_hour if stats.longs else "brak" }}</p>
-<p><b>Shorts – top godzina:</b> {{ stats.shorts.top_hour if stats.shorts else "brak" }}</p>
-</div>
+{% set items = (growth.growth if growth and growth.growth is defined else []) | sort(attribute='views_today', reverse=True) %}
+<style>
+  table{border-collapse:collapse;width:100%;font-family:system-ui,Arial,sans-serif}
+  th,td{border:1px solid #ddd;padding:8px}
+  th{position:sticky;top:0;background:#f7f7f7;text-align:left}
+  tbody tr:nth-child(odd){background:#fafafa}
+  .muted{color:#777}
+</style>
+
+<h2>Top dzienne przyrosty (filmy)</h2>
+
+{% if items and items|length > 0 %}
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Tytuł</th>
+      <th>Dzisiejsze</th>
+      <th>Wczoraj</th>
+      <th>Δ</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in items[:50] %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          <a href="https://www.youtube.com/watch?v={{ row.video_id }}" target="_blank" rel="noopener">
+            {{ row.title }}
+          </a>
+        </td>
+        <td>{{ row.views_today | default('-') }}</td>
+        <td>{{ row.views_yesterday | default('-') }}</td>
+        <td>{{ row.delta | default('-') }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p class="muted">Brak danych do wyświetlenia.</p>
+{% endif %}
+
+<h3>Popularne godziny publikacji</h3>
+<p><strong>Long-form – top godzina:</strong> {{ stats.longform_top_hour | default('brak') }}</p>
+<p><strong>Shorts – top godzina:</strong> {{ stats.shorts_top_hour | default('brak') }}</p>
 </body></html>
