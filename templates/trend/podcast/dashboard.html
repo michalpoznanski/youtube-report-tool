@@ -2,7 +2,7 @@
 <body>
 <h1>Trend – Podcast ({{ report_date or "brak daty" }})</h1>
 
-{% set items_all = (growth.growth if growth and growth.growth is defined else []) %}
+{% set items_all = (growth if growth is defined else []) %}
 {% set items_sorted = items_all | sort(attribute='views_today', reverse=True) %}
 {% set longs = items_sorted | selectattr('is_short', 'equalto', false) | list %}
 {% set shorts = items_sorted | selectattr('is_short', 'equalto', true) | list %}
