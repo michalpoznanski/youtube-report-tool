@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 logger.info("[TREND/ROUTER] Router module loaded successfully")
 router = APIRouter(prefix="/trend", tags=["trend"])
 
+@router.get("/test")
+def test_endpoint():
+    """Test endpoint żeby sprawdzić czy routing w ogóle działa"""
+    logger.info("[TREND/TEST] Test endpoint hit!")
+    return {"message": "Trend router działa!", "status": "ok"}
+
 @router.api_route("/{category}/run", methods=["GET", "POST"])
 def run(category: str):
     df, report_date = load_latest(category)
@@ -65,6 +71,8 @@ def page(category: str, request: Request):
     # ładowanie growth i stats jeśli istnieją (z najnowszego dnia – prosto: bierzemy plik z load_latest)
     
     logger.info(f'[TREND/PAGE] Loading page for category: {category}')
+    logger.info(f'[TREND/PAGE] Request URL: {request.url}')
+    logger.info(f'[TREND/PAGE] Request method: {request.method}')
     
     # 1. Ustal report_date - spróbuj z load_latest, fallback z najnowszego CSV
     df, report_date = load_latest(category)
