@@ -63,6 +63,39 @@ def page(category: str, request: Request):
     # HTML strona kategorii
     # ładowanie growth i stats jeśli istnieją (z najnowszego dnia – prosto: bierzemy plik z load_latest)
     df, report_date = load_latest(category)
+    
+    # a) Budowanie mapy metadata po video_id z df
+    meta = {}
+    try:
+        for _, row in df.iterrows():
+            vid = str(row.get("video_id", "")).strip()
+            if not vid:
+                continue
+                
+            short_heuristic = False
+            # Sprawdź video_url zawiera '/shorts/'
+            if 'video_url' in df.columns and row.get('video_url'):
+                short_heuristic = short_heuristic or '/shorts/' in str(row.get('video_url', ''))
+            # Sprawdź title zawiera '#shorts'
+            if 'title' in df.columns and row.get('title'):
+                short_heuristic = short_heuristic or '#shorts' in str(row.get('title', '')).lower()
+            # Sprawdź duration_seconds < 60
+            if 'duration_seconds' in df.columns and row.get('duration_seconds'):
+                try:
+                    duration = float(row.get('duration_seconds', 0))
+                    short_heuristic = short_heuristic or duration < 60
+                except (ValueError, TypeError):
+                    pass
+            
+            meta[vid] = {
+                'is_short': bool(short_heuristic),
+                'channel_title': row.get('channel_title') if 'channel_title' in df.columns else None,
+                'published_at': row.get('published_at') if 'published_at' in df.columns else None
+            }
+    except Exception as e:
+        logger.warning('[TREND] Error building metadata: %s', e)
+        meta = {}
+    
     data_growth = {"growth":[]}
     data_stats = {}
     if report_date:
@@ -84,20 +117,77 @@ def page(category: str, request: Request):
                 logger.warning('[TREND] stats file missing: %s', sp)
         except Exception as e:
             logger.exception('[TREND] stats read error: %s', e)
-    # Debug: sprawdź co przekazujemy
-    growth_data = data_growth.get("growth", [])
-    logger.info(f'[TREND] {category}: report_date={report_date}, growth_count={len(growth_data)}, data_growth_keys={list(data_growth.keys())}')
     
-    # Tymczasowo dodaj pole is_short do każdego elementu
-    for item in growth_data:
-        # Sprawdź czy pole nie istnieje lub ma wartość None/null
-        if "is_short" not in item or item.get("is_short") is None:
-            # Proste rozpoznawanie po tytule (tymczasowe)
-            title = item.get("title", "").lower()
-            item["is_short"] = "#shorts" in title or " shorts" in title or "[shorts]" in title
+    # b) Wzbogacenie growth o metadata
+    growth_data = data_growth.get("growth", [])
+    try:
+        for item in growth_data:
+            vid = item.get("video_id", "")
+            if vid in meta:
+                item["is_short"] = meta[vid]["is_short"]
+                if meta[vid]["channel_title"]:
+                    item["channel_title"] = meta[vid]["channel_title"]
+                if meta[vid]["published_at"]:
+                    item["published_at"] = meta[vid]["published_at"]
+            else:
+                item["is_short"] = False
+    except Exception as e:
+        logger.warning('[TREND] Error enriching growth data: %s', e)
+    
+    # c) Rozdzielenie na long_items i short_items
+    try:
+        long_items = [r for r in growth_data if not r.get("is_short", False)]
+        short_items = [r for r in growth_data if r.get("is_short", False)]
+    except Exception as e:
+        logger.warning('[TREND] Error splitting items: %s', e)
+        long_items = growth_data
+        short_items = []
+    
+    # d) Opcjonalnie: dociągnięcie danych z dnia poprzedniego
+    try:
+        if report_date:
+            # Oblicz prev_date = report_date - 1 dzień
+            from datetime import datetime, timedelta
+            try:
+                prev_date = datetime.strptime(report_date, "%Y-%m-%d") - timedelta(days=1)
+                prev_date_str = prev_date.strftime("%Y-%m-%d")
+                
+                # Sprawdź czy plik growth dla prev_date istnieje
+                prev_gp = growth_path(category, prev_date_str)
+                if prev_gp and Path(prev_gp).exists():
+                    with open(prev_gp, 'r', encoding='utf-8') as f:
+                        prev_data = json.load(f)
+                        prev_map = {item.get("video_id"): item.get("views_today") for item in prev_data.get("growth", [])}
+                        
+                        # Wzbogacenie o wczorajsze wartości i deltę
+                        for r in long_items + short_items:
+                            if r.get("views_yesterday") is None:
+                                r["views_yesterday"] = prev_map.get(r.get("video_id"))
+                            # Oblicz delta jeśli obie wartości są liczbowe
+                            if (r.get("views_today") is not None and 
+                                r.get("views_yesterday") is not None):
+                                try:
+                                    r["delta"] = int(r["views_today"]) - int(r["views_yesterday"])
+                                except (ValueError, TypeError):
+                                    r["delta"] = None
+            except Exception as e:
+                logger.warning('[TREND] Error processing previous day data: %s', e)
+    except Exception as e:
+        logger.warning('[TREND] Error in previous day logic: %s', e)
+    
+    # e) Przygotowanie counts
+    counts = {
+        "long": len(long_items),
+        "shorts": len(short_items),
+        "all": len(growth_data)
+    }
+    
+    logger.info(f'[TREND] {category}: report_date={report_date}, counts={counts}')
     
     return templates.TemplateResponse(f"trend/{category.lower()}/dashboard.html",
-                                     {"request": request, "category": category, "growth": growth_data, "stats": data_stats, "report_date": report_date})
+                                     {"request": request, "category": category, "growth": growth_data, 
+                                      "long_items": long_items, "short_items": short_items, "counts": counts,
+                                      "stats": data_stats, "report_date": report_date})
 
 @router.get("/{category}/growth")
 def api_growth(category: str):

@@ -2,39 +2,40 @@
 <body>
 <h1>Trend – Podcast ({{ report_date or "brak daty" }})</h1>
 
-<!-- DEBUG: Sprawdź co otrzymujemy -->
-<p><strong>DEBUG:</strong> growth type: {{ growth.__class__.__name__ }}, length: {{ growth|length if growth else 0 }}</p>
-<p><strong>DEBUG:</strong> growth keys: {{ growth.keys() if growth and growth is mapping else 'not a dict' }}</p>
-<p><strong>DEBUG:</strong> growth sample: {{ growth[:2] if growth and growth is sequence else 'not a list' }}</p>
+<!-- Streszczenie -->
+<p><strong>Łącznie: {{ counts.all }} | Long‑form: {{ counts.long }} | Shorts: {{ counts.shorts }}</strong></p>
 
-{% set items_all = (growth if growth is defined else []) %}
-{% set items_sorted = items_all | sort(attribute='views_today', reverse=True) %}
-{% set longs = items_sorted | selectattr('is_short', 'equalto', false) | list %}
-{% set shorts = items_sorted | selectattr('is_short', 'equalto', true) | list %}
+<!-- Sortowanie -->
+{% set long_items_sorted = (long_items | sort(attribute='views_today', reverse=True)) %}
+{% set short_items_sorted = (short_items | sort(attribute='views_today', reverse=True)) %}
 
 <style>
   table{border-collapse:collapse;width:100%;font-family:system-ui,Arial,sans-serif}
-  th,td{border:1px solid #ddd;padding:8px}
-  th{position:sticky;top:0;background:#f7f7f7;text-align:left}
+  th,td{border:1px solid #e5e7eb;padding:12px;text-align:left}
+  th{position:sticky;top:0;background:#f8fafc;font-weight:600}
   tbody tr:nth-child(odd){background:#fafafa}
-  .muted{color:#777}
+  tbody tr:hover{background:#f1f5f9}
+  .muted{color:#6b7280}
+  a{color:#0b57d0;text-decoration:none}
+  a:hover{text-decoration:underline}
 </style>
 
 <h2>Top dzienne przyrosty (Long-form)</h2>
 
-{% if longs and longs|length > 0 %}
+{% if long_items_sorted and long_items_sorted|length > 0 %}
 <table>
   <thead>
     <tr>
       <th>#</th>
       <th>Tytuł</th>
+      <th>Kanał</th>
       <th>Dzisiejsze</th>
       <th>Wczoraj</th>
       <th>Δ</th>
     </tr>
   </thead>
   <tbody>
-    {% for row in longs[:50] %}
+    {% for row in long_items_sorted[:50] %}
       <tr>
         <td>{{ loop.index }}</td>
         <td>
@@ -42,6 +43,7 @@
             {{ row.title }}
           </a>
         </td>
+        <td>{{ row.channel_title | default('-') }}</td>
         <td>{{ row.views_today | default('-') }}</td>
         <td>{{ row.views_yesterday | default('-') }}</td>
         <td>{{ row.delta | default('-') }}</td>
@@ -55,19 +57,20 @@
 
 <h2 style="margin-top:24px;">Top dzienne przyrosty (Shorts)</h2>
 
-{% if shorts and shorts|length > 0 %}
+{% if short_items_sorted and short_items_sorted|length > 0 %}
 <table>
   <thead>
     <tr>
       <th>#</th>
       <th>Tytuł</th>
+      <th>Kanał</th>
       <th>Dzisiejsze</th>
       <th>Wczoraj</th>
       <th>Δ</th>
     </tr>
   </thead>
   <tbody>
-    {% for row in shorts[:50] %}
+    {% for row in short_items_sorted[:50] %}
       <tr>
         <td>{{ loop.index }}</td>
         <td>
@@ -75,6 +78,7 @@
             {{ row.title }}
           </a>
         </td>
+        <td>{{ row.channel_title | default('-') }}</td>
         <td>{{ row.views_today | default('-') }}</td>
         <td>{{ row.views_yesterday | default('-') }}</td>
         <td>{{ row.delta | default('-') }}</td>
