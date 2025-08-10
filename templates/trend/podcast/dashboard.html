@@ -9,9 +9,8 @@
 
 {% set items_all = (growth if growth is defined else []) %}
 {% set items_sorted = items_all | sort(attribute='views_today', reverse=True) %}
-<!-- Tymczasowo wyświetlamy wszystkie filmy jako Long-form (bez filtrowania po is_short) -->
-{% set longs = items_sorted %}
-{% set shorts = [] %}
+{% set longs = items_sorted | selectattr('is_short', 'equalto', false) | list %}
+{% set shorts = items_sorted | selectattr('is_short', 'equalto', true) | list %}
 
 <style>
   table{border-collapse:collapse;width:100%;font-family:system-ui,Arial,sans-serif}

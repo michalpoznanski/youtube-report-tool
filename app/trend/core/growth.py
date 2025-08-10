@@ -1,5 +1,6 @@
 import pandas as pd
 from .store.trend_store import load_json, save_json, trends_path, growth_path
+from ..analyzers.podcast import infer_is_short
 
 def update_growth(category: str, df: pd.DataFrame, report_date: str):
     trends = load_json(trends_path(category))
@@ -29,12 +30,32 @@ def update_growth(category: str, df: pd.DataFrame, report_date: str):
         # szukaj poprzedniego pomiaru
         prev_items = [h for h in hist if h["date"]<report_date]
         prev = prev_items[-1] if prev_items else None
+        # Pobierz duration z oryginalnych danych
+        duration = None
+        for _, r in df.iterrows():
+            if str(r.get("Video_ID", "")).strip() == vid:
+                duration_str = r.get("Duration", "")
+                if duration_str:
+                    try:
+                        # Konwertuj ISO 8601 duration na sekundy
+                        import re
+                        match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration_str)
+                        if match:
+                            hours = int(match.group(1) or 0)
+                            minutes = int(match.group(2) or 0)
+                            seconds = int(match.group(3) or 0)
+                            duration = hours * 3600 + minutes * 60 + seconds
+                    except Exception:
+                        pass
+                break
+        
         growth_list.append({
             "video_id": vid,
             "title": entry.get("title",""),
             "views_today": today["views"],
             "views_yesterday": prev["views"] if prev else None,
-            "delta": (today["views"] - prev["views"]) if prev else None
+            "delta": (today["views"] - prev["views"]) if prev else None,
+            "is_short": infer_is_short(entry.get("title",""), duration)
         })
     # sort malejąco po delta (None na dół)
     growth_list = sorted(growth_list, key=lambda x: (-1_000_000_000 if x["delta"] is None else -x["delta"], -x["views_today"]))
