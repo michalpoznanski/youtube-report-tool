@@ -55,6 +55,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Integracja modułu Trend
+import os
+if os.getenv("ENABLE_TREND", "false").lower() == "true":
+    try:
+        from app.trend.routers.router import router as trend_router
+        app.include_router(trend_router, prefix="")
+        print("[BOOT] Trend module enabled")
+    except Exception as e:
+        print("[BOOT] Trend module failed:", e)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
