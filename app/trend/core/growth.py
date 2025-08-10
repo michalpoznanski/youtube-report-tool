@@ -1,8 +1,8 @@
 import pandas as pd
 import json
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, Any, List
-from .store.trend_store import load_json, save_json, trends_path, growth_path, get_prev_growth_path
+from .store.trend_store import load_json, save_json, trends_path, growth_path, stats_path, get_prev_growth_path
 
 def _parse_duration_to_seconds(s):
     if not s: return None
@@ -107,7 +107,7 @@ def build_growth_from_csv(category: str, d: date) -> Dict[str, Any]:
         "growth": growth_items
     }
 
-def save_growth_and_stats(category: str, d: datetime, payload: Dict[str, Any]) -> None:
+def save_growth_and_stats(category: str, d: date, payload: Dict[str, Any]) -> None:
     """Zapisz growth JSON i policz stats"""
     try:
         # Zapisz growth
