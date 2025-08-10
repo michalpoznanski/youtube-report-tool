@@ -111,10 +111,9 @@ def page(category: str, request: Request):
             # Ustal datę: najnowszą z list_report_files
             csv_files = list_report_files(category)
             if csv_files:
-                # Pobierz datę z nazwy pliku
-                filename = csv_files[-1].name
-                date_str = filename.split("_", 2)[2].replace(".csv", "")
-                report_dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+                # csv_files to lista (datetime, Path) - weź najnowszą datę
+                latest_date, latest_path = csv_files[-1]
+                report_dt = latest_date.date()
                 
                 logger.info(f'[TREND/CSV] Building growth from CSV for {category} at {report_dt.isoformat()}')
                 
@@ -274,10 +273,9 @@ def debug_csv(category: str, date: str = None):
             csv_files = list_report_files(category)
             if not csv_files:
                 return out
-            # Pobierz datę z nazwy pliku
-            filename = csv_files[-1].name
-            date_str = filename.split("_", 2)[2].replace(".csv", "")
-            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            # csv_files to lista (datetime, Path) - weź najnowszą datę
+            latest_date, latest_path = csv_files[-1]
+            target_date = latest_date.date()
         
         out["date"] = target_date.isoformat()
         
@@ -323,10 +321,9 @@ def rebuild_from_csv(category: str, date: str = None):
             csv_files = list_report_files(category)
             if not csv_files:
                 return {"ok": False, "error": "Brak plików CSV"}
-            # Pobierz datę z nazwy pliku
-            filename = csv_files[-1].name
-            date_str = filename.split("_", 2)[2].replace(".csv", "")
-            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            # csv_files to lista (datetime, Path) - weź najnowszą datę
+            latest_date, latest_path = csv_files[-1]
+            target_date = latest_date.date()
         
         # Zbuduj growth z CSV
         data_growth = build_growth_from_csv(category, target_date)

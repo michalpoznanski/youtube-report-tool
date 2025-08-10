@@ -85,8 +85,8 @@ def report_glob(category: str) -> str:
 # Stałe dla raportów CSV
 REPORTS_DIR = "/mnt/volume/reports"
 
-def list_report_files(category: str) -> list[Path]:
-    """Zwraca posortowaną listę ścieżek CSV dla kategorii"""
+def list_report_files(category: str) -> list[tuple[datetime, Path]]:
+    """Zwraca posortowaną listę (data, ścieżka) CSV dla kategorii"""
     root = Path(REPORTS_DIR)
     if not root.exists():
         return []
@@ -102,7 +102,7 @@ def list_report_files(category: str) -> list[Path]:
         except Exception:
             pass
     
-    return [p for _, p in sorted(out, key=lambda x: x[0])]
+    return sorted(out, key=lambda x: x[0])
 
 def report_path_for_date(category: str, d: date) -> Path | None:
     """Znajdź dokładny plik CSV po dacie"""
