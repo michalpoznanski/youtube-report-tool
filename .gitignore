@@ -102,3 +102,7 @@ name_candidates.json
 .railway/
 .render/
 .heroku/ __SAFE_BACKUP_*
+__SAFE_BACKUP_*
+/mnt/volume/guest_analysis/
+/guest_analysis/
+*.tar.gz
