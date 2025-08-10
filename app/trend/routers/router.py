@@ -88,6 +88,13 @@ def page(category: str, request: Request):
     growth_data = data_growth.get("growth", [])
     logger.info(f'[TREND] {category}: report_date={report_date}, growth_count={len(growth_data)}, data_growth_keys={list(data_growth.keys())}')
     
+    # Tymczasowo dodaj pole is_short do każdego elementu
+    for item in growth_data:
+        if "is_short" not in item:
+            # Proste rozpoznawanie po tytule (tymczasowe)
+            title = item.get("title", "").lower()
+            item["is_short"] = "#shorts" in title or " shorts" in title or "[shorts]" in title
+    
     return templates.TemplateResponse(f"trend/{category.lower()}/dashboard.html",
                                      {"request": request, "category": category, "growth": growth_data, "stats": data_stats, "report_date": report_date})
 
