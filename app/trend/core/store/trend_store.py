@@ -1,6 +1,6 @@
 import os, json, datetime as dt
 from typing import Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 
 def base_dir():
@@ -82,14 +82,17 @@ def report_glob(category: str) -> str:
     """Wzorzec nazw plików CSV dla kategorii"""
     return f"report_{category.upper()}_*.csv"
 
-def list_report_files(category: str) -> list[tuple[datetime, Path]]:
-    """Lista plików CSV z datami dla kategorii"""
-    root = report_dir()
+# Stałe dla raportów CSV
+REPORTS_DIR = "/mnt/volume/reports"
+
+def list_report_files(category: str) -> list[Path]:
+    """Zwraca posortowaną listę ścieżek CSV dla kategorii"""
+    root = Path(REPORTS_DIR)
     if not root.exists():
         return []
     
     out = []
-    pattern = report_glob(category)
+    pattern = f"report_{category.upper()}_*.csv"
     for p in root.glob(pattern):
         try:
             # report_PODCAST_2025-08-09.csv -> 2025-08-09
@@ -99,18 +102,17 @@ def list_report_files(category: str) -> list[tuple[datetime, Path]]:
         except Exception:
             pass
     
-    return sorted(out, key=lambda x: x[0])
+    return [p for _, p in sorted(out, key=lambda x: x[0])]
 
-def get_report_path(category: str, date: datetime) -> Path | None:
-    """Ścieżka do pliku CSV dla kategorii i daty"""
-    target_date = date.strftime("%Y-%m-%d")
+def report_path_for_date(category: str, d: date) -> Path | None:
+    """Znajdź dokładny plik CSV po dacie"""
+    target_date = d.strftime("%Y-%m-%d")
     for dt, path in list_report_files(category):
         if dt.strftime("%Y-%m-%d") == target_date:
             return path
     return None
 
-def get_prev_date(category: str, today_date: datetime) -> datetime | None:
-    """Najbliższa wcześniejsza data z CSV dla kategorii"""
-    files = list_report_files(category)
-    prev = [dt for dt, _ in files if dt < today_date]
-    return prev[-1] if prev else None
+def prev_date(d: date) -> date:
+    """Poprzedni dzień"""
+    from datetime import timedelta
+    return d - timedelta(days=1)

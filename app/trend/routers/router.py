@@ -103,19 +103,36 @@ def page(category: str, request: Request):
     
     # 3. Jeśli brak growth JSON lub niekompletne dane - zbuduj z CSV
     if not data_growth:
-        from app.trend.core.loader import build_growth_from_csvs
-        from app.trend.core.growth import save_growth
-        from datetime import datetime
+        from app.trend.core.growth import build_growth_from_csv, save_growth_and_stats
+        from app.trend.core.store.trend_store import list_report_files
+        from datetime import datetime, date
         
         try:
-            report_dt = datetime.strptime(report_date, "%Y-%m-%d")
-            data_growth = build_growth_from_csvs(category, report_dt)
-            
-            # Zapisz do JSON
-            save_growth(category, report_dt, data_growth)
-            
+            # Ustal datę: najnowszą z list_report_files
+            csv_files = list_report_files(category)
+            if csv_files:
+                # Pobierz datę z nazwy pliku
+                filename = csv_files[-1].name
+                date_str = filename.split("_", 2)[2].replace(".csv", "")
+                report_dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+                
+                logger.info(f'[TREND/CSV] Building growth from CSV for {category} at {report_dt.isoformat()}')
+                
+                # Zbuduj growth z CSV
+                data_growth = build_growth_from_csv(category, report_dt)
+                
+                # Zapisz growth i stats
+                save_growth_and_stats(category, report_dt, data_growth)
+                
+                # Aktualizuj report_date
+                report_date = report_dt.strftime("%Y-%m-%d")
+                
+            else:
+                logger.warning(f'[TREND/CSV] No CSV files found for {category}')
+                data_growth = {"growth": []}
+                
         except Exception as e:
-            logger.error(f'[TREND] Error building growth from CSV: {e}')
+            logger.exception(f'[TREND/CSV] Error building growth from CSV: {e}')
             data_growth = {"growth": []}
     
     # 4. Policz statystyki
@@ -230,42 +247,98 @@ def debug_prev(category: str):
     
     return out
 
-@router.get("/{category}/rebuild-from-csv")
-def rebuild_from_csv(category: str, date: str = None):
-    """Przebuduj growth z CSV dla wskazanej daty"""
-    from app.trend.core.loader import build_growth_from_csvs
-    from app.trend.core.growth import save_growth
+@router.get("/{category}/_debug_csv")
+def debug_csv(category: str, date: str = None):
+    """Debug endpoint pokazujący CSV dla daty"""
     from app.trend.core.store.trend_store import list_report_files
-    from datetime import datetime
+    from app.trend.core.csv_loader import read_csv_for_date
+    from datetime import datetime, date
+    
+    out = {
+        "category": category,
+        "date": None,
+        "today_rows": 0,
+        "prev_rows": 0,
+        "sample_today": None,
+        "sample_prev": None,
+        "today_path": None,
+        "prev_path": None
+    }
     
     try:
         if date:
             # Użyj wskazanej daty
-            target_date = datetime.strptime(date, "%Y-%m-%d")
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        else:
+            # Użyj najnowszego CSV
+            csv_files = list_report_files(category)
+            if not csv_files:
+                return out
+            # Pobierz datę z nazwy pliku
+            filename = csv_files[-1].name
+            date_str = filename.split("_", 2)[2].replace(".csv", "")
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        
+        out["date"] = target_date.isoformat()
+        
+        # Wczytaj dzisiejszy CSV
+        today = read_csv_for_date(category, target_date)
+        out["today_rows"] = len(today)
+        out["sample_today"] = today[0] if today else None
+        
+        # Znajdź ścieżkę do dzisiejszego CSV
+        from app.trend.core.store.trend_store import report_path_for_date
+        today_path = report_path_for_date(category, target_date)
+        out["today_path"] = str(today_path) if today_path else None
+        
+        # Wczytaj wczorajszy CSV
+        from app.trend.core.store.trend_store import prev_date
+        prev_d = prev_date(target_date)
+        prev = read_csv_for_date(category, prev_d)
+        out["prev_rows"] = len(prev)
+        out["sample_prev"] = prev[0] if prev else None
+        
+        # Znajdź ścieżkę do wczorajszego CSV
+        prev_path = report_path_for_date(category, prev_d)
+        out["prev_path"] = str(prev_path) if prev_path else None
+        
+    except Exception as e:
+        out["error"] = str(e)
+    
+    return out
+
+@router.get("/{category}/rebuild-from-csv")
+def rebuild_from_csv(category: str, date: str = None):
+    """Przebuduj growth z CSV dla wskazanej daty"""
+    from app.trend.core.growth import build_growth_from_csv, save_growth_and_stats
+    from app.trend.core.store.trend_store import list_report_files
+    from datetime import datetime, date
+    
+    try:
+        if date:
+            # Użyj wskazanej daty
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
         else:
             # Użyj najnowszego CSV
             csv_files = list_report_files(category)
             if not csv_files:
                 return {"ok": False, "error": "Brak plików CSV"}
-            target_date = csv_files[-1][0]
+            # Pobierz datę z nazwy pliku
+            filename = csv_files[-1].name
+            date_str = filename.split("_", 2)[2].replace(".csv", "")
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         
         # Zbuduj growth z CSV
-        data_growth = build_growth_from_csvs(category, target_date)
+        data_growth = build_growth_from_csv(category, target_date)
         
-        # Zapisz do JSON
-        save_growth(category, target_date, data_growth)
-        
-        # Sprawdź czy użyto wczorajszego CSV
-        from app.trend.core.store.trend_store import get_prev_date
-        prev_date = get_prev_date(category, target_date)
-        used_prev = prev_date is not None
+        # Zapisz growth i stats
+        save_growth_and_stats(category, target_date, data_growth)
         
         return {
             "ok": True,
             "category": category,
-            "date": target_date.strftime("%Y-%m-%d"),
-            "items": len(data_growth.get("growth", [])),
-            "used_prev": used_prev
+            "date": target_date.isoformat(),
+            "items": len(data_growth.get("growth", []))
         }
         
     except Exception as e:

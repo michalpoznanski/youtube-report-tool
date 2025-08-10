@@ -34,6 +34,139 @@ def _detect_is_short_from_csv_row(row: Dict[str, Any]) -> bool:
         return True
     return False
 
+def detect_is_short(item: Dict[str, Any]) -> bool:
+    """Heurystyka detekcji shorts"""
+    # Duration < 62 sekund
+    if item.get("duration_seconds") is not None:
+        if item["duration_seconds"] < 62:
+            return True
+    
+    # #short/#shorts w title/tags/description (case-insensitive)
+    title = str(item.get("title", "")).lower()
+    tags = str(item.get("tags", "")).lower()
+    description = str(item.get("description", "")).lower()
+    
+    if "#short" in title or "#shorts" in title:
+        return True
+    if "short" in tags or "shorts" in tags:
+        return True
+    if "short" in description or "shorts" in description:
+        return True
+    
+    return False
+
+def build_growth_from_csv(category: str, d: date) -> Dict[str, Any]:
+    """Zbuduj growth z CSV dla dzisiejszej i wczorajszej daty"""
+    from app.trend.core.csv_loader import read_csv_for_date
+    from app.trend.core.store.trend_store import prev_date
+    
+    # Wczytaj dzisiejszy CSV
+    today = read_csv_for_date(category, d)
+    if not today:
+        return {
+            "date": d.isoformat(),
+            "growth": []
+        }
+    
+    # Wczytaj wczorajszy CSV
+    yest = read_csv_for_date(category, prev_date(d))
+    yest_map = {row["video_id"]: row["views"] for row in yest}
+    
+    # Zbuduj growth
+    growth_items = []
+    for today_row in today:
+        video_id = today_row["video_id"]
+        views_today = int(today_row["views"])
+        views_yesterday = yest_map.get(video_id)
+        
+        # Oblicz delta
+        delta = None
+        if views_yesterday is not None:
+            delta = views_today - views_yesterday
+        
+        # Wykryj is_short
+        is_short = detect_is_short(today_row)
+        
+        growth_record = {
+            "video_id": video_id,
+            "title": today_row["title"],
+            "channel": today_row["channel"] or "-",
+            "views_today": views_today,
+            "views_yesterday": views_yesterday,
+            "delta": delta,
+            "is_short": is_short
+        }
+        
+        growth_items.append(growth_record)
+    
+    # Sortuj malejąco po views_today
+    growth_items.sort(key=lambda x: x["views_today"], reverse=True)
+    
+    return {
+        "date": d.isoformat(),
+        "growth": growth_items
+    }
+
+def save_growth_and_stats(category: str, d: datetime, payload: Dict[str, Any]) -> None:
+    """Zapisz growth JSON i policz stats"""
+    try:
+        # Zapisz growth
+        out_path = growth_path(category, d.strftime("%Y-%m-%d"))
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        
+        # Policz stats
+        growth_items = payload.get("growth", [])
+        long_count = sum(1 for x in growth_items if not x.get("is_short", False))
+        short_count = sum(1 for x in growth_items if x.get("is_short", False))
+        
+        # Top godziny publikacji (jeśli mamy published_at)
+        long_hours = {}
+        short_hours = {}
+        
+        for item in growth_items:
+            published_at = item.get("published_at")
+            if published_at:
+                try:
+                    # Próbuj sparsować różne formaty daty
+                    from datetime import datetime
+                    if "T" in published_at:
+                        dt = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+                    else:
+                        dt = datetime.strptime(published_at, "%Y-%m-%d %H:%M:%S")
+                    
+                    hour = dt.hour
+                    if item.get("is_short", False):
+                        short_hours[hour] = short_hours.get(hour, 0) + 1
+                    else:
+                        long_hours[hour] = long_hours.get(hour, 0) + 1
+                except Exception:
+                    pass
+        
+        # Top godziny
+        top_long_hour = max(long_hours.items(), key=lambda x: x[1])[0] if long_hours else None
+        top_short_hour = max(short_hours.items(), key=lambda x: x[1])[0] if short_hours else None
+        
+        stats = {
+            "date": d.isoformat(),
+            "total_items": len(growth_items),
+            "long_count": long_count,
+            "short_count": short_count,
+            "top_long_hour": top_long_hour,
+            "top_short_hour": top_short_hour
+        }
+        
+        # Zapisz stats
+        stats_path_file = stats_path(category, d.strftime("%Y-%m-%d"))
+        with open(stats_path_file, "w", encoding="utf-8") as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f'[TREND/CSV] Saved {category} growth for {d.isoformat()}: {len(growth_items)} items (long: {long_count}, short: {short_count})')
+        
+    except Exception as e:
+        logger.error(f'[TREND/CSV] Error saving {category} growth/stats: {e}')
+        raise
+
 def build_and_save_growth(category, report_date, today_rows, today_csv_map, out_path):
     prev_path = get_prev_growth_path(category, report_date)
     prev_views = {}
