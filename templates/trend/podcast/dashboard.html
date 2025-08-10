@@ -2,6 +2,11 @@
 <body>
 <h1>Trend – Podcast ({{ report_date or "brak daty" }})</h1>
 
+<!-- DEBUG: Sprawdź co otrzymujemy -->
+<p><strong>DEBUG:</strong> growth type: {{ growth.__class__.__name__ }}, length: {{ growth|length if growth else 0 }}</p>
+<p><strong>DEBUG:</strong> growth keys: {{ growth.keys() if growth and growth is mapping else 'not a dict' }}</p>
+<p><strong>DEBUG:</strong> growth sample: {{ growth[:2] if growth and growth is sequence else 'not a list' }}</p>
+
 {% set items_all = (growth if growth is defined else []) %}
 {% set items_sorted = items_all | sort(attribute='views_today', reverse=True) %}
 {% set longs = items_sorted | selectattr('is_short', 'equalto', false) | list %}
