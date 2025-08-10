@@ -66,7 +66,9 @@ logger = logging.getLogger(__name__)
 if os.getenv("ENABLE_TREND", "false").lower() == "true":
     try:
         from app.trend.routers.router import router as trend_router
+        logger.info("[BOOT] Trend router imported successfully")
         app.include_router(trend_router, prefix="")
+        logger.info("[BOOT] Trend router included in app ✅")
         logger.info("[BOOT] Trend module enabled ✅")
     except Exception as e:
         logger.exception("[BOOT] Trend module failed ❌: %s", e)
