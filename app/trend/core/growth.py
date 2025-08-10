@@ -1,61 +1,66 @@
 import pandas as pd
-from .store.trend_store import load_json, save_json, trends_path, growth_path
+import json
+from datetime import datetime
+from .store.trend_store import load_json, save_json, trends_path, growth_path, get_prev_growth_path
 
-def _parse_duration_to_seconds(v):
-    if v is None:
-        return None
-    s = str(v).strip()
-    if not s or s.lower() in ("nan", "none"):
-        return None
-    parts = s.split(":")
+def _parse_duration_to_seconds(s):
+    if not s: return None
+    parts = str(s).split(":")
     try:
         parts = [int(p) for p in parts]
     except Exception:
         return None
-    if len(parts) == 3:  # H:MM:SS
-        h, m, sec = parts
-        return h*3600 + m*60 + sec
-    if len(parts) == 2:  # MM:SS
-        m, sec = parts
-        return m*60 + sec
-    if len(parts) == 1:  # SS
+    if len(parts) == 3:
+        h, m, sec = parts; return h*3600 + m*60 + sec
+    if len(parts) == 2:
+        m, sec = parts; return m*60 + sec
+    if len(parts) == 1:
         return parts[0]
     return None
 
-def _detect_is_short(record: dict) -> bool:
-    # spróbuj znaleźć link kolumny
-    url = None
-    for k in ("video_url", "url", "link", "watch_url", "Video_URL"):
-        if k in record and record[k]:
-            url = str(record[k]).lower()
-            break
-
-    title = str(record.get("title", "")).lower()
-    duration_sec = None
-    # preferuj już policzone sekundy
-    for k in ("duration_seconds", "duration_secs", "seconds", "Duration_Seconds"):
-        if k in record and record[k] not in (None, ""):
-            try:
-                duration_sec = int(float(record[k]))
-            except Exception:
-                pass
-            break
-    if duration_sec is None:
-        # spróbuj sparsować MM:SS / H:MM:SS
-        for k in ("duration", "length", "time", "Duration"):
-            if k in record and record[k]:
-                duration_sec = _parse_duration_to_seconds(record[k])
-                if duration_sec is not None:
-                    break
-
-    # HEURYSTYKA
-    if url and "/shorts/" in url:
-        return True
-    if "#shorts" in title:
-        return True
-    if duration_sec is not None and duration_sec < 60:
-        return True
+def _detect_is_short_from_csv_row(row):
+    title = (row.get("title") or "").lower()
+    url = (row.get("video_url") or "").lower()
+    dur = row.get("duration_seconds") or row.get("duration")
+    sec = None
+    try:
+        sec = int(dur) if str(dur).isdigit() else _parse_duration_to_seconds(dur)
+    except Exception:
+        pass
+    if "/shorts/" in url or "#shorts" in title: return True
+    if sec is not None and sec < 60: return True
     return False
+
+def build_and_save_growth(category, report_date, today_rows, today_csv_map, out_path):
+    prev_path = get_prev_growth_path(category, report_date)
+    prev_views = {}
+    if prev_path:
+        try:
+            with open(prev_path, "r", encoding="utf-8") as f:
+                prev = json.load(f).get("growth", [])
+            prev_views = {r["video_id"]: int(r.get("views_today") or 0) for r in prev if r.get("video_id")}
+        except Exception:
+            prev_views = {}
+    result = []
+    for r in today_rows:
+        vid = r.get("video_id")
+        csv_row = today_csv_map.get(vid) or {}
+        chan = csv_row.get("channel_title") or "-"
+        is_short = r.get("is_short")
+        if is_short in (None, ""):
+            is_short = _detect_is_short_from_csv_row(csv_row)
+        views_today = int(r.get("views_today") or 0)
+        views_yesterday = prev_views.get(vid)
+        delta = views_today - views_yesterday if isinstance(views_yesterday, int) else None
+        out = dict(r)
+        out["channel"] = chan
+        out["is_short"] = bool(is_short)
+        out["views_yesterday"] = views_yesterday
+        out["delta"] = delta
+        result.append(out)
+    payload = {"date": report_date.strftime("%Y-%m-%d"), "growth": result}
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
 
 def update_growth(category: str, df: pd.DataFrame, report_date: str):
     trends = load_json(trends_path(category))
@@ -85,27 +90,29 @@ def update_growth(category: str, df: pd.DataFrame, report_date: str):
         # szukaj poprzedniego pomiaru
         prev_items = [h for h in hist if h["date"]<report_date]
         prev = prev_items[-1] if prev_items else None
-        # Pobierz oryginalne dane z CSV dla tego video_id
-        original_record = None
-        for _, r in df.iterrows():
-            if str(r.get("Video_ID", "")).strip() == vid:
-                original_record = r.to_dict()
-                break
-        
-        # Użyj solidnej heurystyki do wykrywania Shorts
-        is_short = False
-        if original_record:
-            is_short = _detect_is_short(original_record)
         
         growth_list.append({
             "video_id": vid,
             "title": entry.get("title",""),
             "views_today": today["views"],
             "views_yesterday": prev["views"] if prev else None,
-            "delta": (today["views"] - prev["views"]) if prev else None,
-            "is_short": is_short
+            "delta": (today["views"] - prev["views"]) if prev else None
         })
-    # sort malejąco po delta (None na dół)
-    growth_list = sorted(growth_list, key=lambda x: (-1_000_000_000 if x["delta"] is None else -x["delta"], -x["views_today"]))
-    save_json(growth_path(category, report_date), {"date": report_date, "growth": growth_list})
-    return growth_list
+    
+    # Stwórz mapę CSV dla wzbogacenia danych
+    today_csv_map = {}
+    for _, r in df.iterrows():
+        vid = str(r.get("Video_ID","")).strip()
+        if vid:
+            today_csv_map[vid] = r.to_dict()
+    
+    # Użyj nowej funkcji do wzbogacenia i zapisu
+    report_date_dt = datetime.strptime(report_date, "%Y-%m-%d")
+    out_path = growth_path(category, report_date)
+    build_and_save_growth(category, report_date_dt, growth_list, today_csv_map, out_path)
+    
+    # Wczytaj wzbogacone dane do zwrotu
+    with open(out_path, "r", encoding="utf-8") as f:
+        enriched_data = json.load(f)
+    
+    return enriched_data.get("growth", [])

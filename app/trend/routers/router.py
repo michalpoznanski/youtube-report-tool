@@ -134,71 +134,30 @@ def page(category: str, request: Request):
     except Exception as e:
         logger.warning('[TREND] Error enriching growth data: %s', e)
     
-    # Fallback: uzupełnij brakujące flagi is_short (gdy JSON jest starszy)
-    def _safe_lower(s):
-        try:
-            return str(s).lower()
-        except Exception:
-            return ""
-
-    def _parse_duration_to_seconds(v):
-        if v is None:
-            return None
-        s = str(v).strip()
-        if not s or s.lower() in ("nan", "none"):
-            return None
-        parts = s.split(":")
-        try:
-            parts = [int(p) for p in parts]
-        except Exception:
-            return None
-        if len(parts) == 3:  # H:MM:SS
-            h, m, sec = parts
-            return h*3600 + m*60 + sec
-        if len(parts) == 2:  # MM:SS
-            m, sec = parts
-            return m*60 + sec
-        if len(parts) == 1:  # SS
-            return parts[0]
-        return None
-
-    def _detect_is_short_from_row(row: dict) -> bool:
-        url = None
-        for k in ("video_url", "url", "link", "watch_url"):
-            if k in row and row[k]:
-                url = _safe_lower(row[k])
-                break
-        title = _safe_lower(row.get("title"))
-        duration_sec = None
-        for k in ("duration_seconds", "duration_secs", "seconds"):
-            if k in row and row[k] not in (None, ""):
-                try:
-                    duration_sec = int(float(row[k]))
-                except Exception:
-                    pass
-                break
-        if duration_sec is None:
-            for k in ("duration", "length", "time"):
-                if k in row and row[k]:
-                    duration_sec = _parse_duration_to_seconds(row[k])
-                    if duration_sec is not None:
-                        break
-
-        if url and "/shorts/" in url:
-            return True
-        if "#shorts" in title:
-            return True
-        if duration_sec is not None and duration_sec < 60:
-            return True
-        return False
-
-    # uzupełnij brakujące flagi:
+    # Fallback: wczytaj dzisiejszy CSV i uzupełnij brakujące dane
     try:
+        from app.trend.core.growth import _detect_is_short_from_csv_row
+        
+        # Stwórz mapę CSV dla fallback
+        csv_map = {}
+        for _, r in df.iterrows():
+            vid = str(r.get("Video_ID", "")).strip()
+            if vid:
+                csv_map[vid] = r.to_dict()
+        
+        # Uzupełnij brakujące dane z CSV
         for row in growth_data:
-            if "is_short" not in row or row["is_short"] in (None, ""):
-                row["is_short"] = _detect_is_short_from_row(row)
+            vid = row.get("video_id")
+            if vid in csv_map:
+                csv_row = csv_map[vid]
+                # Uzupełnij channel jeśli brakuje
+                if "channel" not in row or not row.get("channel"):
+                    row["channel"] = csv_row.get("channel_title") or "-"
+                # Uzupełnij is_short jeśli brakuje
+                if "is_short" not in row or row.get("is_short") in (None, ""):
+                    row["is_short"] = _detect_is_short_from_csv_row(csv_row)
     except Exception as e:
-        logger.warning('[TREND] Error in fallback is_short detection: %s', e)
+        logger.warning('[TREND] Error in CSV fallback: %s', e)
     
     # c) Rozdzielenie na long_items i short_items
     try:

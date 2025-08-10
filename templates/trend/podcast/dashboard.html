@@ -41,7 +41,7 @@
             {{ row.title }}
           </a>
         </td>
-        <td>{{ row.channel_title | default('-') }}</td>
+        <td>{{ row.channel | default('-') }}</td>
         <td>{{ row.views_today | default('-') }}</td>
         <td>{{ row.views_yesterday | default('-') }}</td>
         <td>{{ row.delta | default('-') }}</td>
@@ -76,7 +76,7 @@
             {{ row.title }}
           </a>
         </td>
-        <td>{{ row.channel_title | default('-') }}</td>
+        <td>{{ row.channel | default('-') }}</td>
         <td>{{ row.views_today | default('-') }}</td>
         <td>{{ row.views_yesterday | default('-') }}</td>
         <td>{{ row.delta | default('-') }}</td>

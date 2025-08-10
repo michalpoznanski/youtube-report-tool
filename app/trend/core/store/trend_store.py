@@ -53,3 +53,21 @@ def load_growth_map_for_date(category: str, date_str: str) -> dict[str, dict]:
         data = json.load(f) or {}
     items = (data.get("growth") or [])
     return {x.get("video_id"): x for x in items if x.get("video_id")}
+
+def list_growth_files(category: str):
+    root = Path("/mnt/volume/guest_analysis/trends") / category
+    if not root.exists():
+        return []
+    out = []
+    for p in root.glob("growth_*.json"):
+        try:
+            dt = datetime.strptime(p.stem.split("_", 1)[1], "%Y-%m-%d")
+            out.append((dt, p))
+        except Exception:
+            pass
+    return sorted(out, key=lambda x: x[0])
+
+def get_prev_growth_path(category: str, today_date: datetime):
+    files = list_growth_files(category)
+    prev = [p for (d, p) in files if d < today_date]
+    return prev[-1][1] if prev else None
