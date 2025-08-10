@@ -14,7 +14,7 @@ templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/trend", tags=["trend"])
 
-@router.post("/{category}/run")
+@router.api_route("/{category}/run", methods=["GET", "POST"])
 def run(category: str):
     df, report_date = load_latest(category)
     if df is None: return JSONResponse({"error":"no report found"}, status_code=404)
