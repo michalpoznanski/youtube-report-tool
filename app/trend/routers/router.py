@@ -1,6 +1,6 @@
 import os, json, logging
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -71,70 +71,83 @@ def run(category: str):
             "summary_count": len(summary.get("rank_top", [])), "growth_count": len(glist)}
 
 @router.get("/{category}", response_class=HTMLResponse)
-async def trend_dashboard(request: Request, category: str, date: str = None):
+async def trend_dashboard_or_top(request: Request, category: str, mode: str = "rolling", date: str | None = None, days: int = 3, k: int = 15):
     """
-    Renderuje stronę trendów dla podanej kategorii. Ładuje dane z raportów CSV
-    i wylicza przyrosty dziennie.
+    Główny endpoint trendów:
+    - mode=daily → stary dashboard z przyrostami dziennymi
+    - domyślnie (rolling) → przekierowanie do /trend/{category}/top
     """
-    try:
-        category_upper = category.upper()
-        reports_dir = "/mnt/volume/reports"
-        if not date:
-            # Znajdź najnowszy dostępny plik CSV
-            pattern = os.path.join(reports_dir, f"report_{category_upper}_*.csv")
-            files = sorted(glob.glob(pattern))
-            if not files:
-                logging.warning(f"No CSV files found for pattern: {pattern}")
-                date = None
-            else:
-                latest_file = os.path.basename(files[-1])
-                # Odczytaj datę z nazwy pliku: report_{CATEGORY}_{YYYY-MM-DD}.csv
-                try:
-                    date = latest_file.split("_")[-1].replace(".csv", "")
-                except Exception:
+    if mode == "daily":
+        # istniejąca logika dzienna (zachowaj bieżący kod renderujący dashboard.html)
+        try:
+            category_upper = category.upper()
+            reports_dir = "/mnt/volume/reports"
+            if not date:
+                # Znajdź najnowszy dostępny plik CSV
+                pattern = os.path.join(reports_dir, f"report_{category_upper}_*.csv")
+                files = sorted(glob.glob(pattern))
+                if not files:
+                    logging.warning(f"No CSV files found for pattern: {pattern}")
                     date = None
+                else:
+                    latest_file = os.path.basename(files[-1])
+                    # Odczytaj datę z nazwy pliku: report_{CATEGORY}_{YYYY-MM-DD}.csv
+                    try:
+                        date = latest_file.split("_")[-1].replace(".csv", "")
+                    except Exception:
+                        date = None
 
-        if not date:
-            raise HTTPException(status_code=404, detail="No report date available for this category.")
+            if not date:
+                raise HTTPException(status_code=404, detail="No report date available for this category.")
 
-        # Załaduj i oblicz przyrosty
-        from app.trend.utils.report_loader import build_daily_growth
-        records: List[Dict] = build_daily_growth(category, date)
+            # Załaduj i oblicz przyrosty
+            from app.trend.utils.report_loader import build_daily_growth
+            records: List[Dict] = build_daily_growth(category, date)
 
-        # Podział na Long‑form i Shorts
-        long_records = [rec for rec in records if not rec.get("is_short")]
-        short_records = [rec for rec in records if rec.get("is_short")]
+            # Podział na Long‑form i Shorts
+            long_records = [rec for rec in records if not rec.get("is_short")]
+            short_records = [rec for rec in records if rec.get("is_short")]
 
-        # Sortowanie i ograniczenie do TOP 50
-        long_records = sorted(long_records, key=lambda x: x.get("views_today", 0), reverse=True)[:50]
-        short_records = sorted(short_records, key=lambda x: x.get("views_today", 0), reverse=True)[:50]
+            # Sortowanie i ograniczenie do TOP 50
+            long_records = sorted(long_records, key=lambda x: x.get("views_today", 0), reverse=True)[:50]
+            short_records = sorted(short_records, key=lambda x: x.get("views_today", 0), reverse=True)[:50]
 
-        # Liczniki
-        counts_total = len(records)
-        counts_long = len(long_records)
-        counts_shorts = len(short_records)
+            # Liczniki
+            counts_total = len(records)
+            counts_long = len(long_records)
+            counts_shorts = len(short_records)
 
-        logging.info(
-            f"[TREND/DASHBOARD] category={category}, date={date}, total={counts_total}, "
-            f"long={counts_long}, shorts={counts_shorts}"
-        )
+            logging.info(
+                f"[TREND/DASHBOARD] category={category}, date={date}, total={counts_total}, "
+                f"long={counts_long}, shorts={counts_shorts}"
+            )
 
-        return templates.TemplateResponse(
-            f"trend/{category.lower()}/dashboard.html",
-            {
-                "request": request,
-                "category": category,
-                "date": date,
-                "counts_total": counts_total,
-                "counts_long": counts_long,
-                "counts_shorts": counts_shorts,
-                "long_records": long_records,
-                "short_records": short_records,
-            },
-        )
-    except Exception as e:
-        logging.error(f"Error in trend_dashboard: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+            return templates.TemplateResponse(
+                f"trend/{category.lower()}/dashboard.html",
+                {
+                    "request": request,
+                    "category": category,
+                    "date": date,
+                    "counts_total": counts_total,
+                    "counts_long": counts_long,
+                    "counts_shorts": counts_shorts,
+                    "long_records": long_records,
+                    "short_records": short_records,
+                },
+            )
+        except Exception as e:
+            logging.error(f"Error in trend_dashboard: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    # rolling jako domyślny - przekierowanie do /top
+    url = request.url_for("trend_top", category=category)
+    qs = []
+    if date: qs.append(f"date={date}")
+    if days != 3: qs.append(f"days={days}")
+    if k != 15: qs.append(f"k={k}")
+    if qs:
+        url = f"{url}?{'&'.join(qs)}"
+    return RedirectResponse(url)
 
 @router.get("/{category}/growth")
 def api_growth(category: str):
@@ -357,4 +370,20 @@ async def trend_rolling(request: Request, category: str, date: str = None, days:
             "long_records": data["longs"],
             "short_records": data["shorts"],
         },
+    )
+
+
+@router.get("/trend/{category}/top", response_class=HTMLResponse)
+async def trend_top(request: Request, category: str, date: str | None = None, days: int = 3, k: int = 15):
+    cat_up = category.upper()
+    if not date:
+        dates = _available_dates_for_category(cat_up)
+        if not dates:
+            raise HTTPException(status_code=404, detail="Brak raportów.")
+        date = dates[-1]
+    data = build_rolling_leaderboard(cat_up, date, days=max(1, days), top_k=max(1, k))
+    return templates.TemplateResponse(
+        f"trend/{category}/top.html",
+        {"request": request, "category": category, "date": data["end_date"], "days": data["days"],
+         "top_k": data["top_k"], "long_records": data["longs"], "short_records": data["shorts"]}
     )

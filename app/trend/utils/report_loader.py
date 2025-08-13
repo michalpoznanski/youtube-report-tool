@@ -248,8 +248,20 @@ def build_rolling_leaderboard(category: str, end_date: str, days: int = 3, top_k
     longs = [e for e in per_video.values() if not e.get("is_short")]
     shorts = [e for e in per_video.values() if e.get("is_short")]
 
-    longs = sorted(longs, key=lambda x: x["best_views"], reverse=True)[:top_k]
-    shorts = sorted(shorts, key=lambda x: x["best_views"], reverse=True)[:top_k]
+    # Skala potencjału 0–100 wg best_views w grupie
+    def _attach_potential(items):
+        max_best = max((x["best_views"] for x in items), default=0)
+        for x in items:
+            if max_best > 0 and x["best_views"] > 0:
+                x["potential"] = round((x["best_views"] / max_best) * 100)
+            else:
+                x["potential"] = 0
+        # sort po potencjale malejąco
+        items.sort(key=lambda z: z["potential"], reverse=True)
+        return items
+
+    longs = _attach_potential(longs)[:top_k]
+    shorts = _attach_potential(shorts)[:top_k]
 
     return {
         "end_date": end_date,
