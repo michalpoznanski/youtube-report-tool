@@ -1,9 +1,11 @@
 import os, json, logging
-from fastapi import APIRouter, Request
-import logging
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from datetime import datetime, timedelta
+import csv
+import glob
 from ..core.loader import load_latest
 from ..core.dispatcher import analyze_category
 from ..core.growth import update_growth, _detect_is_short_from_csv_row
@@ -278,63 +280,78 @@ def debug_prev(category: str):
     return out
 
 @router.get("/{category}/_debug_csv")
-def debug_csv(category: str, date: str = None):
-    """Debug endpoint pokazujący CSV dla daty"""
-    from app.trend.core.store.trend_store import list_report_files
-    from app.trend.core.csv_loader import read_csv_for_date
-    from datetime import datetime, date
-    
-    out = {
-        "category": category,
-        "date": None,
-        "today_rows": 0,
-        "prev_rows": 0,
-        "sample_today": None,
-        "sample_prev": None,
-        "today_path": None,
-        "prev_path": None
-    }
-    
+async def debug_csv(category: str, date: str = None):
+    """Diagnostyczny endpoint sprawdzający pliki CSV z raportami."""
     try:
+        category_upper = category.upper()
+        reports_dir = "/mnt/volume/reports"
+        # Znajdź wszystkie pliki z raportami dla danej kategorii
+        pattern = f"report_{category_upper}_*.csv"
+        glob_pattern = os.path.join(reports_dir, pattern)
+        report_files = sorted(glob.glob(glob_pattern))
+
+        if not report_files:
+            logging.warning(f"No report files found for pattern: {glob_pattern}")
+        
+        # Ustal datę — jeśli nie podano, wybierz najnowszy raport
         if date:
-            # Użyj wskazanej daty
-            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            try:
+                report_date = datetime.strptime(date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
         else:
-            # Użyj najnowszego CSV
-            csv_files = list_report_files(category)
-            if not csv_files:
-                return out
-            # csv_files to lista (datetime, Path) - weź najnowszą datę
-            latest_date, latest_path = csv_files[-1]
-            target_date = latest_date.date()
+            if report_files:
+                # Ostatni plik w sortowanej liście to najnowszy
+                latest_file = os.path.basename(report_files[-1])
+                # Odczytaj datę z nazwy pliku
+                try:
+                    report_date_str = latest_file.split("_")[-1].replace(".csv", "")
+                    report_date = datetime.strptime(report_date_str, "%Y-%m-%d").date()
+                except Exception:
+                    report_date = datetime.utcnow().date()
+            else:
+                report_date = datetime.utcnow().date()
+
+        # Ścieżka do sprawdzanego pliku
+        target_filename = f"report_{category_upper}_{report_date}.csv"
+        target_path = os.path.join(reports_dir, target_filename)
+
+        # Szczegóły pliku bieżącego dnia
+        exists = os.path.isfile(target_path)
+        size_bytes = os.path.getsize(target_path) if exists else 0
+        rows = []
+        sample = []
+        if exists:
+            with open(target_path, newline="", encoding="utf-8") as csvfile:
+                reader = csv.DictReader(csvfile)
+                rows = [row for row in reader]
+                sample = rows[:5]
         
-        out["date"] = target_date.isoformat()
-        
-        # Wczytaj dzisiejszy CSV
-        today = read_csv_for_date(category, target_date)
-        out["today_rows"] = len(today)
-        out["sample_today"] = today[0] if today else None
-        
-        # Znajdź ścieżkę do dzisiejszego CSV
-        from app.trend.core.store.trend_store import report_path_for_date
-        today_path = report_path_for_date(category, target_date)
-        out["today_path"] = str(today_path) if today_path else None
-        
-        # Wczytaj wczorajszy CSV
-        from app.trend.core.store.trend_store import prev_date
-        prev_d = prev_date(target_date)
-        prev = read_csv_for_date(category, prev_d)
-        out["prev_rows"] = len(prev)
-        out["sample_prev"] = prev[0] if prev else None
-        
-        # Znajdź ścieżkę do wczorajszego CSV
-        prev_path = report_path_for_date(category, prev_d)
-        out["prev_path"] = str(prev_path) if prev_path else None
-        
+        # Szukaj pliku z poprzedniego dnia
+        guessed_prev_date = (report_date - timedelta(days=1)).isoformat()
+        prev_filename = f"report_{category_upper}_{guessed_prev_date}.csv"
+        prev_path = os.path.join(reports_dir, prev_filename)
+        prev_exists = os.path.isfile(prev_path)
+        prev_rows_count = 0
+        if prev_exists:
+            with open(prev_path, newline="", encoding="utf-8") as csvfile:
+                reader = csv.DictReader(csvfile)
+                prev_rows_count = sum(1 for _ in reader)
+
+        return JSONResponse({
+            "checked_path": target_path,
+            "exists": exists,
+            "size_bytes": size_bytes,
+            "rows": len(rows),
+            "sample": sample,
+            "glob_candidates": [os.path.basename(f) for f in report_files],
+            "guessed_prev_date": guessed_prev_date,
+            "prev_exists": prev_exists,
+            "prev_rows": prev_rows_count,
+        })
     except Exception as e:
-        out["error"] = str(e)
-    
-    return out
+        logging.error(f"Error in /trend/{category}/_debug_csv: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{category}/rebuild-from-csv")
 def rebuild_from_csv(category: str, date: str = None):
