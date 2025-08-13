@@ -8,7 +8,15 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
-REPORTS_DIR = "/mnt/volume/reports"
+def get_reports_dir():
+    """Zwraca ścieżkę do katalogu raportów z fallbackiem"""
+    import os
+    # Sprawdź lokalny katalog reports
+    local_reports = "./hook-boost-web/reports"
+    if os.path.exists(local_reports):
+        return local_reports
+    # Fallback do domyślnego
+    return "/mnt/volume/reports"
 
 def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
     """
@@ -17,7 +25,8 @@ def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
     """
     category_upper = category.upper()
     filename = f"report_{category_upper}_{date}.csv"
-    filepath = os.path.join(REPORTS_DIR, filename)
+    reports_dir = get_reports_dir()
+    filepath = os.path.join(reports_dir, filename)
     
     if not os.path.isfile(filepath):
         # Zwracamy pustą listę, jeśli plik nie istnieje
@@ -185,7 +194,16 @@ def build_daily_growth(category: str, date: str) -> List[Dict[str, Any]]:
     return growth_records
 
 
-def _available_dates_for_category(category: str, reports_dir: str = "/mnt/volume/reports") -> List[str]:
+def _available_dates_for_category(category: str, reports_dir: str = None) -> List[str]:
+    if reports_dir is None:
+        # Fallback do lokalnego katalogu reports
+        import os
+        local_reports = "./hook-boost-web/reports"
+        if os.path.exists(local_reports):
+            reports_dir = local_reports
+        else:
+            reports_dir = "/mnt/volume/reports"
+    
     pattern = os.path.join(reports_dir, f"report_{category.upper()}_*.csv")
     files = sorted(glob.glob(pattern))
     dates = []
