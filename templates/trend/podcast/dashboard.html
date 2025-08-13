@@ -1,94 +1,80 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Trend – Podcast</title></head>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Trend – {{ category|capitalize }} ({{ date }})</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        th, td { padding: 0.5rem; border: 1px solid #ddd; }
+        th { background-color: #f5f5f5; position: sticky; top: 0; }
+        tr:nth-child(even) { background-color: #fafafa; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .muted { color: #6b7280; }
+    </style>
+</head>
 <body>
-<h1>Trend – Podcast ({{ report_date or "brak daty" }})</h1>
+    <h1>Trend – {{ category|capitalize }} ({{ date }})</h1>
+    <p><strong>Łącznie: {{ counts_total }} | Long-form: {{ counts_long }} | Shorts: {{ counts_shorts }}</strong></p>
 
-<!-- Streszczenie -->
-<p><strong>Łącznie: {{ total }} | Long‑form: {{ long_items|length }} | Shorts: {{ short_items|length }}</strong></p>
+    <h2>Top dzienne przyrosty (Long-form)</h2>
+    {% if long_records %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Tytuł</th>
+                <th>Kanał</th>
+                <th>Dzisiejsze</th>
+                <th>Wczoraj</th>
+                <th>Δ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i, rec in enumerate(long_records, start=1) %}
+            <tr>
+                <td>{{ i }}</td>
+                <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
+                <td>{{ rec.channel }}</td>
+                <td>{{ rec.views_today }}</td>
+                <td>{{ rec.views_yesterday }}</td>
+                <td>{{ rec.delta }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Brak danych Long-form do wyświetlenia.</p>
+    {% endif %}
 
-<!-- Dane już posortowane w routerze -->
-
-<style>
-  table{border-collapse:collapse;width:100%;font-family:system-ui,Arial,sans-serif}
-  th,td{border:1px solid #e5e7eb;padding:12px;text-align:left}
-  th{position:sticky;top:0;background:#f8fafc;font-weight:600}
-  tbody tr:nth-child(odd){background:#fafafa}
-  tbody tr:hover{background:#f1f5f9}
-  .muted{color:#6b7280}
-  a{color:#0b57d0;text-decoration:none}
-  a:hover{text-decoration:underline}
-</style>
-
-<h2>Top dzienne przyrosty (Long-form)</h2>
-
-{% if long_items and long_items|length > 0 %}
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Tytuł</th>
-      <th>Kanał</th>
-      <th>Dzisiejsze</th>
-      <th>Wczoraj</th>
-      <th>Δ</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in long_items %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>
-          <a href="https://www.youtube.com/watch?v={{ row.video_id }}" target="_blank" rel="noopener">
-            {{ row.title }}
-          </a>
-        </td>
-        <td>{{ row.channel | default('-') }}</td>
-        <td>{{ row.views_today | default('-') }}</td>
-        <td>{{ row.views_yesterday | default('-') }}</td>
-        <td>{{ row.delta | default('-') }}</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
-  <p class="muted">Brak danych Long-form do wyświetlenia.</p>
-{% endif %}
-
-<h2 style="margin-top:24px;">Top dzienne przyrosty (Shorts)</h2>
-
-{% if short_items and short_items|length > 0 %}
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Tytuł</th>
-      <th>Kanał</th>
-      <th>Dzisiejsze</th>
-      <th>Wczoraj</th>
-      <th>Δ</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in short_items %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>
-          <a href="https://www.youtube.com/watch?v={{ row.video_id }}" target="_blank" rel="noopener">
-            {{ row.title }}
-          </a>
-        </td>
-        <td>{{ row.channel | default('-') }}</td>
-        <td>{{ row.views_today | default('-') }}</td>
-        <td>{{ row.views_yesterday | default('-') }}</td>
-        <td>{{ row.delta | default('-') }}</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
-  <p class="muted">Brak danych Shorts do wyświetlenia.</p>
-{% endif %}
-
-<h3>Popularne godziny publikacji</h3>
-<p><strong>Long-form – top godzina:</strong> {{ stats.longform_top_hour | default('brak') }}</p>
-<p><strong>Shorts – top godzina:</strong> {{ stats.shorts_top_hour | default('brak') }}</p>
-</body></html>
+    <h2>Top dzienne przyrosty (Shorts)</h2>
+    {% if short_records %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Tytuł</th>
+                <th>Kanał</th>
+                <th>Dzisiejsze</th>
+                <th>Wczoraj</th>
+                <th>Δ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i, rec in enumerate(short_records, start=1) %}
+            <tr>
+                <td>{{ i }}</td>
+                <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
+                <td>{{ rec.channel }}</td>
+                <td>{{ rec.views_today }}</td>
+                <td>{{ rec.views_yesterday }}</td>
+                <td>{{ rec.delta }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Brak danych Shorts do wyświetlenia.</p>
+    {% endif %}
+</body>
+</html>

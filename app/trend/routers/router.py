@@ -6,6 +6,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import csv
 import glob
+import logging
+from typing import List, Dict
 from ..core.loader import load_latest
 from ..core.dispatcher import analyze_category
 from ..core.growth import update_growth, _detect_is_short_from_csv_row
@@ -68,130 +70,70 @@ def run(category: str):
             "summary_count": len(summary.get("rank_top", [])), "growth_count": len(glist)}
 
 @router.get("/{category}", response_class=HTMLResponse)
-def page(category: str, request: Request):
-    # HTML strona kategorii
-    # ładowanie growth i stats jeśli istnieją (z najnowszego dnia – prosto: bierzemy plik z load_latest)
-    
-    logger.info(f'[TREND/PAGE] Loading page for category: {category}')
-    logger.info(f'[TREND/PAGE] Request URL: {request.url}')
-    logger.info(f'[TREND/PAGE] Request method: {request.method}')
-    
-    # 1. Ustal report_date - spróbuj z load_latest, fallback z najnowszego CSV
-    df, report_date = load_latest(category)
-    if not report_date:
-        # Fallback: znajdź najnowszy CSV
-        from app.trend.core.store.trend_store import list_report_files
-        from datetime import datetime
-        
-        csv_files = list_report_files(category)
-        if csv_files:
-            report_date = csv_files[-1][0].strftime("%Y-%m-%d")
-        else:
-            return templates.TemplateResponse(
-                f"trend/{category.lower()}/dashboard.html",
-                {"request": request, "category": category, "error": "Brak danych CSV"}
-            )
-    
-    # 2. Spróbuj wczytać growth JSON
-    data_growth = None
-    data_stats = None
-    
+async def trend_dashboard(request: Request, category: str, date: str = None):
+    """
+    Renderuje stronę trendów dla podanej kategorii. Ładuje dane z raportów CSV
+    i wylicza przyrosty dziennie.
+    """
     try:
-        # Sprawdź czy istnieje growth JSON
-        growth_file = growth_path(category, report_date)
-        if Path(growth_file).exists():
-            with open(growth_file, "r", encoding="utf-8") as f:
-                data_growth = json.load(f)
-                
-                # Sprawdź czy ma views_yesterday/delta
-                has_complete_data = all(
-                    item.get("views_yesterday") is not None and item.get("delta") is not None
-                    for item in data_growth.get("growth", [])
-                )
-                
-                if not has_complete_data:
-                    data_growth = None  # Wymuś przebudowanie z CSV
-    except Exception:
-        data_growth = None
-    
-    # 3. Jeśli brak growth JSON lub niekompletne dane - zbuduj z CSV lub użyj fallback
-    if not data_growth:
-        from app.trend.core.growth import build_growth_from_csv, save_growth_and_stats
-        from app.trend.core.store.trend_store import list_report_files, list_growth_files
-        from datetime import datetime, date
-        
-        try:
-            # Ustal datę: najnowszą z list_report_files
-            csv_files = list_report_files(category)
-            if csv_files:
-                # csv_files to lista (datetime, Path) - weź najnowszą datę
-                latest_date, latest_path = csv_files[-1]
-                report_dt = latest_date.date()
-                
-                logger.info(f'[TREND/CSV] Building growth from CSV for {category} at {report_dt.isoformat()}')
-                
-                # Zbuduj growth z CSV
-                data_growth = build_growth_from_csv(category, report_dt)
-                
-                # Zapisz growth i stats
-                save_growth_and_stats(category, report_dt, data_growth)
-                
-                # Aktualizuj report_date
-                report_date = report_dt.strftime("%Y-%m-%d")
-                
+        category_upper = category.upper()
+        reports_dir = "/mnt/volume/reports"
+        if not date:
+            # Znajdź najnowszy dostępny plik CSV
+            pattern = os.path.join(reports_dir, f"report_{category_upper}_*.csv")
+            files = sorted(glob.glob(pattern))
+            if not files:
+                logging.warning(f"No CSV files found for pattern: {pattern}")
+                date = None
             else:
-                # Fallback: użyj istniejącego growth JSON
-                logger.warning(f'[TREND/CSV] No CSV files found for {category}, trying growth JSON fallback')
-                growth_files = list_growth_files(category)
-                logger.info(f'[TREND/FALLBACK] Found {len(growth_files)} growth files for {category}')
-                
-                if growth_files:
-                    # Weź najnowszy growth JSON
-                    latest_date, latest_path = growth_files[-1]
-                    report_date = latest_date.strftime("%Y-%m-%d")
-                    logger.info(f'[TREND/FALLBACK] Using growth file: {latest_path} from {report_date}')
-                    
-                    try:
-                        with open(latest_path, "r", encoding="utf-8") as f:
-                            data_growth = json.load(f)
-                        logger.info(f'[TREND/FALLBACK] Loaded growth from {latest_path}, items: {len(data_growth.get("growth", []))}')
-                    except Exception as e:
-                        logger.error(f'[TREND/FALLBACK] Error loading growth: {e}')
-                        data_growth = {"growth": []}
-                else:
-                    logger.warning(f'[TREND/CSV] No growth files found for {category}')
-                    data_growth = {"growth": []}
-                
-        except Exception as e:
-            logger.exception(f'[TREND/CSV] Error building growth from CSV: {e}')
-            data_growth = {"growth": []}
-    
-    # 4. Policz statystyki
-    growth_items = data_growth.get("growth", [])
-    total = len(growth_items)
-    
-    long_items = [x for x in growth_items if not x.get("is_short", False)]
-    short_items = [x for x in growth_items if x.get("is_short", False)]
-    
-    # Sortowanie po views_today malejąco
-    long_items = sorted(long_items, key=lambda r: int(r.get("views_today") or 0), reverse=True)[:50]
-    short_items = sorted(short_items, key=lambda r: int(r.get("views_today") or 0), reverse=True)[:50]
-    
-    logger.info(f'[TREND] {category}: report_date={report_date}, total={total}, long={len(long_items)}, short={len(short_items)}')
-    logger.info(f'[TREND] Final data_growth keys: {list(data_growth.keys()) if data_growth else "None"}')
-    
-    return templates.TemplateResponse(
-        f"trend/{category.lower()}/dashboard.html",
-        {
-            "request": request,
-            "category": category,
-            "report_date": report_date,
-            "total": total,
-            "long_items": long_items,
-            "short_items": short_items,
-            "stats": data_stats or {},
-        }
-    )
+                latest_file = os.path.basename(files[-1])
+                # Odczytaj datę z nazwy pliku: report_{CATEGORY}_{YYYY-MM-DD}.csv
+                try:
+                    date = latest_file.split("_")[-1].replace(".csv", "")
+                except Exception:
+                    date = None
+
+        if not date:
+            raise HTTPException(status_code=404, detail="No report date available for this category.")
+
+        # Załaduj i oblicz przyrosty
+        from app.trend.utils.report_loader import build_daily_growth
+        records: List[Dict] = build_daily_growth(category, date)
+
+        # Podział na Long‑form i Shorts
+        long_records = [rec for rec in records if not rec.get("is_short")]
+        short_records = [rec for rec in records if rec.get("is_short")]
+
+        # Sortowanie i ograniczenie do TOP 50
+        long_records = sorted(long_records, key=lambda x: x.get("views_today", 0), reverse=True)[:50]
+        short_records = sorted(short_records, key=lambda x: x.get("views_today", 0), reverse=True)[:50]
+
+        # Liczniki
+        counts_total = len(records)
+        counts_long = len(long_records)
+        counts_shorts = len(short_records)
+
+        logging.info(
+            f"[TREND/DASHBOARD] category={category}, date={date}, total={counts_total}, "
+            f"long={counts_long}, shorts={counts_shorts}"
+        )
+
+        return templates.TemplateResponse(
+            f"trend/{category.lower()}/dashboard.html",
+            {
+                "request": request,
+                "category": category,
+                "date": date,
+                "counts_total": counts_total,
+                "counts_long": counts_long,
+                "counts_shorts": counts_shorts,
+                "long_records": long_records,
+                "short_records": short_records,
+            },
+        )
+    except Exception as e:
+        logging.error(f"Error in trend_dashboard: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{category}/growth")
 def api_growth(category: str):
