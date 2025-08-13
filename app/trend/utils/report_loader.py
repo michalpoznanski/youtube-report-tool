@@ -77,22 +77,26 @@ def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
             for field in ["title", "channel", "tags", "description", "video_id"]:
                 normalized[field] = normalized.get(field, "") or ""
 
-            # Ustal, czy film jest short na podstawie video_type
+            # Ustal, czy film jest short
             video_type_value = normalized.get("video_type", "") or ""
             video_type_value = video_type_value.strip().lower()
+            duration_seconds = normalized.get("duration_seconds")
 
-            # Rozpoznaj wszystkie warianty słów 'short' i 'long'
-            if "short" in video_type_value:
+            # 1. Reguła długości: jeśli mamy czas trwania i jest krótszy niż 3 minuty, traktujemy jako Short
+            if duration_seconds is not None and duration_seconds < 180:
+                is_short = True
+            # 2. Wykorzystanie video_type, gdy czas trwania nie kwalifikuje się do krótkiej formy
+            elif "short" in video_type_value:
                 is_short = True
             elif "long" in video_type_value:
                 is_short = False
             else:
-                # fallback heurystyka – czas < 62 sekund lub tag #short/#shorts
+                # 3. Fallback heurystyka: czas < 62 sekund lub tag #short/#shorts w tytule/tagach/opisie
                 text_concat = f"{normalized['title']} {normalized['tags']} {normalized['description']}".lower()
                 is_short = (
-                    normalized.get("duration_seconds") is not None
-                    and normalized["duration_seconds"] < 62
+                    duration_seconds is not None and duration_seconds < 62
                 ) or ("#short" in text_concat or "#shorts" in text_concat)
+
             normalized["is_short"] = is_short
 
             # Upewnij się, że zwracamy klucz video_id, title, channel, views_today, duration_seconds, is_short
