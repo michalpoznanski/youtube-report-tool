@@ -31,9 +31,9 @@
             </tr>
         </thead>
         <tbody>
-            {% for i, rec in enumerate(long_records, start=1) %}
+            {% for rec in long_records %}
             <tr>
-                <td>{{ i }}</td>
+                <td>{{ loop.index }}</td>
                 <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
                 <td>{{ rec.channel }}</td>
                 <td>{{ rec.views_today }}</td>
@@ -61,9 +61,9 @@
             </tr>
         </thead>
         <tbody>
-            {% for i, rec in enumerate(short_records, start=1) %}
+            {% for rec in short_records %}
             <tr>
-                <td>{{ i }}</td>
+                <td>{{ loop.index }}</td>
                 <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
                 <td>{{ rec.channel }}</td>
                 <td>{{ rec.views_today }}</td>
