@@ -159,6 +159,12 @@ async def root(request: Request):
     return templates.TemplateResponse("home/index.html", {"request": request})
 
 
+@app.get("/console", response_class=HTMLResponse)
+async def console(request: Request):
+    """Stary panel administracyjny - pełna funkcjonalność zarządzania"""
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
