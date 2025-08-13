@@ -14,7 +14,6 @@ from ..core.growth import update_growth, _detect_is_short_from_csv_row
 from ..core.store.trend_store import stats_path, growth_path, save_json, previous_date_str, load_growth_map_for_date
 from ..core.stats import publish_hour_stats
 from app.trend.utils.report_loader import build_rolling_leaderboard, _available_dates_for_category
-from app.trend.utils.csv_audit import audit_csv
 
 log = logging.getLogger("trend")
 templates = Jinja2Templates(directory="templates")
@@ -345,27 +344,6 @@ def rebuild_from_csv(category: str, date: str = None):
         
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
-
-@router.get("/trend/{category}/_audit_csv")
-async def audit_csv_endpoint(category: str, days: int = 7):
-    """
-    Endpoint audytu CSV - wykrywa problemy z danymi i zwraca rekomendacje.
-    
-    Args:
-        category (str): Kategoria do audytu
-        days (int): Liczba dni do przeanalizowania (domyślnie 7)
-    
-    Returns:
-        JSON z wynikami audytu i rekomendacjami
-    """
-    try:
-        result = audit_csv(category, days=days)
-        logging.info(f"[AUDIT] CSV audit completed for {category=}, days={days}")
-        return result
-    except Exception as e:
-        logging.error(f"Error in CSV audit: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/trend/{category}/rolling", response_class=HTMLResponse)
