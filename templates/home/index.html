@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hook Boost</title>
+<style>
+:root{--bg:#0b1020;--card:#111832;--muted:#94a3b8;--accent:#3b82f6;--accent2:#22c55e;--text:#e8eefc}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0b1020,#0f172a);color:var(--text);font-family:Inter,system-ui,Arial}
+.container{max-width:1200px;margin:0 auto;padding:32px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.brand{font-weight:800;font-size:28px;letter-spacing:.3px}
+.actions a{display:inline-block;padding:10px 14px;border-radius:10px;background:var(--card);color:var(--text);text-decoration:none;margin-left:8px}
+.hero{background:radial-gradient(1200px 400px at 20% -20%,rgba(59,130,246,.25),transparent),var(--card);border:1px solid rgba(148,163,184,.15);border-radius:16px;padding:28px;margin-bottom:28px}
+.hero h1{margin:0 0 8px;font-size:28px}
+.hero p{margin:0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.card{background:var(--card);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:16px;transition:.15s box-shadow,.15s transform}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(2,6,23,.25)}
+.card h3{margin:4px 0 8px;font-size:16px}
+.card p{margin:0 0 12px;color:var(--muted);font-size:14px}
+.card a{display:inline-block;text-decoration:none;background:var(--accent);color:white;padding:8px 12px;border-radius:10px;font-weight:600}
+.badge{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,.15);color:#86efac;font-size:12px}
+.footer{margin-top:28px;color:var(--muted);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="brand">Hook Boost</div>
+    <div class="actions">
+      <a href="/trend/podcast">Trend</a>
+      <a href="/trend/podcast/top">TOP 3 dni</a>
+      <a href="/docs">API</a>
+    </div>
+  </div>
+
+  <section class="hero">
+    <h1>Trend i wzrosty kanałów YouTube</h1>
+    <p>Szybki dostęp do rolling TOP z ostatnich 3 dni oraz dziennych raportów. Podzielone na Long-form i Shorts.</p>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h3>Podcast <span class="badge">TOP 3 dni</span></h3>
+      <p>Ranking potencjału 0–100, stałe TOP 15.</p>
+      <a href="/trend/podcast/top">Otwórz</a>
+    </div>
+    <div class="card">
+      <h3>Podcast • Dzienny</h3>
+      <p>Dzisiejsze vs wczoraj, wzrost procentowy.</p>
+      <a href="/trend/podcast?mode=daily">Otwórz</a>
+    </div>
+    <div class="card">
+      <h3>Polityka</h3>
+      <p>Rolling TOP 3 dni.</p>
+      <a href="/trend/polityka/top">Otwórz</a>
+    </div>
+    <div class="card">
+      <h3>Moto</h3>
+      <p>Rolling TOP 3 dni.</p>
+      <a href="/trend/moto/top">Otwórz</a>
+    </div>
+    <div class="card">
+      <h3>Technologia</h3>
+      <p>Rolling TOP 3 dni.</p>
+      <a href="/trend/technologia/top">Otwórz</a>
+    </div>
+  </section>
+
+  <div class="footer">© Hook Boost • v{{ date if date is defined else "" }}</div>
+</div>
+</body>
+</html>

@@ -155,8 +155,8 @@ if router:
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    """Strona główna aplikacji"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    """Strona główna aplikacji Hook Boost"""
+    return templates.TemplateResponse("home/index.html", {"request": request})
 
 
 @app.get("/health")
