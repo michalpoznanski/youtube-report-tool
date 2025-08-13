@@ -4,100 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hook Boost Web - YouTube Analytics</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .logo {
-            max-height: 64px;
-            width: auto;
-            border-radius: 5px;
-            display: block;
-            margin: 0 auto;
-        }
-        
-        /* Responsywność dla logo */
-        @media (max-width: 768px) {
-            .logo {
-                max-height: 48px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .logo {
-                max-height: 40px;
-            }
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .status {
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
-        .status.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .scheduler-controls {
-            display: flex;
-            align-items: center;
+    <link rel="stylesheet" href="/static/css/app.css">
             gap: 15px;
             flex-wrap: wrap;
         }
@@ -158,36 +65,49 @@
 </head>
 <body>
     <div class="container">
-        <h1>
-            <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
-        </h1>
+        <div class="header">
+            <h1>
+                <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
+            </h1>
+        </div>
         
         <!-- Moduł Trendów -->
-        <div class="section">
-            <h2>📈 Moduł Trendów</h2>
-            <p><a href="/trend/podcast" target="_blank">→ Trend: Podcast</a></p>
-            <p><a href="/trend/moto" target="_blank">→ Trend: Motoryzacja (wkrótce)</a></p>
-            <p><a href="/trend/polityka" target="_blank">→ Trend: Polityka (wkrótce)</a></p>
+        <div class="card">
+            <div class="card-header">
+                <h2>📈 Moduł Trendów</h2>
+                <small>Śledzenie przyrostów i rankingów.</small>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <a href="/trend/podcast/top?days=3&k=15" class="btn btn-secondary">Trend: Podcast (TOP 15 z 3 dni)</a>
+                <a href="/trend/podcast?mode=daily" class="btn btn-secondary">Trend: Podcast (Dzienny)</a>
+                <a href="/trend/moto/top?days=3&k=15" class="btn btn-secondary">Trend: Motoryzacja (TOP 15 z 3 dni)</a>
+                <a href="/trend/polityka/top?days=3&k=15" class="btn btn-secondary">Trend: Polityka (TOP 15 z 3 dni)</a>
+            </div>
         </div>
         
         <!-- Status Systemu -->
-        <div class="section">
-            <h2>📊 Status Systemu</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Status Systemu</h2>
+            </div>
             <div id="status"></div>
-            <button onclick="loadStatus()">Odśwież Status</button>
+            <button onclick="loadStatus()" class="btn btn-primary">Odśwież Status</button>
         </div>
         
         <!-- Dodawanie Kanału -->
-        <div class="section">
-            <h2>➕ Dodaj Kanał YouTube</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>➕ Dodaj Kanał YouTube</h2>
+                <small>Wprowadź adres kanału, aby dodać go do monitoringu.</small>
+            </div>
             <form id="addChannelForm">
                 <div class="form-group">
                     <label for="channelUrl">URL Kanału:</label>
-                    <input type="url" id="channelUrl" name="url" placeholder="https://www.youtube.com/@channel" required>
+                    <input type="url" id="channelUrl" name="url" class="input" placeholder="https://www.youtube.com/@channel" required>
                 </div>
                 <div class="form-group">
                     <label for="category">Kategoria:</label>
-                    <select id="category" name="category">
+                    <select id="category" name="category" class="input">
                         <option value="polityka">Polityka</option>
                         <option value="showbiz">Showbiz</option>
                         <option value="sport">Sport</option>
@@ -195,21 +115,23 @@
                         <option value="general">Ogólne</option>
                     </select>
                 </div>
-                <button type="submit">Dodaj Kanał</button>
+                <button type="submit" class="btn btn-primary">Dodaj Kanał</button>
             </form>
             <div id="addChannelResult"></div>
         </div>
         
         <!-- Zarządzanie Kategoriami -->
-        <div class="section">
-            <h2>📂 Zarządzanie Kategoriami</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📂 Zarządzanie Kategoriami</h2>
+            </div>
             <div style="display: flex; gap: 20px; align-items: flex-end;">
                 <!-- Dodaj kategorię -->
                 <div class="form-group" style="flex: 1;">
                     <label for="newCategory">Nowa kategoria:</label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="newCategory" placeholder="Nazwa kategorii" style="flex: 1;">
-                        <button onclick="addCategory()" style="padding: 10px 15px; font-size: 16px;">➕</button>
+                        <input type="text" id="newCategory" class="input" placeholder="Nazwa kategorii" style="flex: 1;">
+                        <button onclick="addCategory()" class="btn btn-primary">➕</button>
                     </div>
                 </div>
                 
@@ -217,10 +139,10 @@
                 <div class="form-group" style="flex: 1;">
                     <label for="removeCategory">Usuń kategorię:</label>
                     <div style="display: flex; gap: 10px;">
-                        <select id="removeCategory" style="flex: 1;">
+                        <select id="removeCategory" class="input" style="flex: 1;">
                             <option value="">Wybierz kategorię...</option>
                         </select>
-                        <button onclick="removeCategory()" style="padding: 10px 15px; font-size: 16px; background-color: #dc3545;">🗑️</button>
+                        <button onclick="removeCategory()" class="btn btn-danger">🗑️</button>
                     </div>
                 </div>
             </div>
@@ -228,19 +150,23 @@
         </div>
         
         <!-- Lista Kanałów -->
-        <div class="section">
-            <h2>📺 Kanały w Monitoringu</h2>
-            <button onclick="loadChannels()">Odśwież Listę</button>
+        <div class="card">
+            <div class="card-header">
+                <h2>📺 Kanały w Monitoringu</h2>
+            </div>
+            <button onclick="loadChannels()" class="btn btn-secondary">Odśwież Listę</button>
             <div id="channelsList" class="channels-list"></div>
         </div>
         
         <!-- Generowanie Raportów -->
-        <div class="section">
-            <h2>📈 Generowanie Raportów</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📈 Generowanie Raportów</h2>
+            </div>
             <form id="generateReportForm">
                 <div class="form-group">
                     <label for="reportCategory">Kategoria (opcjonalnie):</label>
-                    <select id="reportCategory" name="category">
+                    <select id="reportCategory" name="category" class="input">
                         <option value="">Wszystkie kategorie</option>
                         <option value="polityka">Polityka</option>
                         <option value="showbiz">Showbiz</option>
@@ -251,9 +177,9 @@
                 </div>
                 <div class="form-group">
                     <label for="daysBack">Liczba dni wstecz:</label>
-                    <input type="number" id="daysBack" name="days_back" value="3" min="1" max="30">
+                    <input type="number" id="daysBack" name="days_back" class="input" value="3" min="1" max="30">
                 </div>
-                <button type="submit">Generuj Raport CSV</button>
+                <button type="submit" class="btn btn-primary">Generuj Raport CSV</button>
             </form>
             <div id="generateReportResult"></div>
         </div>
