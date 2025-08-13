@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hook Boost Web - YouTube Analytics</title>
-    <link rel="stylesheet" href="/static/css/blue_admin.css">
+    <link rel="stylesheet" href="/static/css/app.css">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -159,28 +159,35 @@
 </head>
 <body>
     <div class="container">
-        <h1>
-            <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
-        </h1>
+        <div class="header">
+            <h1>
+                <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
+            </h1>
+        </div>
         
         <!-- Status Systemu -->
-        <div class="section">
-            <h2>📊 Status Systemu</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Status Systemu</h2>
+            </div>
             <div id="status"></div>
-            <button onclick="loadStatus()">Odśwież Status</button>
+            <button onclick="loadStatus()" class="btn btn-primary">Odśwież Status</button>
         </div>
         
         <!-- Dodawanie Kanału -->
-        <div class="section">
-            <h2>➕ Dodaj Kanał YouTube</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>➕ Dodaj Kanał YouTube</h2>
+                <small>Wprowadź adres kanału, aby dodać go do monitoringu.</small>
+            </div>
             <form id="addChannelForm">
                 <div class="form-group">
                     <label for="channelUrl">URL Kanału:</label>
-                    <input type="url" id="channelUrl" name="url" placeholder="https://www.youtube.com/@channel" required>
+                    <input type="url" id="channelUrl" name="url" class="input" placeholder="https://www.youtube.com/@channel" required>
                 </div>
                 <div class="form-group">
                     <label for="category">Kategoria:</label>
-                    <select id="category" name="category">
+                    <select id="category" name="category" class="input">
                         <option value="polityka">Polityka</option>
                         <option value="showbiz">Showbiz</option>
                         <option value="sport">Sport</option>
@@ -188,21 +195,23 @@
                         <option value="general">Ogólne</option>
                     </select>
                 </div>
-                <button type="submit">Dodaj Kanał</button>
+                <button type="submit" class="btn btn-primary">Dodaj Kanał</button>
             </form>
             <div id="addChannelResult"></div>
         </div>
         
         <!-- Zarządzanie Kategoriami -->
-        <div class="section">
-            <h2>📂 Zarządzanie Kategoriami</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📂 Zarządzanie Kategoriami</h2>
+            </div>
             <div style="display: flex; gap: 20px; align-items: flex-end;">
                 <!-- Dodaj kategorię -->
                 <div class="form-group" style="flex: 1;">
                     <label for="newCategory">Nowa kategoria:</label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="newCategory" placeholder="Nazwa kategorii" style="flex: 1;">
-                        <button onclick="addCategory()" style="padding: 10px 15px; font-size: 16px;">➕</button>
+                        <input type="text" id="newCategory" class="input" placeholder="Nazwa kategorii" style="flex: 1;">
+                        <button onclick="addCategory()" class="btn btn-primary">➕</button>
                     </div>
                 </div>
                 
@@ -210,10 +219,10 @@
                 <div class="form-group" style="flex: 1;">
                     <label for="removeCategory">Usuń kategorię:</label>
                     <div style="display: flex; gap: 10px;">
-                        <select id="removeCategory" style="flex: 1;">
+                        <select id="removeCategory" class="input" style="flex: 1;">
                             <option value="">Wybierz kategorię...</option>
                         </select>
-                        <button onclick="removeCategory()" style="padding: 10px 15px; font-size: 16px; background-color: #dc3545;">🗑️</button>
+                        <button onclick="removeCategory()" class="btn btn-danger">🗑️</button>
                     </div>
                 </div>
             </div>
@@ -221,19 +230,23 @@
         </div>
         
         <!-- Lista Kanałów -->
-        <div class="section">
-            <h2>📺 Kanały w Monitoringu</h2>
-            <button onclick="loadChannels()">Odśwież Listę</button>
+        <div class="card">
+            <div class="card-header">
+                <h2>📺 Kanały w Monitoringu</h2>
+            </div>
+            <button onclick="loadChannels()" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Odśwież Listę</button>
             <div id="channelsList" class="channels-list"></div>
         </div>
         
         <!-- Generowanie Raportów -->
-        <div class="section">
-            <h2>📈 Generowanie Raportów</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📈 Generowanie Raportów</h2>
+            </div>
             <form id="generateReportForm">
                 <div class="form-group">
                     <label for="reportCategory">Kategoria (opcjonalnie):</label>
-                    <select id="reportCategory" name="category">
+                    <select id="reportCategory" name="category" class="input">
                         <option value="">Wszystkie kategorie</option>
                         <option value="polityka">Polityka</option>
                         <option value="showbiz">Showbiz</option>
@@ -244,26 +257,30 @@
                 </div>
                 <div class="form-group">
                     <label for="daysBack">Liczba dni wstecz:</label>
-                    <input type="number" id="daysBack" name="days_back" value="3" min="1" max="30">
+                    <input type="number" id="daysBack" name="days_back" class="input" value="3" min="1" max="30">
                 </div>
-                <button type="submit">Generuj Raport CSV</button>
+                <button type="submit" class="btn btn-primary">Generuj Raport CSV</button>
             </form>
             <div id="generateReportResult"></div>
         </div>
         
         <!-- Lista Raportów -->
-        <div class="section">
-            <h2>📋 Dostępne Raporty</h2>
-            <button onclick="loadReports()">Odśwież Listę</button>
+        <div class="card">
+            <div class="card-header">
+                <h2>📋 Dostępne Raporty</h2>
+            </div>
+            <button onclick="loadReports()" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Odśwież Listę</button>
             <div id="reportsList" class="reports-list"></div>
         </div>
         
         <!-- Kontrola Schedulera -->
-        <div class="section">
-            <h2>⏰ Raport: ON/OFF</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>⏰ Raport: ON/OFF</h2>
+            </div>
             <div class="scheduler-controls">
-                <button onclick="startScheduler()">Uruchom Scheduler</button>
-                <button onclick="stopScheduler()">Zatrzymaj Scheduler</button>
+                <button onclick="startScheduler()" class="btn btn-primary">Uruchom Scheduler</button>
+                <button onclick="stopScheduler()" class="btn btn-danger">Zatrzymaj Scheduler</button>
                 <div id="schedulerStatus" class="status-indicator">
                     <span class="status-dot" id="statusDot">⚪</span>
                     <span id="statusText">Sprawdzanie...</span>
@@ -705,11 +722,17 @@
     </script>
     
     <!-- Moduł Trendów -->
-    <div class="section">
-        <h2>📈 Moduł Trendów</h2>
-        <p><a href="/trend/podcast" target="_self">→ Trend: Podcast</a></p>
-        <p><a href="/trend/moto" target="_self">→ Trend: Motoryzacja (wkrótce)</a></p>
-        <p><a href="/trend/polityka" target="_self">→ Trend: Polityka (wkrótce)</a></p>
+    <div class="card">
+        <div class="card-header">
+            <h2>📈 Moduł Trendów</h2>
+            <small>Śledzenie przyrostów i rankingów.</small>
+        </div>
+        <ul style="list-style-type: none; padding-left: 0;">
+            <li><a href="/trend/podcast/top" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Trend: Podcast (TOP 3 dni)</a></li>
+            <li><a href="/trend/podcast?mode=daily" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Trend: Podcast (Dzienny)</a></li>
+            <li><a href="/trend/polityka/top" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Trend: Polityka (TOP 3 dni)</a></li>
+            <!-- Dodaj kolejne kategorie -->
+        </ul>
     </div>
     
     <!-- deploy: 2025-08-10 16:44:31 -->
