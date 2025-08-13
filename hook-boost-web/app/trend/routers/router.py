@@ -53,3 +53,26 @@ def api_growth(category: str):
             return json.load(f)
     except Exception:
         return {"growth": []}
+
+@router.get("/{category}/top", response_class=HTMLResponse)
+async def trend_top(request: Request, category: str, date: str | None = None, days: int = 3, k: int = 15):
+    """Endpoint dla ranking TOP k z N dni"""
+    from ..utils.report_loader import build_rolling_leaderboard, _available_dates_for_category
+    
+    cat_up = category.upper()
+    if not date:
+        dates = _available_dates_for_category(cat_up)
+        if not dates:
+            return HTMLResponse("Brak raportów CSV dla kategorii.", status_code=404)
+        date = dates[-1]
+    
+    try:
+        data = build_rolling_leaderboard(cat_up, date, days=max(1, days), top_k=max(1, k))
+        return templates.TemplateResponse(
+            f"trend/{category.lower()}/top.html",
+            {"request": request, "category": category, "date": data["end_date"], "days": data["days"],
+             "top_k": data["top_k"], "long_records": data["longs"], "short_records": data["shorts"]}
+        )
+    except Exception as e:
+        log.error(f"Error in trend_top: {e}")
+        return HTMLResponse(f"Błąd podczas budowania rankingu: {str(e)}", status_code=500)
