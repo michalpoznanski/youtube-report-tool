@@ -3,14 +3,14 @@
 /* ===================================================================== */
 :root {
   /* Kolory - jaśniejsze, pastelowe odcienie granatu/mięty/fioletu */
-  --bg:           #0e254d;
-  --panel:        #16376e;
-  --card:         #1e458c;
-  --muted:        #a5b7d4;
-  --text:         #eff4ff;
-  --primary:      #71d3e5;
+  --bg:           #0e254d;      /* tło ogólne */
+  --panel:        #16376e;      /* panele/sekcje */
+  --card:         #1e458c;      /* karty (sekcje) */
+  --muted:        #a5b7d4;      /* tekst pomocniczy */
+  --text:         #eff4ff;      /* tekst główny */
+  --primary:      #71d3e5;      /* miętowo-błękitny przycisk */
   --primary-700:  #4fb3d4;
-  --accent:       #9ea7ff;
+  --accent:       #9ea7ff;      /* pastelowy fiolet */
   --warn:         #fddfa3;
   --danger:       #ff9898;
   --border:       #2d4d8c;
@@ -57,19 +57,52 @@
 
 body {
   margin: 0;
-  padding: 0;
+  padding: 20px;
   background: var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter,
-    "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.5;
 }
 
 /* Container centralny */
 .container {
-  max-width: 1120px;
-  margin-inline: auto;
-  padding: var(--sp-4);
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--card);
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Logo */
+.logo {
+  max-height: 64px;
+  width: auto;
+  border-radius: 5px;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Responsywność dla logo */
+@media (max-width: 768px) {
+  .logo {
+    max-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    max-height: 40px;
+  }
+}
+
+/* Header */
+.header h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===================================================================== */
@@ -220,6 +253,92 @@ input[type="radio"] {
 .badge-danger {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+/* Status messages */
+.status {
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+.status.success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+.status.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* Scheduler controls */
+.scheduler-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.status-dot {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.status-dot.active {
+  color: var(--success);
+}
+
+.status-dot.inactive {
+  color: var(--danger);
+}
+
+/* Channels and reports lists */
+.channels-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 4px;
+  background: var(--panel);
+}
+
+.channel-item {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel-item:last-child {
+  border-bottom: none;
+}
+
+.reports-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.report-item {
+  padding: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel);
 }
 
 /* ===================================================================== */
