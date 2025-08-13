@@ -3,6 +3,8 @@
 import csv
 import os
 import re
+import glob
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
@@ -181,3 +183,78 @@ def build_daily_growth(category: str, date: str) -> List[Dict[str, Any]]:
             rec["potential"] = 0
 
     return growth_records
+
+
+def _available_dates_for_category(category: str, reports_dir: str = "/mnt/volume/reports") -> List[str]:
+    pattern = os.path.join(reports_dir, f"report_{category.upper()}_*.csv")
+    files = sorted(glob.glob(pattern))
+    dates = []
+    for f in files:
+        try:
+            d = os.path.basename(f).split("_")[-1].replace(".csv","")
+            datetime.strptime(d, "%Y-%m-%d")
+            dates.append(d)
+        except Exception:
+            continue
+    return dates
+
+
+def load_reports_range(category: str, end_date: str, days: int) -> List[Dict[str, Any]]:
+    """
+    Wczytuje rekordy dla zakresu dat [end_date - (days-1) .. end_date].
+    Zwraca listę elementów: {"date": "...", "records": [...]}
+    """
+    out: List[Dict[str, Any]] = []
+    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    for i in range(days-1, -1, -1):
+        d = (end - timedelta(days=i)).isoformat()
+        recs = load_daily_report(category, d)  # używamy obecnej logiki z 3-min progiem
+        out.append({"date": d, "records": recs})
+        logging.info(f"[ROLLING] Loaded {len(recs)} for {category=} {d=}")
+    return out
+
+
+def build_rolling_leaderboard(category: str, end_date: str, days: int = 3, top_k: int = 15):
+    """Tworzy leaderboard na podstawie MAKS views_today w oknie N dni."""
+    window = load_reports_range(category, end_date, days)
+    per_video: Dict[str, Dict[str, Any]] = {}
+
+    for day in window:
+        d = day["date"]
+        for r in day["records"]:
+            vid = r.get("video_id")
+            if not vid:
+                continue
+            entry = per_video.setdefault(vid, {
+                "video_id": vid,
+                "title": r.get("title"),
+                "channel": r.get("channel"),
+                "is_short": r.get("is_short"),
+                "duration_seconds": r.get("duration_seconds"),
+                "history": [],         # [(date, views_today)]
+                "best_views": 0,
+                "best_date": None,
+                "last_views": 0,       # views_today w end_date
+            })
+            v = int(r.get("views_today", 0) or 0)
+            entry["history"].append((d, v))
+            if v > entry["best_views"]:
+                entry["best_views"] = v
+                entry["best_date"] = d
+            if d == end_date:
+                entry["last_views"] = v
+
+    # podział i sortowanie
+    longs = [e for e in per_video.values() if not e.get("is_short")]
+    shorts = [e for e in per_video.values() if e.get("is_short")]
+
+    longs = sorted(longs, key=lambda x: x["best_views"], reverse=True)[:top_k]
+    shorts = sorted(shorts, key=lambda x: x["best_views"], reverse=True)[:top_k]
+
+    return {
+        "end_date": end_date,
+        "days": days,
+        "top_k": top_k,
+        "longs": longs,
+        "shorts": shorts,
+    }

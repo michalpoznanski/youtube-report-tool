@@ -13,6 +13,7 @@ from ..core.dispatcher import analyze_category
 from ..core.growth import update_growth, _detect_is_short_from_csv_row
 from ..core.store.trend_store import stats_path, growth_path, save_json, previous_date_str, load_growth_map_for_date
 from ..core.stats import publish_hour_stats
+from app.trend.utils.report_loader import build_rolling_leaderboard, _available_dates_for_category
 
 log = logging.getLogger("trend")
 templates = Jinja2Templates(directory="templates")
@@ -330,3 +331,30 @@ def rebuild_from_csv(category: str, date: str = None):
         
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+@router.get("/trend/{category}/rolling", response_class=HTMLResponse)
+async def trend_rolling(request: Request, category: str, date: str = None, days: int = 3, k: int = 15):
+    category_upper = category.upper()
+    if not date:
+        # wybierz ostatnią dostępna datę
+        dates = _available_dates_for_category(category_upper)
+        if not dates:
+            raise HTTPException(status_code=404, detail="Brak raportów CSV dla kategorii.")
+        date = dates[-1]
+
+    data = build_rolling_leaderboard(category_upper, date, days=max(1, days), top_k=max(1, k))
+    logging.info(f"[ROLLING/DASHBOARD] {category=} {date=} days={days} k={k} longs={len(data['longs'])} shorts={len(data['shorts'])}")
+
+    return templates.TemplateResponse(
+        f"trend/{category}/rolling.html",
+        {
+            "request": request,
+            "category": category,
+            "date": data["end_date"],
+            "days": data["days"],
+            "top_k": data["top_k"],
+            "long_records": data["longs"],
+            "short_records": data["shorts"],
+        },
+    )
