@@ -76,6 +76,11 @@ def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
             # Jeśli któreś z nich nie istnieje w pliku, ustaw pusty string
             for field in ["title", "channel", "tags", "description", "video_id"]:
                 normalized[field] = normalized.get(field, "") or ""
+            
+            # Mapuj Channel_Name → channel
+            if "channel_name" in normalized:
+                # Użyj channel_name jako channel
+                normalized["channel"] = normalized.pop("channel_name")
 
             # Ustal, czy film jest short
             video_type_value = normalized.get("video_type", "") or ""

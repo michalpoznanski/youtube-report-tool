@@ -4,18 +4,87 @@
     <meta charset="utf-8">
     <title>Trend – {{ category|capitalize }} ({{ date }})</title>
     <style>
-        table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-        th, td { padding: 0.5rem; border: 1px solid #ddd; }
-        th { background-color: #f5f5f5; position: sticky; top: 0; }
-        tr:nth-child(even) { background-color: #fafafa; }
-        a { color: #007bff; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .muted { color: #6b7280; }
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 1rem;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        h1, h2 {
+            margin-top: 0;
+            font-weight: 600;
+            color: #212529;
+        }
+        .summary {
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+        thead {
+            background-color: #f1f3f5;
+        }
+        th, td {
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.92rem;
+        }
+        th {
+            font-weight: 600;
+            color: #495057;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+        tbody tr:hover {
+            background-color: #f5f7f9;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        /* Pasek potencjału */
+        .bar-container {
+            display: flex;
+            align-items: center;
+        }
+        .bar-outer {
+            flex-grow: 1;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            height: 8px;
+            margin-right: 4px;
+        }
+        .bar-inner {
+            height: 100%;
+            background-color: #0d6efd;
+            border-radius: 4px;
+        }
+        .bar-label {
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
+<div class="container">
     <h1>Trend – {{ category|capitalize }} ({{ date }})</h1>
-    <p><strong>Łącznie: {{ counts_total }} | Long-form: {{ counts_long }} | Shorts: {{ counts_shorts }}</strong></p>
+    <p class="summary">Łącznie: {{ counts_total }} | Long-form: {{ counts_long }} | Shorts: {{ counts_shorts }}</p>
 
     <h2>Top dzienne przyrosty (Long-form)</h2>
     {% if long_records %}
@@ -27,9 +96,8 @@
                 <th>Kanał</th>
                 <th>Dzisiejsze</th>
                 <th>Wczoraj</th>
-                <th>Δ</th>
                 <th>Wzrost (%)</th>
-                <th>Potencjał (0-100)</th>
+                <th>Potencjał (0–100)</th>
             </tr>
         </thead>
         <tbody>
@@ -40,13 +108,19 @@
                 <td>{{ rec.channel }}</td>
                 <td>{{ rec.views_today }}</td>
                 <td>{{ rec.views_yesterday }}</td>
-                <td>{{ rec.delta }}</td>
-                <td>{{ rec.percent_growth or 'N/A' }}</td>
                 <td>
-                    <div style="width: 100px; background-color: #f0f0f0; border-radius: 3px;">
-                        <div style="width: {{ rec.potential }}%; height: 20px; background-color: #007bff; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">
-                            {{ rec.potential }}
+                    {% if rec.percent_growth is not none %}
+                        {{ rec.percent_growth }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="bar-container">
+                        <div class="bar-outer">
+                            <div class="bar-inner" style="width: {{ rec.potential }}%;"></div>
                         </div>
+                        <div class="bar-label">{{ rec.potential }}%</div>
                     </div>
                 </td>
             </tr>
@@ -67,9 +141,8 @@
                 <th>Kanał</th>
                 <th>Dzisiejsze</th>
                 <th>Wczoraj</th>
-                <th>Δ</th>
                 <th>Wzrost (%)</th>
-                <th>Potencjał (0-100)</th>
+                <th>Potencjał (0–100)</th>
             </tr>
         </thead>
         <tbody>
@@ -80,13 +153,19 @@
                 <td>{{ rec.channel }}</td>
                 <td>{{ rec.views_today }}</td>
                 <td>{{ rec.views_yesterday }}</td>
-                <td>{{ rec.delta }}</td>
-                <td>{{ rec.percent_growth or 'N/A' }}</td>
                 <td>
-                    <div style="width: 100px; background-color: #f0f0f0; border-radius: 3px;">
-                        <div style="width: {{ rec.potential }}%; height: 20px; background-color: #007bff; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">
-                            {{ rec.potential }}
+                    {% if rec.percent_growth is not none %}
+                        {{ rec.percent_growth }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="bar-container">
+                        <div class="bar-outer">
+                            <div class="bar-inner" style="width: {{ rec.potential }}%;"></div>
                         </div>
+                        <div class="bar-label">{{ rec.potential }}%</div>
                     </div>
                 </td>
             </tr>
@@ -96,5 +175,6 @@
     {% else %}
     <p>Brak danych Shorts do wyświetlenia.</p>
     {% endif %}
+</div>
 </body>
 </html>
