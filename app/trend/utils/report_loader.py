@@ -41,24 +41,35 @@ def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
 
             # Konwersja czasu trwania na sekundy z różnych kolumn
             duration_seconds = None
-            for key in ["duration_seconds", "duration", "durationiso", "duration_iso"]:
-                if key in normalized:
-                    try:
-                        duration_str = normalized.pop(key)
-                        if isinstance(duration_str, str) and duration_str.startswith('PT'):
-                            # Parsowanie ISO 8601: PT1H33M7S, PT45S, PT1M5S
-                            pattern = r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
-                            match = re.match(pattern, duration_str)
-                            if match:
-                                hours = int(match.group(1) or 0)
-                                minutes = int(match.group(2) or 0)
-                                seconds = int(match.group(3) or 0)
-                                duration_seconds = hours * 3600 + minutes * 60 + seconds
-                        else:
-                            duration_seconds = int(float(duration_str))
-                    except (ValueError, TypeError):
-                        duration_seconds = None
-                    break
+            # Pobierz dowolną kolumnę z czasem trwania
+            iso_dur = (
+                normalized.get("duration_seconds")
+                or normalized.get("duration")
+                or normalized.get("durationiso")
+                or normalized.get("duration_iso")
+                or normalized.get("duration")
+            )
+            
+            if iso_dur:
+                try:
+                    if isinstance(iso_dur, str) and iso_dur.startswith('PT'):
+                        # Parsowanie ISO 8601: PT1H33M7S, PT45S, PT1M5S
+                        pattern = r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
+                        match = re.match(pattern, iso_dur)
+                        if match:
+                            hours = int(match.group(1) or 0)
+                            minutes = int(match.group(2) or 0)
+                            seconds = int(match.group(3) or 0)
+                            duration_seconds = hours * 3600 + minutes * 60 + seconds
+                    else:
+                        duration_seconds = int(float(iso_dur))
+                except (ValueError, TypeError):
+                    duration_seconds = None
+                
+                # Usuń wszystkie kolumny z czasem trwania
+                for key in ["duration_seconds", "duration", "durationiso", "duration_iso"]:
+                    normalized.pop(key, None)
+            
             normalized["duration_seconds"] = duration_seconds
 
             # Przekopiuj inne istotne pola (title, channel, tags, description, video_id)
@@ -66,16 +77,22 @@ def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
             for field in ["title", "channel", "tags", "description", "video_id"]:
                 normalized[field] = normalized.get(field, "") or ""
 
-            # Detekcja czy film jest short - priorytet dla kolumny video_type
-            video_type_value = normalized.get("video_type", "").lower()
-            if video_type_value in ["shorts", "short"]:
+            # Ustal, czy film jest short na podstawie video_type
+            video_type_value = normalized.get("video_type", "") or ""
+            video_type_value = video_type_value.strip().lower()
+
+            # Rozpoznaj wszystkie warianty słów 'short' i 'long'
+            if "short" in video_type_value:
                 is_short = True
-            elif video_type_value == "long":
+            elif "long" in video_type_value:
                 is_short = False
             else:
-                # Fallback: heurystyka na podstawie czasu i tagów
+                # fallback heurystyka – czas < 62 sekund lub tag #short/#shorts
                 text_concat = f"{normalized['title']} {normalized['tags']} {normalized['description']}".lower()
-                is_short = (normalized.get("duration_seconds") is not None and normalized["duration_seconds"] < 62) or ("#short" in text_concat or "#shorts" in text_concat)
+                is_short = (
+                    normalized.get("duration_seconds") is not None
+                    and normalized["duration_seconds"] < 62
+                ) or ("#short" in text_concat or "#shorts" in text_concat)
             normalized["is_short"] = is_short
 
             # Upewnij się, że zwracamy klucz video_id, title, channel, views_today, duration_seconds, is_short
