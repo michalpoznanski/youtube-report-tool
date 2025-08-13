@@ -28,6 +28,8 @@
                 <th>Dzisiejsze</th>
                 <th>Wczoraj</th>
                 <th>Δ</th>
+                <th>Wzrost (%)</th>
+                <th>Potencjał (0-100)</th>
             </tr>
         </thead>
         <tbody>
@@ -39,6 +41,14 @@
                 <td>{{ rec.views_today }}</td>
                 <td>{{ rec.views_yesterday }}</td>
                 <td>{{ rec.delta }}</td>
+                <td>{{ rec.percent_growth or 'N/A' }}</td>
+                <td>
+                    <div style="width: 100px; background-color: #f0f0f0; border-radius: 3px;">
+                        <div style="width: {{ rec.potential }}%; height: 20px; background-color: #007bff; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">
+                            {{ rec.potential }}
+                        </div>
+                    </div>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -58,6 +68,8 @@
                 <th>Dzisiejsze</th>
                 <th>Wczoraj</th>
                 <th>Δ</th>
+                <th>Wzrost (%)</th>
+                <th>Potencjał (0-100)</th>
             </tr>
         </thead>
         <tbody>
@@ -69,6 +81,14 @@
                 <td>{{ rec.views_today }}</td>
                 <td>{{ rec.views_yesterday }}</td>
                 <td>{{ rec.delta }}</td>
+                <td>{{ rec.percent_growth or 'N/A' }}</td>
+                <td>
+                    <div style="width: 100px; background-color: #f0f0f0; border-radius: 3px;">
+                        <div style="width: {{ rec.potential }}%; height: 20px; background-color: #007bff; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">
+                            {{ rec.potential }}
+                        </div>
+                    </div>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

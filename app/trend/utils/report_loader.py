@@ -39,49 +39,43 @@ def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
                     break
             normalized["views_today"] = views if views is not None else 0
 
-            # Konwersja czasu trwania na sekundy
-            duration = None
-            for key in ["duration_seconds", "duration"]:
+            # Konwersja czasu trwania na sekundy z różnych kolumn
+            duration_seconds = None
+            for key in ["duration_seconds", "duration", "durationiso", "duration_iso"]:
                 if key in normalized:
                     try:
                         duration_str = normalized.pop(key)
-                        # Obsługa formatu ISO 8601 (PT5M30S)
                         if isinstance(duration_str, str) and duration_str.startswith('PT'):
-                            # Parsowanie PT5M30S -> 5*60 + 30 = 330 sekund
-                            duration_str = duration_str[2:]  # Usuń 'PT'
-                            minutes = 0
-                            seconds = 0
-                            
-                            # Znajdź minuty (M)
-                            if 'M' in duration_str:
-                                parts = duration_str.split('M')
-                                minutes = int(parts[0])
-                                duration_str = parts[1] if len(parts) > 1 else ''
-                            
-                            # Znajdź sekundy (S)
-                            if 'S' in duration_str:
-                                seconds = int(duration_str.replace('S', ''))
-                            
-                            duration = minutes * 60 + seconds
+                            # Parsowanie ISO 8601: PT1H33M7S, PT45S, PT1M5S
+                            pattern = r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
+                            match = re.match(pattern, duration_str)
+                            if match:
+                                hours = int(match.group(1) or 0)
+                                minutes = int(match.group(2) or 0)
+                                seconds = int(match.group(3) or 0)
+                                duration_seconds = hours * 3600 + minutes * 60 + seconds
                         else:
-                            duration = int(float(duration_str))
+                            duration_seconds = int(float(duration_str))
                     except (ValueError, TypeError):
-                        duration = None
+                        duration_seconds = None
                     break
-            normalized["duration_seconds"] = duration
+            normalized["duration_seconds"] = duration_seconds
 
             # Przekopiuj inne istotne pola (title, channel, tags, description, video_id)
             # Jeśli któreś z nich nie istnieje w pliku, ustaw pusty string
             for field in ["title", "channel", "tags", "description", "video_id"]:
                 normalized[field] = normalized.get(field, "") or ""
 
-            # Detekcja czy film jest short
-            text_concat = f"{normalized['title']} {normalized['tags']} {normalized['description']}".lower()
-            is_short = False
-            if duration is not None and duration < 62:
+            # Detekcja czy film jest short - priorytet dla kolumny video_type
+            video_type_value = normalized.get("video_type", "").lower()
+            if video_type_value in ["shorts", "short"]:
                 is_short = True
-            elif "#short" in text_concat or "#shorts" in text_concat:
-                is_short = True
+            elif video_type_value == "long":
+                is_short = False
+            else:
+                # Fallback: heurystyka na podstawie czasu i tagów
+                text_concat = f"{normalized['title']} {normalized['tags']} {normalized['description']}".lower()
+                is_short = (normalized.get("duration_seconds") is not None and normalized["duration_seconds"] < 62) or ("#short" in text_concat or "#shorts" in text_concat)
             normalized["is_short"] = is_short
 
             # Upewnij się, że zwracamy klucz video_id, title, channel, views_today, duration_seconds, is_short
@@ -143,5 +137,21 @@ def build_daily_growth(category: str, date: str) -> List[Dict[str, Any]]:
         growth_record["delta"] = delta
 
         growth_records.append(growth_record)
+
+    # Oblicz dodatkowe metryki: percent_growth i potential
+    max_delta = max((rec["delta"] for rec in growth_records if rec["delta"] > 0), default=0)
+    
+    for rec in growth_records:
+        # Procentowy wzrost
+        if rec["views_yesterday"] > 0:
+            rec["percent_growth"] = round(((rec["views_today"] - rec["views_yesterday"]) / rec["views_yesterday"]) * 100, 2)
+        else:
+            rec["percent_growth"] = None
+        
+        # Potencjał 0-100
+        if max_delta > 0 and rec["delta"] > 0:
+            rec["potential"] = round((rec["delta"] / max_delta) * 100)
+        else:
+            rec["potential"] = 0
 
     return growth_records
