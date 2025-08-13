@@ -3,19 +3,19 @@
 /* ===================================================================== */
 :root {
   /* Kolory - jaśniejsza paleta granatowa z pastelowymi akcentami */
-  --bg:           #131c36;   /* ciemne tło */
-  --panel:        #1e2d4f;   /* lekko jaśniejszy odcień dla paneli */
-  --card:         #26365c;   /* karty odróżniają się od panelu */
-  --muted:        #99a7c5;
-  --text:         #eaf0fb;
-  --primary:      #71d3e5;   /* miętowo-błękitny */
+  --bg:           #0e254d;
+  --panel:        #16376e;
+  --card:         #1e458c;
+  --muted:        #a5b7d4;
+  --text:         #eff4ff;
+  --primary:      #71d3e5;
   --primary-700:  #4fb3d4;
-  --accent:       #a78bfa;   /* pastelowy fiolet */
+  --accent:       #9ea7ff;
   --warn:         #fddfa3;
   --danger:       #ff9898;
-  --border:       #344675;
-  --success:      #6ee7b7;
-  --success-bg:   #15492f;
+  --border:       #2d4d8c;
+  --success:      #7fe7b7;
+  --success-bg:   #164a32;
   --info-bg:      #1e3a8a;
   /* Radiusy */
   --r-lg: 16px;
@@ -92,7 +92,7 @@ p { margin-bottom: var(--sp-2); color: var(--muted); }
 /* KARTY/SEKCJE                                                          */
 /* ===================================================================== */
 .card {
-  background: var(--card);
+  background: linear-gradient(145deg, var(--card), var(--panel));
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: var(--sp-4);
@@ -149,7 +149,7 @@ p { margin-bottom: var(--sp-2); color: var(--muted); }
 }
 .input:focus, .select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(136, 164, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(158, 167, 255, 0.3);
 }
 
 /* Checkbox / radio (jeśli występują) */
@@ -179,8 +179,8 @@ input[type="radio"] {
 }
 .btn-secondary {
   background: var(--panel);
-  border: 1px solid var(--border);
   color: var(--text);
+  border: 1px solid var(--border);
 }
 .btn-secondary:hover {
   background: var(--card);

@@ -721,18 +721,18 @@
         }
     </script>
     
-    <!-- Moduł Trendów -->
+    <!-- ModUŁ TRENDÓW -->
     <div class="card">
         <div class="card-header">
             <h2>📈 Moduł Trendów</h2>
             <small>Śledzenie przyrostów i rankingów.</small>
         </div>
-        <ul style="list-style-type: none; padding-left: 0;">
-            <li><a href="/trend/podcast/top" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Trend: Podcast (TOP 3 dni)</a></li>
-            <li><a href="/trend/podcast?mode=daily" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Trend: Podcast (Dzienny)</a></li>
-            <li><a href="/trend/polityka/top" class="btn btn-secondary" style="margin-bottom: var(--sp-2);">Trend: Polityka (TOP 3 dni)</a></li>
-            <!-- Dodaj kolejne kategorie -->
-        </ul>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <a href="/trend/podcast/top" class="btn btn-secondary">Trend: Podcast (TOP 3 dni)</a>
+            <a href="/trend/podcast?mode=daily" class="btn btn-secondary">Trend: Podcast (Dzienny)</a>
+            <a href="/trend/polityka/top" class="btn btn-secondary">Trend: Polityka (TOP 3 dni)</a>
+            <!-- możesz dodać kolejne kategorie tutaj -->
+        </div>
     </div>
     
     <!-- deploy: 2025-08-10 16:44:31 -->
