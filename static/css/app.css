@@ -2,15 +2,15 @@
 /* ZMIENNE GLOBALNE                                                      */
 /* ===================================================================== */
 :root {
-  /* Kolory */
-  --bg:           #131c36;
-  --panel:        #1e2d4f;
-  --card:         #26365c;
+  /* Kolory - jaśniejsza paleta granatowa z pastelowymi akcentami */
+  --bg:           #131c36;   /* ciemne tło */
+  --panel:        #1e2d4f;   /* lekko jaśniejszy odcień dla paneli */
+  --card:         #26365c;   /* karty odróżniają się od panelu */
   --muted:        #99a7c5;
   --text:         #eaf0fb;
-  --primary:      #71d3e5;
+  --primary:      #71d3e5;   /* miętowo-błękitny */
   --primary-700:  #4fb3d4;
-  --accent:       #a78bfa;
+  --accent:       #a78bfa;   /* pastelowy fiolet */
   --warn:         #fddfa3;
   --danger:       #ff9898;
   --border:       #344675;
@@ -158,7 +158,7 @@ input[type="radio"] {
   accent-color: var(--primary);
 }
 
-/* Przyciski */
+/* Przyciski - zaktualizowane kolory dla lepszego kontrastu */
 .btn {
   display: inline-block;
   border: none;
@@ -179,8 +179,8 @@ input[type="radio"] {
 }
 .btn-secondary {
   background: var(--panel);
-  color: var(--text);
   border: 1px solid var(--border);
+  color: var(--text);
 }
 .btn-secondary:hover {
   background: var(--card);
