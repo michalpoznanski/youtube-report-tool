@@ -7,6 +7,16 @@ import logging
 from pathlib import Path
 import os
 
+# Załaduj zmienne środowiskowe z .env
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ .env file loaded successfully")
+except ImportError:
+    print("⚠️ python-dotenv not available, using system env vars")
+except Exception as e:
+    print(f"⚠️ Error loading .env: {e}")
+
 # DEBUG: Sprawdź zmienne środowiskowe
 print("🔍 DEBUG: Sprawdzam zmienne środowiskowe...")
 print(f"🔍 ENABLE_TREND = {os.environ.get('ENABLE_TREND', 'NOT_SET')}")
