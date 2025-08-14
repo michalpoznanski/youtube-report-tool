@@ -135,13 +135,22 @@ if router:
 # --- Trend module (feature-flag) ---
 import os, logging
 if os.environ.get('ENABLE_TREND','false').lower()=='true':
-    from app.trend.routers.router import router as trend_router
-    app.include_router(trend_router)
     try:
-        from app.trend.core.scheduler_bind import register_trend_job
-        register_trend_job(scheduler, category='PODCAST')
+        from app.trend.routers.router import router as trend_router
+        app.include_router(trend_router)
+        print("✅ Trend module loaded successfully")
+        try:
+            from app.trend.core.scheduler_bind import register_trend_job
+            register_trend_job(scheduler, category='PODCAST')
+            print("✅ Trend scheduler attached")
+        except Exception as e:
+            print(f"⚠️ Trend scheduler attach failed: {e}")
     except Exception as e:
-        logging.getLogger('trend').warning(f'trend scheduler attach failed: {e}')
+        print(f"❌ Trend module failed to load: {e}")
+else:
+    print("ℹ️ Trend module disabled (ENABLE_TREND!=true)")
+
+
 
 
 @app.get("/", response_class=HTMLResponse)
