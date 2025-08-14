@@ -81,15 +81,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Statyczne pliki
-try:
-    app.mount("/static", StaticFiles(directory="/app/static"), name="static")
-except RuntimeError:
-    # Jeśli katalog static nie istnieje, pomiń montowanie
-    pass
+# Statyczne pliki i templates z fallback
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+# Fallback dla różnych struktur katalogów
+tpl_root = (
+    "hook-boost-web/templates" if os.path.isdir("hook-boost-web/templates") else "templates"
+)
+static_root = (
+    "hook-boost-web/static" if os.path.isdir("hook-boost-web/static") else "static"
+)
+
+print(f"🔍 DEBUG: Templates directory = {tpl_root}")
+print(f"🔍 DEBUG: Static directory = {static_root}")
 
 # Templates
-templates = Jinja2Templates(directory="/app/templates")
+templates = Jinja2Templates(directory=tpl_root)
+
+# Statyczne pliki
+try:
+    app.mount("/static", StaticFiles(directory=static_root), name="static")
+    print(f"✅ Static files mounted from {static_root}")
+except RuntimeError as e:
+    print(f"⚠️ Static files mount failed: {e}")
+    # Jeśli katalog static nie istnieje, pomiń montowanie
+    pass
 
 # Scheduler
 scheduler = TaskScheduler() if TaskScheduler else None
