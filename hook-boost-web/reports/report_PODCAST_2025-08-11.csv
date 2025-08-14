@@ -1,0 +1,6 @@
+video_id,title,channel,views_today,views_yesterday,is_short,duration_seconds
+abc123,Test Podcast 1 - Najlepszy odcinek,Channel A,12000,10000,false,1800
+def456,Test Podcast 2 - Drugi najlepszy,Channel B,10000,8000,false,2400
+ghi789,Test Podcast 3 - Trzeci w rankingu,Channel C,8000,6000,false,1200
+jkl012,Test Podcast 4 - Czwarty,Channel D,6000,4000,false,900
+mno345,Test Podcast 5 - Piąty,Channel E,5000,3000,false,1500

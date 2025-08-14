@@ -1,267 +1,130 @@
-# 🎯 Hook Boost Web - YouTube Analytics
+# 🚀 Uniwersalny System Analizy YouTube
 
-Aplikacja webowa do raportowania danych z kanałów YouTube z interfejsem webowym i automatycznym schedulowaniem.
+Połączony system do analizy danych z YouTube, zawierający dwa boty:
+- **Bot YT2** - Analiza słów kluczowych z tytułów
+- **Bot analizy nazwisk** - Analiza nazwisk z filmów
 
-## 🚀 Funkcje
+## 📁 Struktura projektu
 
-- **Interfejs webowy** do zarządzania kanałami YouTube
-- **Automatyczne raporty** codziennie o 23:00
-- **Generowanie plików CSV** z danymi z ostatnich 3 dni
-- **Ekstrakcja nazwisk** z tytułów i opisów filmów
-- **Kategoryzacja kanałów** (polityka, showbiz, sport, technologia)
-- **Monitorowanie quota** YouTube API
-- **REST API** do integracji z innymi systemami
-
-## 📊 Struktura Raportów CSV
-
-Każdy raport zawiera następujące kolumny:
-- Channel_Name, Channel_ID
-- Date_of_Publishing, Hour_GMT2
-- Title, Description, Tags
-- Video_Type (shorts vs long)
-- View_Count, Like_Count, Comment_Count, Favorite_Count
-- Definition, Has_Captions, Licensed_Content
-- Topic_Categories, Names_Extracted
-- Video_ID, Duration, Thumbnail_URL
+```
+📁 BOT/
+├── 📁 shared/                    # Wspólne moduły
+│   ├── 📄 google_sheets.py      # Pobieranie z Google Sheets
+│   ├── 📄 text_analyzer.py      # Analiza tekstu
+│   └── 📄 report_generator.py   # Generowanie raportów
+├── 📄 yt_analyzer.py            # Bot analizy słów kluczowych
+├── 📄 name_analyzer.py          # Bot analizy nazwisk
+├── 📄 main.py                   # Główny interfejs
+├── 📄 credentials.json          # Dane uwierzytelniające
+└── 📄 requirements.txt          # Zależności
+```
 
 ## 🛠️ Instalacja
 
-### Lokalnie
-
-1. **Klonuj repozytorium:**
-```bash
-git clone <repository-url>
-cd hook-boost-web
-```
-
-2. **Utwórz środowisko wirtualne:**
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# lub
-venv\Scripts\activate  # Windows
-```
-
-3. **Zainstaluj zależności:**
+1. **Zainstaluj zależności:**
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Skonfiguruj zmienne środowiskowe:**
+2. **Zainstaluj model spaCy:**
 ```bash
-cp env.example .env
-# Edytuj .env i dodaj swoje klucze API
+python -m spacy download pl_core_news_md
 ```
 
-5. **Uruchom aplikację:**
+3. **Skonfiguruj credentials.json** (skopiuj z drugiego projektu)
+
+## 🚀 Użycie
+
+### Główny interfejs
 ```bash
-uvicorn app.main:app --reload
+python main.py <link_do_arkusza_google_sheets>
 ```
 
-### Na Railway
+### Bezpośrednie uruchomienie
 
-1. **Przygotuj pliki:**
+**Analiza słów kluczowych:**
 ```bash
-# Upewnij się, że masz wszystkie pliki:
-# - Dockerfile
-# - railway.json
-# - requirements.txt
-# - .env (z kluczami API)
+python yt_analyzer.py <link_do_arkusza>
 ```
 
-2. **Deploy na Railway:**
+**Analiza nazwisk:**
 ```bash
-# Zainstaluj Railway CLI
-npm install -g @railway/cli
-
-# Zaloguj się
-railway login
-
-# Deploy
-railway up
+python name_analyzer.py <link_do_arkusza>
 ```
 
-3. **Skonfiguruj zmienne środowiskowe na Railway:**
-```bash
-railway variables set YOUTUBE_API_KEY=your_api_key
-railway variables set SECRET_KEY=your_secret_key
+## 📊 Funkcjonalności
+
+### 🤖 Bot YT2 - Analiza słów kluczowych
+- ✅ Pobiera dane z Google Sheets
+- ✅ Dzieli filmy na Shorts i Long-form
+- ✅ Wyciąga najpopularniejsze słowa kluczowe
+- ✅ Usuwa polskie stopwords
+- ✅ Generuje raporty CSV
+
+### 👥 Bot analizy nazwisk
+- ✅ Analizuje nazwiska z filmów
+- ✅ Oblicza wskaźniki siły
+- ✅ Uwzględnia wagę czasową
+- ✅ Analizuje wpływ kanałów
+- ✅ Boost za Shortsy
+
+### 🔧 Wspólne moduły
+- ✅ Uniwersalne pobieranie z Google Sheets
+- ✅ Wspólne funkcje analizy tekstu
+- ✅ System generowania raportów
+- ✅ Kod wielokrotnego użytku
+
+## 📈 Przykładowe raporty
+
+### Analiza słów kluczowych
+```
+=== Analiza słów kluczowych YT ===
+Data generowania: 2024-01-15 14:30:25
+
+--- SHORTS ---
+ 1. polityka              -  45 wystąpień
+ 2. wybory                -  32 wystąpień
+ 3. rząd                  -  28 wystąpień
+
+--- LONG-FORM ---
+ 1. rozmowa               -  67 wystąpień
+ 2. gość                  -  54 wystąpień
+ 3. wywiad                -  43 wystąpień
+```
+
+### Analiza nazwisk
+```
+=== Filmy ===
++----------------+----------------+-------------------+---------------------+------------------------+
+| Nazwisko/Ksywa | Liczba filmów | Suma wyświetleń  | Średnia wyświetleń | Wskaźnik siły (0-100) |
++----------------+----------------+-------------------+---------------------+------------------------+
+| mentzen        |             12 |         2,450,000 |             204,167 |                   95.2 |
+| biedrzycka     |              8 |         1,890,000 |             236,250 |                   87.3 |
++----------------+----------------+-------------------+---------------------+------------------------+
 ```
 
 ## 🔧 Konfiguracja
 
-### Zmienne środowiskowe
+### Google Sheets
+Upewnij się, że arkusz zawiera kolumny:
+- `Title` - tytuł filmu
+- `Category` - kategoria (opcjonalnie)
+- `Wyświetlenia` - liczba wyświetleń (dla analizy nazwisk)
+- `Date of Publishing` - data publikacji (dla analizy nazwisk)
+- `Channel Name` - nazwa kanału (dla analizy nazwisk)
 
-```env
-# YouTube Data API v3
-YOUTUBE_API_KEY=your_youtube_api_key_here
+## 🎯 Korzyści połączenia
 
-# FastAPI Settings
-SECRET_KEY=your_secret_key_here
-DEBUG=True
-HOST=0.0.0.0
-PORT=8000
+- ✅ **Kod wielokrotnego użytku**
+- ✅ **Łatwiejsze utrzymanie**
+- ✅ **Spójny system raportowania**
+- ✅ **Możliwość dodawania nowych typów analiz**
+- ✅ **Wspólne moduły i funkcje**
 
-# Scheduler Settings
-SCHEDULER_HOUR=23
-SCHEDULER_MINUTE=0
-DAYS_BACK=3
+## 🚀 Rozwój
 
-# Storage Settings
-DATA_DIR=data
-REPORTS_DIR=reports
-BACKUP_DIR=backups
-
-# CORS Settings
-ALLOWED_ORIGINS=["http://localhost:3000", "http://localhost:8000"]
-
-# Logging
-LOG_LEVEL=INFO
-LOG_FILE=logs/app.log
-```
-
-### YouTube API Key
-
-1. Przejdź do [Google Cloud Console](https://console.cloud.google.com/)
-2. Utwórz nowy projekt lub wybierz istniejący
-3. Włącz YouTube Data API v3
-4. Utwórz klucz API w sekcji "Credentials"
-5. Dodaj klucz do zmiennej `YOUTUBE_API_KEY`
-
-## 📚 API Endpoints
-
-### Kanały
-- `POST /api/v1/channels` - Dodaj kanał
-- `GET /api/v1/channels` - Lista kanałów
-- `DELETE /api/v1/channels/{channel_id}` - Usuń kanał
-
-### Raporty
-- `POST /api/v1/reports/generate` - Generuj raport CSV
-- `GET /api/v1/reports/list` - Lista dostępnych raportów
-- `GET /api/v1/reports/download/{filename}` - Pobierz raport
-
-### Status i Kontrola
-- `GET /api/v1/status` - Status systemu
-- `POST /api/v1/scheduler/start` - Uruchom scheduler
-- `POST /api/v1/scheduler/stop` - Zatrzymaj scheduler
-
-### Health Check
-- `GET /health` - Sprawdź stan aplikacji
-
-## 🧪 Testy
-
-```bash
-# Uruchom wszystkie testy
-pytest
-
-# Uruchom testy z pokryciem
-pytest --cov=app
-
-# Uruchom konkretny test
-pytest tests/test_api.py::test_health_check
-```
-
-## 📁 Struktura Projektu
-
-```
-hook-boost-web/
-├── app/
-│   ├── api/              # Endpointy REST API
-│   ├── youtube/          # Integracja z YouTube API
-│   ├── analysis/         # Analiza danych, ekstrakcja nazwisk
-│   ├── scheduler/        # Automatyczne zadania
-│   ├── storage/          # Generowanie i zapis CSV
-│   ├── config/           # Konfiguracja aplikacji
-│   └── main.py           # Główna aplikacja FastAPI
-├── templates/            # Szablony HTML
-├── static/              # Pliki statyczne
-├── tests/               # Testy
-├── data/                # Dane aplikacji
-├── reports/             # Wygenerowane raporty
-├── logs/                # Logi aplikacji
-├── Dockerfile           # Konfiguracja Docker
-├── railway.json         # Konfiguracja Railway
-├── requirements.txt     # Zależności Python
-└── README.md           # Ten plik
-```
-
-## 🚀 Deployment
-
-### Railway (Zalecane)
-
-1. **Przygotuj repozytorium:**
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin <your-repo-url>
-git push -u origin main
-```
-
-2. **Deploy na Railway:**
-```bash
-railway init
-railway up
-```
-
-3. **Skonfiguruj zmienne środowiskowe:**
-```bash
-railway variables set YOUTUBE_API_KEY=your_api_key
-railway variables set SECRET_KEY=your_secret_key
-```
-
-### Docker
-
-```bash
-# Build image
-docker build -t hook-boost-web .
-
-# Run container
-docker run -p 8000:8000 --env-file .env hook-boost-web
-```
-
-## 📊 Monitorowanie
-
-### Logi
-- Logi aplikacji: `logs/app.log`
-- Poziom logowania: `LOG_LEVEL` w zmiennych środowiskowych
-
-### Quota YouTube API
-- Dzienny limit: 10,000 jednostek
-- Monitorowanie w czasie rzeczywistym
-- Reset codziennie o 23:00
-
-### Status Schedulera
-- Automatyczne raporty codziennie o 23:00
-- Kontrola przez API endpoints
-- Health checks co 5 minut
-
-## 🔒 Bezpieczeństwo
-
-- **Environment variables** - żadnych hardcodowanych kluczy
-- **CORS** - konfigurowalne origins
-- **Input validation** - sanityzacja wszystkich inputów
-- **Rate limiting** - ochrona przed nadużyciami
-
-## 🤝 Contributing
-
-1. Fork repozytorium
-2. Utwórz branch dla nowej funkcji
-3. Commit zmiany
-4. Push do branch
-5. Utwórz Pull Request
-
-## 📄 Licencja
-
-MIT License
-
-## 🆘 Wsparcie
-
-W przypadku problemów:
-1. Sprawdź logi aplikacji
-2. Sprawdź status YouTube API
-3. Sprawdź konfigurację zmiennych środowiskowych
-4. Otwórz issue na GitHub
-
----
-
-**Hook Boost Web** - Profesjonalne narzędzie do analizy kanałów YouTube! 🎯 
+System jest zaprojektowany do łatwego rozszerzania:
+- Dodawanie nowych typów analiz
+- Nowe formaty raportów
+- Dodatkowe źródła danych
+- Integracja z innymi API 

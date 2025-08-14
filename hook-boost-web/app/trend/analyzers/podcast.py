@@ -37,8 +37,3 @@ def rank_names(df: pd.DataFrame):
     return (pd.DataFrame(rows)
             .groupby("name", as_index=False)["views"].sum()
             .sort_values("views", ascending=False))
-
-def analyze(df):
-    # Analiza podcast - zwraca ranking nazw
-    rank = rank_names(df)
-    return {"names_rank": rank.head(50).to_dict(orient="records")}

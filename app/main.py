@@ -6,10 +6,6 @@ from fastapi.responses import HTMLResponse
 import logging
 from pathlib import Path
 import os
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Import z obsługą błędów
 try:
@@ -58,22 +54,6 @@ app = FastAPI(
     description="Aplikacja webowa do raportowania danych z kanałów YouTube",
     version="1.0.0"
 )
-
-# Integracja modułu Trend
-import os, logging
-logger = logging.getLogger(__name__)
-
-if os.getenv("ENABLE_TREND", "false").lower() == "true":
-    try:
-        from app.trend.routers.router import router as trend_router
-        logger.info("[BOOT] Trend router imported successfully")
-        app.include_router(trend_router, prefix="")
-        logger.info("[BOOT] Trend router included in app ✅")
-        logger.info("[BOOT] Trend module enabled ✅")
-    except Exception as e:
-        logger.exception("[BOOT] Trend module failed ❌: %s", e)
-else:
-    logger.info("[BOOT] Trend module disabled (ENABLE_TREND!=true)")
 
 # CORS middleware
 app.add_middleware(
@@ -152,16 +132,21 @@ if router:
     
     app.include_router(router, prefix="/api/v1", tags=["api"])
 
+# --- Trend module (feature-flag) ---
+import os, logging
+if os.environ.get('ENABLE_TREND','false').lower()=='true':
+    from app.trend.routers.router import router as trend_router
+    app.include_router(trend_router)
+    try:
+        from app.trend.core.scheduler_bind import register_trend_job
+        register_trend_job(scheduler, category='PODCAST')
+    except Exception as e:
+        logging.getLogger('trend').warning(f'trend scheduler attach failed: {e}')
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    """Strona główna aplikacji Hook Boost - panel administracyjny"""
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
-@app.get("/console", response_class=HTMLResponse)
-async def console(request: Request):
-    """Stary panel administracyjny - pełna funkcjonalność zarządzania"""
+    """Strona główna aplikacji"""
     return templates.TemplateResponse("index.html", {"request": request})
 
 
