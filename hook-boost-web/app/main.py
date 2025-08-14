@@ -66,13 +66,13 @@ app.add_middleware(
 
 # Statyczne pliki
 try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 except RuntimeError:
     # Jeśli katalog static nie istnieje, pomiń montowanie
     pass
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="/app/templates")
 
 # Scheduler
 scheduler = TaskScheduler() if TaskScheduler else None

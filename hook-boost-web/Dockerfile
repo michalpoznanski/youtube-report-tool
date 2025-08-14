@@ -26,11 +26,8 @@ COPY . .
 # Utwórz katalogi dla danych
 RUN mkdir -p data reports backups logs
 
-# Ustaw uprawnienia
-RUN chmod +x /app/start.sh
-
 # Eksponuj port
 EXPOSE 8000
 
 # Uruchom aplikację
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-8000}"] 
+CMD ["python", "run.py"] 
