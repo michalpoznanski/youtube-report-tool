@@ -1,3 +1,4 @@
+<!-- HB_MARK 2025-08-14 - Uproszczenie modułu trendów, jeden link per kategoria -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -20,11 +21,11 @@
                 <h2>📈 Moduł Trendów</h2>
                 <small>Śledzenie przyrostów i rankingów.</small>
             </div>
-            <div style="display:flex; flex-direction:column; gap:16px;">
-                <a href="/trend/podcast/top?days=3&k=15" class="btn btn-secondary">Trend: Podcast (TOP 15 z 3 dni)</a>
-                <a href="/trend/podcast?mode=daily" class="btn btn-secondary">Trend: Podcast (Dzienny)</a>
-                <a href="/trend/moto/top?days=3&k=15" class="btn btn-secondary">Trend: Motoryzacja (TOP 15 z 3 dni)</a>
-                <a href="/trend/polityka/top?days=3&k=15" class="btn btn-secondary">Trend: Polityka (TOP 15 z 3 dni)</a>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <a href="/trend/podcast/top?days=3&k=15" class="btn btn-secondary">Podcast</a>
+                <a href="/trend/moto/top?days=3&k=15" class="btn btn-secondary">Motoryzacja</a>
+                <a href="/trend/polityka/top?days=3&k=15" class="btn btn-secondary">Polityka</a>
+                <!-- Dodaj inne kategorie w razie potrzeby -->
             </div>
         </div>
         
