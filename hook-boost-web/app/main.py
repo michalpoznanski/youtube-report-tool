@@ -7,6 +7,23 @@ import logging
 from pathlib import Path
 import os
 
+# Załaduj zmienne środowiskowe z .env
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ .env file loaded successfully")
+except ImportError:
+    print("⚠️ python-dotenv not available, using system env vars")
+except Exception as e:
+    print(f"⚠️ Error loading .env: {e}")
+
+# DEBUG: Sprawdź zmienne środowiskowe
+print("🔍 DEBUG: Sprawdzam zmienne środowiskowe...")
+print(f"🔍 ENABLE_TREND = {os.environ.get('ENABLE_TREND', 'NOT_SET')}")
+print(f"🔍 PYTHONPATH = {os.environ.get('PYTHONPATH', 'NOT_SET')}")
+print(f"🔍 PWD = {os.environ.get('PWD', 'NOT_SET')}")
+print(f"🔍 Current working directory = {os.getcwd()}")
+
 # Import z obsługą błędów
 try:
     from .config import settings
@@ -66,13 +83,13 @@ app.add_middleware(
 
 # Statyczne pliki
 try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 except RuntimeError:
     # Jeśli katalog static nie istnieje, pomiń montowanie
     pass
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="/app/templates")
 
 # Scheduler
 scheduler = TaskScheduler() if TaskScheduler else None
@@ -133,15 +150,33 @@ if router:
     app.include_router(router, prefix="/api/v1", tags=["api"])
 
 # --- Trend module (feature-flag) ---
-import os, logging
+print("🔍 DEBUG: Sprawdzam moduł trendów...")
+print(f"🔍 ENABLE_TREND value = '{os.environ.get('ENABLE_TREND','false')}'")
+print(f"🔍 ENABLE_TREND type = {type(os.environ.get('ENABLE_TREND','false'))}")
+print(f"🔍 ENABLE_TREND.lower() = '{os.environ.get('ENABLE_TREND','false').lower()}'")
+print(f"🔍 Comparison result = {os.environ.get('ENABLE_TREND','false').lower()=='true'}")
+
 if os.environ.get('ENABLE_TREND','false').lower()=='true':
-    from app.trend.routers.router import router as trend_router
-    app.include_router(trend_router)
+    print("🔍 DEBUG: ENABLE_TREND is true, loading trend module...")
     try:
-        from app.trend.core.scheduler_bind import register_trend_job
-        register_trend_job(scheduler, category='PODCAST')
+        from app.trend.routers.router import router as trend_router
+        print("🔍 DEBUG: Trend router imported successfully")
+        app.include_router(trend_router)
+        print("✅ Trend module loaded successfully")
+        try:
+            from app.trend.core.scheduler_bind import register_trend_job
+            register_trend_job(scheduler, category='PODCAST')
+            print("✅ Trend scheduler attached")
+        except Exception as e:
+            print(f"⚠️ Trend scheduler attach failed: {e}")
     except Exception as e:
-        logging.getLogger('trend').warning(f'trend scheduler attach failed: {e}')
+        print(f"❌ Trend module failed to load: {e}")
+        import traceback
+        traceback.print_exc()
+else:
+    print("ℹ️ Trend module disabled (ENABLE_TREND!=true)")
+
+
 
 
 @app.get("/", response_class=HTMLResponse)
