@@ -1,69 +1,76 @@
+<!-- HB_MARK restore top 15 -->
 <!doctype html>
 <html><head>
 <meta charset="utf-8" />
-<title>TOP {{ top_k }} – {{ category|capitalize }} ({{ date }})</title>
-<style>
-  body{font-family:"Inter","Helvetica Neue",Arial,sans-serif;background:#f6f7f9;margin:0;padding:24px;color:#222}
-  .container{max-width:1200px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.06);padding:24px}
-  h1{margin:0 0 8px;font-weight:700;letter-spacing:.2px}
-  .sub{color:#6c757d;margin:0 0 16px}
-  table{width:100%;border-collapse:separate;border-spacing:0 8px}
-  thead th{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:#6c757d;text-align:left;padding:10px 12px}
-  tbody tr{background:#fff;border-radius:10px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
-  tbody td{padding:12px}
-  tbody tr:hover{background:#f8fbff}
-  .idx{width:56px;color:#6c757d}
-  a{color:#0d6efd;text-decoration:none} a:hover{text-decoration:underline}
-  .bar{display:flex;align-items:center;gap:8px;min-width:160px}
-  .bar-rail{flex:1;height:10px;background:#e9ecef;border-radius:999px;overflow:hidden}
-  .bar-fill{height:100%;width:0}
-  .bar-fill[data-v]{width:attr(data-v %);}
-  .badge{font-size:12px;color:#0d6efd;background:#e7f0ff;border-radius:999px;padding:2px 8px;font-weight:600}
-</style>
+<title>TOP {{ leaderboard.top_k if leaderboard else 15 }} – {{ category|capitalize }} ({{ leaderboard.end_date if leaderboard else 'Brak danych' }})</title>
+<link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
 <div class="container">
-  <h1>TOP {{ top_k }} – {{ category|capitalize }}</h1>
-  <p class="sub">Okno: {{ days }} dni • Data końcowa: {{ date }}</p>
+  <h1>TOP {{ leaderboard.top_k if leaderboard else 15 }} – {{ category|capitalize }}</h1>
+  
+  {% if error %}
+    <div class="error">
+      <strong>Błąd:</strong> {{ error }}
+    </div>
+  {% endif %}
+  
+  {% if leaderboard %}
+    <p class="sub">Okno: {{ leaderboard.days }} dni • Data końcowa: {{ leaderboard.end_date }}</p>
 
-  <h2>Long-form</h2>
-  <table>
-    <thead><tr><th class="idx">#</th><th>Tytuł</th><th>Kanał</th><th>Potencjał (0–100)</th></tr></thead>
-    <tbody>
-    {% for rec in long_records %}
-      <tr>
-        <td class="idx">{{ loop.index }}</td>
-        <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
-        <td>{{ rec.channel }}</td>
-        <td>
-          <div class="bar" title="Rekord w oknie: {{ rec.best_views }} ({{ rec.best_date }})">
-            <div class="bar-rail"><div class="bar-fill" style="width: {{ rec.potential }}%; background:#0d6efd;"></div></div>
-            <span class="badge">{{ rec.potential }}%</span>
-          </div>
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <h2>Long-form</h2>
+    {% if leaderboard.longs %}
+      <table>
+        <thead><tr><th class="idx">#</th><th>Tytuł</th><th>Kanał</th><th>Potencjał (0–100)</th></tr></thead>
+        <tbody>
+        {% for rec in leaderboard.longs %}
+          <tr>
+            <td class="idx">{{ loop.index }}</td>
+            <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
+            <td>{{ rec.channel }}</td>
+            <td>
+              <div class="bar" title="Rekord w oknie: {{ rec.best_views }} ({{ rec.best_date }})">
+                <div class="bar-rail"><div class="bar-fill" style="width: {{ rec.potential }}%; background:#0d6efd;"></div></div>
+                <span class="badge">{{ rec.potential }}%</span>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="no-data">Brak danych dla long-form</p>
+    {% endif %}
 
-  <h2>Shorts</h2>
-  <table>
-    <thead><tr><th class="idx">#</th><th>Tytuł</th><th>Kanał</th><th>Potencjał (0–100)</th></tr></thead>
-    <tbody>
-    {% for rec in short_records %}
-      <tr>
-        <td class="idx">{{ loop.index }}</td>
-        <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
-        <td>{{ rec.channel }}</td>
-        <td>
-          <div class="bar" title="Rekord w oknie: {{ rec.best_views }} ({{ rec.best_date }})">
-            <div class="bar-rail"><div class="bar-fill" style="width: {{ rec.potential }}%; background:#0d6efd;"></div></div>
-            <span class="badge">{{ rec.potential }}%</span>
-          </div>
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <h2>Shorts</h2>
+    {% if leaderboard.shorts %}
+      <table>
+        <thead><tr><th class="idx">#</th><th>Tytuł</th><th>Kanał</th><th>Potencjał (0–100)</th></tr></thead>
+        <tbody>
+        {% for rec in leaderboard.shorts %}
+          <tr>
+            <td class="idx">{{ loop.index }}</td>
+            <td><a href="https://www.youtube.com/watch?v={{ rec.video_id }}" target="_blank">{{ rec.title }}</a></td>
+            <td>{{ rec.channel }}</td>
+            <td>
+              <div class="bar" title="Rekord w oknie: {{ rec.best_views }} ({{ rec.best_date }})">
+                <div class="bar-rail"><div class="bar-fill" style="width: {{ rec.potential }}%; background:#0d6efd;"></div></div>
+                <span class="badge">{{ rec.potential }}%</span>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="no-data">Brak danych dla shorts</p>
+    {% endif %}
+  {% else %}
+    <p class="no-data">Brak dostępnych danych rankingowych</p>
+  {% endif %}
+  
+  <div style="margin-top: 24px; text-align: center;">
+    <a href="/" style="color: #6c757d; text-decoration: none;">← Powrót do panelu głównego</a>
+  </div>
 </div>
 </body></html>
