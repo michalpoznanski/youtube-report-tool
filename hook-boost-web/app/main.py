@@ -7,6 +7,13 @@ import logging
 from pathlib import Path
 import os
 
+# DEBUG: Sprawdź zmienne środowiskowe
+print("🔍 DEBUG: Sprawdzam zmienne środowiskowe...")
+print(f"🔍 ENABLE_TREND = {os.environ.get('ENABLE_TREND', 'NOT_SET')}")
+print(f"🔍 PYTHONPATH = {os.environ.get('PYTHONPATH', 'NOT_SET')}")
+print(f"🔍 PWD = {os.environ.get('PWD', 'NOT_SET')}")
+print(f"🔍 Current working directory = {os.getcwd()}")
+
 # Import z obsługą błędów
 try:
     from .config import settings
@@ -133,10 +140,17 @@ if router:
     app.include_router(router, prefix="/api/v1", tags=["api"])
 
 # --- Trend module (feature-flag) ---
-import os, logging
+print("🔍 DEBUG: Sprawdzam moduł trendów...")
+print(f"🔍 ENABLE_TREND value = '{os.environ.get('ENABLE_TREND','false')}'")
+print(f"🔍 ENABLE_TREND type = {type(os.environ.get('ENABLE_TREND','false'))}")
+print(f"🔍 ENABLE_TREND.lower() = '{os.environ.get('ENABLE_TREND','false').lower()}'")
+print(f"🔍 Comparison result = {os.environ.get('ENABLE_TREND','false').lower()=='true'}")
+
 if os.environ.get('ENABLE_TREND','false').lower()=='true':
+    print("🔍 DEBUG: ENABLE_TREND is true, loading trend module...")
     try:
         from app.trend.routers.router import router as trend_router
+        print("🔍 DEBUG: Trend router imported successfully")
         app.include_router(trend_router)
         print("✅ Trend module loaded successfully")
         try:
@@ -147,6 +161,8 @@ if os.environ.get('ENABLE_TREND','false').lower()=='true':
             print(f"⚠️ Trend scheduler attach failed: {e}")
     except Exception as e:
         print(f"❌ Trend module failed to load: {e}")
+        import traceback
+        traceback.print_exc()
 else:
     print("ℹ️ Trend module disabled (ENABLE_TREND!=true)")
 
