@@ -1,3 +1,7 @@
+# 🚀 HOOK BOOST V2 - ULTRA LEAN DOCKERFILE
+# =======================================
+# Minimal Docker image for Railway deployment
+
 FROM python:3.11-slim
 
 # Ustaw zmienne środowiskowe
@@ -29,4 +33,4 @@ RUN chmod +x /app/start.sh
 EXPOSE 8000
 
 # Uruchom aplikację
-CMD ["python", "run.py"] 
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-8000}"] 

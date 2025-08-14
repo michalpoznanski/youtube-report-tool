@@ -1,0 +1,362 @@
+/* ===================================================================== */
+/* ZMIENNE GLOBALNE                                                      */
+/* ===================================================================== */
+:root {
+  /* Kolory - jaśniejsze, pastelowe odcienie granatu/mięty/fioletu */
+  --bg:           #0e254d;      /* tło ogólne */
+  --panel:        #1a3b71;      /* panele/sekcje - rozjaśnione */
+  --card:         #224a8d;      /* karty - rozjaśnione */
+  --muted:        #a5b7d4;      /* tekst pomocniczy */
+  --text:         #eff4ff;      /* tekst główny */
+  --primary:      #71d3e5;      /* miętowo-błękitny przycisk */
+  --primary-700:  #4fb3d4;
+  --accent:       #9ea7ff;      /* pastelowy fiolet */
+  --warn:         #fddfa3;
+  --danger:       #ff9898;
+  --border:       #2e58a5;      /* obramowania - rozjaśnione */
+  --success:      #7fe7b7;
+  --success-bg:   #164a32;
+  --info-bg:      #1e3a8a;
+  /* Radiusy */
+  --r-lg: 16px;
+  --r-md: 12px;
+  --r-sm: 10px;
+  /* Cienie */
+  --shadow-1: 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-2: 0 12px 36px rgba(0,0,0,0.35);
+  /* Spacing */
+  --sp-1: 8px;
+  --sp-2: 12px;
+  --sp-3: 16px;
+  --sp-4: 24px;
+  --sp-5: 32px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:           #f0f4f8;
+    --panel:        #ffffff;
+    --card:         #f8fafc;
+    --text:         #1e293b;
+    --muted:        #64748b;
+    --border:       #e2e8f0;
+    --primary:      #0d9488;
+    --primary-700:  #036d64;
+    --accent:       #8b5cf6;
+  }
+}
+
+/* ===================================================================== */
+/* RESET i PODSTAWOWY UKŁAD                                              */
+/* ===================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+}
+
+/* Container centralny */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--card);
+  padding: 30px;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+
+/* Logo */
+.logo {
+  max-height: 64px;
+  width: auto;
+  border-radius: 5px;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Responsywność dla logo */
+@media (max-width: 768px) {
+  .logo {
+    max-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    max-height: 40px;
+  }
+}
+
+/* Header */
+.header h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===================================================================== */
+/* KARTY i PANELE                                                        */
+/* ===================================================================== */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  box-shadow: var(--shadow-1);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  margin-bottom: var(--sp-3);
+}
+
+.card-header h2 {
+  margin: 0 0 var(--sp-1) 0;
+  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.card-header small {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ===================================================================== */
+/* PRZYCISKI                                                             */
+/* ===================================================================== */
+.btn {
+  display: inline-block;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: var(--r-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-1);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--bg);
+}
+
+.btn-primary:hover {
+  background: var(--primary-700);
+}
+
+.btn-secondary {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.btn-secondary:hover {
+  background: #8b9aff;
+}
+
+.btn-success {
+  background: var(--success);
+  color: var(--success-bg);
+}
+
+.btn-success:hover {
+  background: #6dd4a3;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #8b0000;
+}
+
+.btn-danger:hover {
+  background: #ff7a7a;
+}
+
+/* ===================================================================== */
+/* FORMULARZE                                                            */
+/* ===================================================================== */
+.form-group {
+  margin-bottom: var(--sp-3);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--sp-1);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.input {
+  width: 100%;
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 0.9rem;
+  background: var(--card);
+  color: var(--text);
+  transition: border-color 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(113, 211, 229, 0.1);
+}
+
+/* ===================================================================== */
+/* STATUS i KOMUNIKATY                                                   */
+/* ===================================================================== */
+.status {
+  padding: var(--sp-2);
+  border-radius: var(--r-sm);
+  margin-bottom: var(--sp-2);
+  border: 1px solid transparent;
+}
+
+.status.success {
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.status.error {
+  background: #8b0000;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ===================================================================== */
+/* LISTY i ELEMENTY                                                      */
+/* ===================================================================== */
+.channels-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  padding: var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+
+.channel-item {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel-item:last-child {
+  border-bottom: none;
+}
+
+.report-item {
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  margin-bottom: var(--sp-2);
+  border-radius: var(--r-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card);
+}
+
+/* ===================================================================== */
+/* KONTROLE SCHEDULERA                                                   */
+/* ===================================================================== */
+.scheduler-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+  background: var(--card);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+.status-dot {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.status-dot.active {
+  color: var(--success);
+}
+
+.status-dot.inactive {
+  color: var(--danger);
+}
+
+/* ===================================================================== */
+/* RESPONSYWNOŚĆ                                                         */
+/* ===================================================================== */
+@media (max-width: 768px) {
+  .container {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .card {
+    padding: var(--sp-3);
+  }
+  
+  .scheduler-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .btn {
+    width: 100%;
+    margin-bottom: var(--sp-1);
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+  
+  .container {
+    padding: 15px;
+    margin: 5px;
+  }
+  
+  .card {
+    padding: var(--sp-2);
+  }
+}

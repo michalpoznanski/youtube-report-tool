@@ -4,190 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hook Boost Web - YouTube Analytics</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .logo {
-            max-height: 64px;
-            width: auto;
-            border-radius: 5px;
-            display: block;
-            margin: 0 auto;
-        }
-        
-        /* Responsywność dla logo */
-        @media (max-width: 768px) {
-            .logo {
-                max-height: 48px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .logo {
-                max-height: 40px;
-            }
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .status {
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
-        .status.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .scheduler-controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background-color: #f5f5f5;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-        }
-        
-        .status-dot {
-            font-size: 16px;
-            line-height: 1;
-        }
-        
-        .status-dot.active {
-            color: #4caf50;
-        }
-        
-        .status-dot.inactive {
-            color: #f44336;
-        }
-        .channels-list {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .channel-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .channel-item:last-child {
-            border-bottom: none;
-        }
-        .reports-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .report-item {
-            padding: 10px;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
     <div class="container">
-        <h1>
-            <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
-        </h1>
+        <div class="header">
+            <h1>
+                <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
+            </h1>
+        </div>
         
         <!-- Moduł Trendów -->
-        <div class="section">
-            <h2>📈 Moduł Trendów</h2>
-            <p><a href="/trend/podcast" target="_blank">→ Trend: Podcast</a></p>
-            <p><a href="/trend/moto" target="_blank">→ Trend: Motoryzacja (wkrótce)</a></p>
-            <p><a href="/trend/polityka" target="_blank">→ Trend: Polityka (wkrótce)</a></p>
+        <div class="card">
+            <div class="card-header">
+                <h2>📈 Moduł Trendów</h2>
+                <small>Śledzenie przyrostów i rankingów.</small>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <a href="/trend/podcast/top?days=3&k=15" class="btn btn-secondary">Trend: Podcast (TOP 15 z 3 dni)</a>
+                <a href="/trend/podcast?mode=daily" class="btn btn-secondary">Trend: Podcast (Dzienny)</a>
+                <a href="/trend/moto/top?days=3&k=15" class="btn btn-secondary">Trend: Motoryzacja (TOP 15 z 3 dni)</a>
+                <a href="/trend/polityka/top?days=3&k=15" class="btn btn-secondary">Trend: Polityka (TOP 15 z 3 dni)</a>
+            </div>
         </div>
         
         <!-- Status Systemu -->
-        <div class="section">
-            <h2>📊 Status Systemu</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Status Systemu</h2>
+            </div>
             <div id="status"></div>
-            <button onclick="loadStatus()">Odśwież Status</button>
+            <button onclick="loadStatus()" class="btn btn-primary">Odśwież Status</button>
         </div>
         
         <!-- Dodawanie Kanału -->
-        <div class="section">
-            <h2>➕ Dodaj Kanał YouTube</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>➕ Dodaj Kanał YouTube</h2>
+                <small>Wprowadź adres kanału, aby dodać go do monitoringu.</small>
+            </div>
             <form id="addChannelForm">
                 <div class="form-group">
                     <label for="channelUrl">URL Kanału:</label>
-                    <input type="url" id="channelUrl" name="url" placeholder="https://www.youtube.com/@channel" required>
+                    <input type="url" id="channelUrl" name="url" class="input" placeholder="https://www.youtube.com/@channel" required>
                 </div>
                 <div class="form-group">
                     <label for="category">Kategoria:</label>
-                    <select id="category" name="category">
+                    <select id="category" name="category" class="input">
                         <option value="polityka">Polityka</option>
                         <option value="showbiz">Showbiz</option>
                         <option value="sport">Sport</option>
@@ -195,21 +58,23 @@
                         <option value="general">Ogólne</option>
                     </select>
                 </div>
-                <button type="submit">Dodaj Kanał</button>
+                <button type="submit" class="btn btn-primary">Dodaj Kanał</button>
             </form>
             <div id="addChannelResult"></div>
         </div>
         
         <!-- Zarządzanie Kategoriami -->
-        <div class="section">
-            <h2>📂 Zarządzanie Kategoriami</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📂 Zarządzanie Kategoriami</h2>
+            </div>
             <div style="display: flex; gap: 20px; align-items: flex-end;">
                 <!-- Dodaj kategorię -->
                 <div class="form-group" style="flex: 1;">
                     <label for="newCategory">Nowa kategoria:</label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="newCategory" placeholder="Nazwa kategorii" style="flex: 1;">
-                        <button onclick="addCategory()" style="padding: 10px 15px; font-size: 16px;">➕</button>
+                        <input type="text" id="newCategory" class="input" placeholder="Nazwa kategorii" style="flex: 1;">
+                        <button onclick="addCategory()" class="btn btn-primary">➕</button>
                     </div>
                 </div>
                 
@@ -217,10 +82,10 @@
                 <div class="form-group" style="flex: 1;">
                     <label for="removeCategory">Usuń kategorię:</label>
                     <div style="display: flex; gap: 10px;">
-                        <select id="removeCategory" style="flex: 1;">
+                        <select id="removeCategory" class="input" style="flex: 1;">
                             <option value="">Wybierz kategorię...</option>
                         </select>
-                        <button onclick="removeCategory()" style="padding: 10px 15px; font-size: 16px; background-color: #dc3545;">🗑️</button>
+                        <button onclick="removeCategory()" class="btn btn-danger">🗑️</button>
                     </div>
                 </div>
             </div>
@@ -228,19 +93,23 @@
         </div>
         
         <!-- Lista Kanałów -->
-        <div class="section">
-            <h2>📺 Kanały w Monitoringu</h2>
-            <button onclick="loadChannels()">Odśwież Listę</button>
+        <div class="card">
+            <div class="card-header">
+                <h2>📺 Kanały w Monitoringu</h2>
+            </div>
+            <button onclick="loadChannels()" class="btn btn-secondary">Odśwież Listę</button>
             <div id="channelsList" class="channels-list"></div>
         </div>
         
         <!-- Generowanie Raportów -->
-        <div class="section">
-            <h2>📈 Generowanie Raportów</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>📈 Generowanie Raportów</h2>
+            </div>
             <form id="generateReportForm">
                 <div class="form-group">
                     <label for="reportCategory">Kategoria (opcjonalnie):</label>
-                    <select id="reportCategory" name="category">
+                    <select id="reportCategory" name="category" class="input">
                         <option value="">Wszystkie kategorie</option>
                         <option value="polityka">Polityka</option>
                         <option value="showbiz">Showbiz</option>
@@ -249,32 +118,32 @@
                         <option value="general">Ogólne</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="daysBack">Liczba dni wstecz:</label>
-                    <input type="number" id="daysBack" name="days_back" value="3" min="1" max="30">
-                </div>
-                <button type="submit">Generuj Raport CSV</button>
+                <button type="submit" class="btn btn-primary">Generuj Raport</button>
             </form>
             <div id="generateReportResult"></div>
         </div>
         
         <!-- Lista Raportów -->
-        <div class="section">
-            <h2>📋 Dostępne Raporty</h2>
-            <button onclick="loadReports()">Odśwież Listę</button>
-            <div id="reportsList" class="reports-list"></div>
+        <div class="card">
+            <div class="card-header">
+                <h2>📋 Dostępne Raporty</h2>
+            </div>
+            <button onclick="loadReports()" class="btn btn-secondary">Odśwież Listę</button>
+            <div id="reportsList"></div>
         </div>
         
         <!-- Kontrola Schedulera -->
-        <div class="section">
-            <h2>⏰ Raport: ON/OFF</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>⚙️ Kontrola Schedulera</h2>
+            </div>
             <div class="scheduler-controls">
-                <button onclick="startScheduler()">Uruchom Scheduler</button>
-                <button onclick="stopScheduler()">Zatrzymaj Scheduler</button>
-                <div id="schedulerStatus" class="status-indicator">
-                    <span class="status-dot" id="statusDot">⚪</span>
-                    <span id="statusText">Sprawdzanie...</span>
+                <div class="status-indicator">
+                    <span class="status-dot" id="schedulerStatusDot">●</span>
+                    <span id="schedulerStatusText">Sprawdzanie...</span>
                 </div>
+                <button onclick="startScheduler()" class="btn btn-success">Uruchom</button>
+                <button onclick="stopScheduler()" class="btn btn-danger">Zatrzymaj</button>
             </div>
         </div>
     </div>
@@ -282,267 +151,56 @@
     <script>
         const API_BASE = '/api/v1';
         
-        // Load status on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadStatus();
-            loadChannels();
-            loadReports();
-            loadCategories();
-        });
-        
-        // Status functions
+        // Funkcje API
         async function loadStatus() {
             try {
                 const response = await fetch(`${API_BASE}/status`);
-                const status = await response.json();
+                const data = await response.json();
                 
-                document.getElementById('status').innerHTML = `
-                    <div class="status success">
-                        <strong>Status:</strong> ${status.scheduler_running ? '🟢 Uruchomiony' : '🔴 Zatrzymany'}<br>
-                        <strong>Kanały:</strong> ${status.channels_count}<br>
-                        <strong>Kategorie:</strong> ${status.categories.join(', ') || 'Brak'}<br>
-                        <strong>Quota:</strong> ${status.quota_usage.used}/${status.quota_usage.limit} (${status.quota_usage.percentage.toFixed(1)}%)<br>
-                        <strong>Następny raport:</strong> ${status.next_report ? new Date(status.next_report).toLocaleString() : 'Nie zaplanowano'}
-                    </div>
-                `;
+                let html = '';
+                if (data.scheduler_running) {
+                    html = '<div class="status success">Scheduler: Uruchomiony ✅</div>';
+                } else {
+                    html = '<div class="status error">Scheduler: Zatrzymany ❌</div>';
+                }
                 
-                // Aktualizuj status schedulera
-                updateSchedulerStatus(status.scheduler_running);
+                if (data.channels_count !== undefined) {
+                    html += `<div class="status success">Kanały w monitoringu: ${data.channels_count}</div>`;
+                }
+                
+                if (data.last_report_date) {
+                    html += `<div class="status success">Ostatni raport: ${data.last_report_date}</div>`;
+                }
+                
+                document.getElementById('status').innerHTML = html;
             } catch (error) {
                 document.getElementById('status').innerHTML = `
                     <div class="status error">Błąd podczas ładowania statusu: ${error.message}</div>
                 `;
-                updateSchedulerStatus(false);
             }
         }
         
-        function updateSchedulerStatus(isRunning) {
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-            
-            if (isRunning) {
-                statusDot.textContent = '🔵';
-                statusDot.className = 'status-dot active';
-                statusText.textContent = 'Raportowanie aktywne';
-            } else {
-                statusDot.textContent = '🔴';
-                statusDot.className = 'status-dot inactive';
-                statusText.textContent = 'Raportowanie wyłączone';
-            }
-        }
-        
-        // Category management functions
-        async function loadCategories() {
-            try {
-                const response = await fetch(`${API_BASE}/categories`);
-                const categories = await response.json();
-                
-                // Update category dropdowns
-                updateCategoryDropdowns(categories);
-                
-            } catch (error) {
-                console.error('Błąd podczas ładowania kategorii:', error);
-            }
-        }
-        
-        function updateCategoryDropdowns(categories) {
-            // Update add channel category dropdown
-            const categorySelect = document.getElementById('category');
-            const currentValue = categorySelect.value;
-            
-            categorySelect.innerHTML = '';
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.name;
-                option.textContent = `${cat.name} (${cat.channels_count})`;
-                categorySelect.appendChild(option);
-            });
-            
-            // Restore current value if it still exists
-            if (currentValue && categories.some(cat => cat.name === currentValue)) {
-                categorySelect.value = currentValue;
-            }
-            
-            // Update report category dropdown
-            const reportCategorySelect = document.getElementById('reportCategory');
-            const reportCurrentValue = reportCategorySelect.value;
-            
-            reportCategorySelect.innerHTML = '<option value="">Wszystkie kategorie</option>';
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.name;
-                option.textContent = `${cat.name} (${cat.channels_count})`;
-                reportCategorySelect.appendChild(option);
-            });
-            
-            if (reportCurrentValue && categories.some(cat => cat.name === reportCurrentValue)) {
-                reportCategorySelect.value = reportCurrentValue;
-            }
-            
-            // Update remove category dropdown
-            const removeCategorySelect = document.getElementById('removeCategory');
-            removeCategorySelect.innerHTML = '<option value="">Wybierz kategorię...</option>';
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.name;
-                option.textContent = `${cat.name} (${cat.channels_count} kanałów)`;
-                removeCategorySelect.appendChild(option);
-            });
-        }
-        
-        async function addCategory() {
-            const name = document.getElementById('newCategory').value.trim();
-            if (!name) {
-                document.getElementById('categoryResult').innerHTML = `
-                    <div class="status error">Podaj nazwę kategorii</div>
-                `;
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/categories`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({name: name})
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    document.getElementById('categoryResult').innerHTML = `
-                        <div class="status success">${result.message}</div>
-                    `;
-                    document.getElementById('newCategory').value = '';
-                    loadCategories();
-                    loadStatus();
-                } else {
-                    const error = await response.json();
-                    document.getElementById('categoryResult').innerHTML = `
-                        <div class="status error">Błąd: ${error.detail}</div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('categoryResult').innerHTML = `
-                    <div class="status error">Błąd: ${error.message}</div>
-                `;
-            }
-        }
-        
-        async function removeCategory() {
-            const categoryName = document.getElementById('removeCategory').value;
-            if (!categoryName) {
-                document.getElementById('categoryResult').innerHTML = `
-                    <div class="status error">Wybierz kategorię do usunięcia</div>
-                `;
-                return;
-            }
-            
-            // Get category info to check if it has channels
-            try {
-                const categoriesResponse = await fetch(`${API_BASE}/categories`);
-                const categories = await categoriesResponse.json();
-                const category = categories.find(cat => cat.name === categoryName);
-                
-                if (category && category.channels_count > 0) {
-                    const confirmMessage = `Kategoria "${categoryName}" zawiera ${category.channels_count} kanałów. Czy na pewno chcesz usunąć kategorię wraz ze wszystkimi kanałami?`;
-                    if (!confirm(confirmMessage)) {
-                        return;
-                    }
-                }
-                
-                const response = await fetch(`${API_BASE}/categories/${encodeURIComponent(categoryName)}?force=true`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    document.getElementById('categoryResult').innerHTML = `
-                        <div class="status success">${result.message}</div>
-                    `;
-                    document.getElementById('removeCategory').value = '';
-                    loadCategories();
-                    loadChannels();
-                    loadStatus();
-                } else {
-                    const error = await response.json();
-                    document.getElementById('categoryResult').innerHTML = `
-                        <div class="status error">Błąd: ${error.detail}</div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('categoryResult').innerHTML = `
-                    <div class="status error">Błąd: ${error.message}</div>
-                `;
-            }
-        }
-        
-        // Channel functions
-        document.getElementById('addChannelForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const data = {
-                url: formData.get('url'),
-                category: formData.get('category')
-            };
-            
-            try {
-                const response = await fetch(`${API_BASE}/channels`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    document.getElementById('addChannelResult').innerHTML = `
-                        <div class="status success">Kanał "${result.title}" został dodany do kategorii ${result.category}</div>
-                    `;
-                    // Wyczyść pole URL po sukcesie
-                    document.getElementById('channelUrl').value = '';
-                    loadChannels();
-                    loadStatus();
-                } else {
-                    const error = await response.json();
-                    document.getElementById('addChannelResult').innerHTML = `
-                        <div class="status error">Błąd: ${error.detail}</div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('addChannelResult').innerHTML = `
-                    <div class="status error">Błąd: ${error.message}</div>
-                `;
-            }
-        });
-        
+        // Funkcje kanałów
         async function loadChannels() {
             try {
                 const response = await fetch(`${API_BASE}/channels`);
                 const channels = await response.json();
                 
                 let html = '';
-                for (const [category, categoryChannels] of Object.entries(channels)) {
-                    if (categoryChannels.length > 0) {
-                        html += `<h3>${category}</h3>`;
-                        for (const channel of categoryChannels) {
-                            html += `
-                                <div class="channel-item">
-                                    <div>
-                                        <strong>${channel.title}</strong><br>
-                                        <small>${channel.subscriber_count} subskrybentów • ${channel.video_count} filmów</small>
-                                    </div>
-                                    <button onclick="removeChannel('${channel.id}', '${category}')">Usuń</button>
-                                </div>
-                            `;
-                        }
-                    }
-                }
-                
-                if (!html) {
+                if (channels.length === 0) {
                     html = '<p>Brak kanałów w monitoringu</p>';
+                } else {
+                    channels.forEach(channel => {
+                        html += `
+                            <div class="channel-item">
+                                <div>
+                                    <strong>${channel.name}</strong><br>
+                                    <small>${channel.url} • Kategoria: ${channel.category}</small>
+                                </div>
+                                <button onclick="removeChannel('${channel.id}')" class="btn btn-danger">Usuń</button>
+                            </div>
+                        `;
+                    });
                 }
                 
                 document.getElementById('channelsList').innerHTML = html;
@@ -553,34 +211,82 @@
             }
         }
         
-        async function removeChannel(channelId, category) {
-            if (confirm('Czy na pewno chcesz usunąć ten kanał?')) {
-                try {
-                    const response = await fetch(`${API_BASE}/channels/${channelId}?category=${category}`, {
-                        method: 'DELETE'
-                    });
-                    
-                    if (response.ok) {
-                        loadChannels();
-                        loadStatus();
-                    } else {
-                        alert('Błąd podczas usuwania kanału');
-                    }
-                } catch (error) {
-                    alert(`Błąd: ${error.message}`);
+        async function removeChannel(channelId) {
+            try {
+                const response = await fetch(`${API_BASE}/channels/${channelId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadChannels();
+                    loadStatus();
+                } else {
+                    alert('Błąd podczas usuwania kanału');
                 }
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
             }
         }
         
-        // Report functions
-        document.getElementById('generateReportForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Funkcje kategorii
+        async function addCategory() {
+            const categoryName = document.getElementById('newCategory').value.trim();
+            if (!categoryName) {
+                alert('Wprowadź nazwę kategorii');
+                return;
+            }
             
-            const formData = new FormData(e.target);
-            const data = {
-                category: formData.get('category') || null,
-                days_back: parseInt(formData.get('days_back'))
-            };
+            try {
+                const response = await fetch(`${API_BASE}/categories`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: categoryName })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('newCategory').value = '';
+                    loadStatus();
+                    alert('Kategoria dodana pomyślnie!');
+                } else {
+                    alert('Błąd podczas dodawania kategorii');
+                }
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        }
+        
+        async function removeCategory() {
+            const categoryName = document.getElementById('removeCategory').value;
+            if (!categoryName) {
+                alert('Wybierz kategorię do usunięcia');
+                return;
+            }
+            
+            if (!confirm(`Czy na pewno chcesz usunąć kategorię "${categoryName}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/categories/${categoryName}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadStatus();
+                    alert('Kategoria usunięta pomyślnie!');
+                } else {
+                    alert('Błąd podczas usuwania kategorii');
+                }
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+            }
+        
+        // Funkcje raportów
+        async function generateReport() {
+            const category = document.getElementById('reportCategory').value;
             
             try {
                 const response = await fetch(`${API_BASE}/reports/generate`, {
@@ -588,28 +294,19 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ category: category || null })
                 });
                 
                 if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `report_${new Date().toISOString().split('T')[0]}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    
                     document.getElementById('generateReportResult').innerHTML = `
-                        <div class="status success">Raport został wygenerowany i pobrany</div>
+                        <div class="status success">Raport generowany pomyślnie!</div>
                     `;
-                    loadReports();
+                    setTimeout(() => {
+                        document.getElementById('generateReportResult').innerHTML = '';
+                    }, 3000);
                 } else {
-                    const error = await response.json();
                     document.getElementById('generateReportResult').innerHTML = `
-                        <div class="status error">Błąd: ${error.detail}</div>
+                        <div class="status error">Błąd podczas generowania raportu</div>
                     `;
                 }
             } catch (error) {
@@ -617,27 +314,30 @@
                     <div class="status error">Błąd: ${error.message}</div>
                 `;
             }
-        });
+        }
         
         async function loadReports() {
             try {
-                const response = await fetch(`${API_BASE}/reports/list`);
-                const data = await response.json();
+                const response = await fetch(`${API_BASE}/reports`);
+                const reports = await response.json();
                 
                 let html = '';
-                for (const report of data.reports) {
-                    const date = new Date(report.created * 1000).toLocaleString();
-                    const size = (report.size / 1024).toFixed(1);
-                    
-                    html += `
-                        <div class="report-item">
-                            <div>
-                                <strong>${report.filename}</strong><br>
-                                <small>Utworzony: ${date} • Rozmiar: ${size} KB</small>
+                if (reports.length === 0) {
+                    html = '<p>Brak dostępnych raportów</p>';
+                } else {
+                    reports.forEach(report => {
+                        const date = new Date(report.created_at).toLocaleString('pl-PL');
+                        const size = (report.size / 1024).toFixed(1);
+                        html += `
+                            <div class="report-item">
+                                <div>
+                                    <strong>${report.filename}</strong><br>
+                                    <small>Utworzony: ${date} • Rozmiar: ${size} KB</small>
+                                </div>
+                                <button onclick="downloadReport('${report.filename}')" class="btn btn-secondary">Pobierz</button>
                             </div>
-                            <button onclick="downloadReport('${report.filename}')">Pobierz</button>
-                        </div>
-                    `;
+                        `;
+                    });
                 }
                 
                 if (!html) {
@@ -707,6 +407,71 @@
                 }
             } catch (error) {
                 alert(`Błąd: ${error.message}`);
+            }
+        }
+        
+        // Inicjalizacja
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatus();
+            loadChannels();
+            loadReports();
+            
+            // Form handlers
+            document.getElementById('addChannelForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                
+                try {
+                    const response = await fetch(`${API_BASE}/channels`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: formData.get('url'),
+                            category: formData.get('category')
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        this.reset();
+                        document.getElementById('addChannelResult').innerHTML = `
+                            <div class="status success">Kanał dodany pomyślnie!</div>
+                        `;
+                        setTimeout(() => {
+                            document.getElementById('addChannelResult').innerHTML = '';
+                        }, 3000);
+                        loadChannels();
+                        loadStatus();
+                    } else {
+                        const error = await response.json();
+                        document.getElementById('addChannelResult').innerHTML = `
+                            <div class="status error">Błąd: ${error.detail || 'Nieznany błąd'}</div>
+                        `;
+                    }
+                } catch (error) {
+                    document.getElementById('addChannelResult').innerHTML = `
+                        <div class="status error">Błąd: ${error.message}</div>
+                    `;
+                }
+            });
+            
+            document.getElementById('generateReportForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                generateReport();
+            });
+        });
+        
+        function updateSchedulerStatus(running) {
+            const dot = document.getElementById('schedulerStatusDot');
+            const text = document.getElementById('schedulerStatusText');
+            
+            if (running) {
+                dot.className = 'status-dot active';
+                text.textContent = 'Uruchomiony';
+            } else {
+                dot.className = 'status-dot inactive';
+                text.textContent = 'Zatrzymany';
             }
         }
     </script>
