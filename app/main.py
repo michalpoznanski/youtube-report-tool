@@ -24,6 +24,17 @@ print(f"🔍 PYTHONPATH = {os.environ.get('PYTHONPATH', 'NOT_SET')}")
 print(f"🔍 PWD = {os.environ.get('PWD', 'NOT_SET')}")
 print(f"🔍 Current working directory = {os.getcwd()}")
 
+# Log startowy z branch, SHA i konfiguracją
+try:
+    import subprocess
+    git_branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], text=True).strip()
+    git_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()[:8]
+    print(f"🚀 STARTUP: Branch={git_branch}, SHA={git_sha}, ENABLE_TREND={os.environ.get('ENABLE_TREND', 'NOT_SET')}")
+except Exception as e:
+    print(f"⚠️ Nie można pobrać informacji Git: {e}")
+    git_branch = "unknown"
+    git_sha = "unknown"
+
 # Import z obsługą błędów
 try:
     from .config import settings
@@ -209,6 +220,11 @@ async def health_check():
     return {
         "status": "healthy",
         "version": "1.0.0",
+        "branch": git_branch,
+        "sha": git_sha,
+        "enable_trend": os.environ.get("ENABLE_TREND", "NOT_SET"),
+        "templates_dir": tpl_root,
+        "static_dir": static_root,
         "scheduler_running": scheduler.scheduler.running if scheduler else False
     }
 
