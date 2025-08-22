@@ -2,6 +2,8 @@
 # =======================================
 # Minimal Docker image for Railway deployment
 
+# Cache buster 1
+
 FROM python:3.11-slim
 
 # Ustaw zmienne środowiskowe
