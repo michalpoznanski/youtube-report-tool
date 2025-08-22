@@ -1,3 +1,5 @@
+print("!!!!!!!!!! URUCHAMIAM NAJNOWSZĄ WERSJĘ app/main.py z 22 SIERPNIA !!!!!!!!!!")
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
