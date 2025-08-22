@@ -8,4 +8,5 @@ pandas
 discord.py
 openai
 google-auth-httplib2
-google-auth-oauthlib 
+google-auth-oauthlib
+requests==2.31.0 
