@@ -21,9 +21,9 @@ async def get_category_trends(request: Request, category_name: str):
         
         log.info(f"Pobrano {len(videos)} wideo dla kategorii {category_name}")
         
-        # Renderuj szablon dashboard.html z nowymi danymi
+        # Renderuj szablon category_dashboard.html z nowymi danymi
         return templates.TemplateResponse(
-            "trend/podcast/dashboard.html",  # Na razie używamy istniejącego szablonu
+            "trend/category_dashboard.html",  # Zaktualizowany szablon
             {
                 "request": request, 
                 "category_name": category_name, 
@@ -36,7 +36,7 @@ async def get_category_trends(request: Request, category_name: str):
         
         # W przypadku błędu zwróć szablon z pustymi danymi
         return templates.TemplateResponse(
-            "trend/podcast/dashboard.html",
+            "trend/category_dashboard.html",
             {
                 "request": request, 
                 "category_name": category_name, 
