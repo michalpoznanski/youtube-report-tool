@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  hook-boost:
+    build: 
+      context: ./HOOK_BOOST_3.0
+      dockerfile: Dockerfile
+    container_name: hook-boost-bot
+    restart: unless-stopped
+    
+    # 🛡️ BEZPIECZEŃSTWO: Zmienne środowiskowe z pliku .env
+    env_file:
+      - .env
+    
+    # 🛡️ ALTERNATYWNIE: Użyj Docker secrets (zalecane dla produkcji)
+    # secrets:
+    #   discord_token
+    #   - youtube_api_key
+    #   - github_token
+    
+    # Wolumeny dla danych
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    
+    # 🛡️ BEZPIECZEŃSTWO: Ograniczenia zasobów
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    
+    # 🔒 Bezpieczeństwo sieci - tylko localhost
+    networks:
+      - hook-boost-net
+
+# 🛡️ DOCKER SECRETS (dla produkcji)
+# secrets:
+#   discord_token:
+#     external: true
+#   youtube_api_key:
+#     external: true
+#   github_token:
+#     external: true
+
+# Sieć izolowana
+networks:
+  hook-boost-net:
+    driver: bridge
+    internal: false  # Ustaw na true dla pełnej izolacji
+
+# Wolumeny trwałe
+volumes:
+  bot_data:
+    driver: local 

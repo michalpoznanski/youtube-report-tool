@@ -1,6 +1,5 @@
 import os, re, pandas as pd
 
-
 def reports_dir():
     rd = os.environ.get("REPORTS_DIR")
     if rd: return rd
@@ -22,5 +21,3 @@ def load_latest(category: str):
     # raport_date z nazwy pliku
     report_date = os.path.basename(p).split("_")[-1].replace(".csv","")
     return df, report_date
-
-

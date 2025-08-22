@@ -1,4 +1,28 @@
-# Python
+# ===== BEZPIECZEŃSTWO - DANE WRAŻLIWE =====
+# UWAGA: NIGDY nie commituj tych plików!
+
+# Tokeny i klucze API
+.env
+.env.*
+**/secrets.json
+**/service_account.json
+**/TOKENY_I_KLUCZE.txt
+**/token*.txt
+**/key*.txt
+**/*token*
+**/*secret*
+**/*credentials*
+
+# Zmienne środowiskowe i konfiguracja
+env_setup.sh
+start_bot.sh
+config/secrets*.json
+
+# Backup z tokenami (KRYTYCZNE!)
+backup/*/TOKENY_I_KLUCZE.txt
+BACKUP*/TOKENY_I_KLUCZE.txt
+
+# ===== PYTHON =====
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,21 +45,26 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
+# ===== ŚRODOWISKA WIRTUALNE =====
+.venv/
+.venv-*/
 venv/
 env/
 ENV/
-.venv/
-.env
+env.bak/
+venv.bak/
 
-# IDE
+# ===== IDE I EDYTORY =====
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.spyderproject
+.spyproject
+.ropeproject
 
-# OS
+# ===== SYSTEM OPERACYJNY =====
 .DS_Store
 .DS_Store?
 ._*
@@ -44,26 +73,32 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
-# Logs
-logs/
+# ===== LOGI I DANE =====
 *.log
+logs/
+data/raw_data/
+data/quota_usage.json
+last_report.json
+bot_memory.json
+name_candidates.json
 
-# Data
-data/
-reports/
-backups/
+# ===== TYMCZASOWE PLIKI =====
+*.tmp
+*.temp
+*.bak
+*.backup
 
-# Environment variables
-.env
-.env.local
-.env.production
+# ===== JUPYTER NOTEBOOKS =====
+.ipynb_checkpoints
 
-# Coverage
-.coverage
-htmlcov/
+# ===== DOCKER =====
+.dockerignore
 
-# pytest
-.pytest_cache/
+# ===== GIT =====
+*.orig
+*.rej
 
-# Railway
-.railway/ 
+# ===== DEPLOYMENT =====
+.railway/
+.render/
+.heroku/ 

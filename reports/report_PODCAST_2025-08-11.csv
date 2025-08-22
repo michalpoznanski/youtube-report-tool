@@ -1,0 +1,7 @@
+video_id,title,channel,views_today,duration_seconds,is_short
+dQw4w9WgXcQ,Test Podcast 1,Test Channel 1,20000,3600,False
+dQw4w9WgXcQ,Test Podcast 2,Test Channel 2,16000,1800,False
+dQw4w9WgXcQ,Test Podcast 3,Test Channel 3,12000,2700,False
+dQw4w9WgXcQ,Test Short 1,Test Channel 4,35000,120,True
+dQw4w9WgXcQ,Test Short 2,Test Channel 5,25000,90,True
+dQw4w9WgXcQ,Test Short 3,Test Channel 6,21000,150,True

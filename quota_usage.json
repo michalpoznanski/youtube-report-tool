@@ -1,0 +1,205 @@
+{
+  "daily_usage": {
+    "2025-07-24": 1102.5,
+    "2025-07-26": 1600
+  },
+  "operations": [
+    {
+      "timestamp": "2025-07-24T12:17:32.160050",
+      "operation_type": "collect_data",
+      "params": {
+        "num_channels": 24,
+        "days": 7
+      },
+      "estimated_cost": 468.0,
+      "actual_cost": 468.0,
+      "success": true,
+      "daily_total": 468.0
+    },
+    {
+      "timestamp": "2025-07-24T13:28:57.167682",
+      "operation_type": "collect_data",
+      "params": {
+        "num_channels": 25,
+        "days": 7
+      },
+      "estimated_cost": 487.5,
+      "actual_cost": 487.5,
+      "success": false,
+      "daily_total": 955.5
+    },
+    {
+      "timestamp": "2025-07-24T14:14:30.805895",
+      "operation_type": "analyze_showbiz",
+      "params": {
+        "num_channels": 21,
+        "days": 3
+      },
+      "estimated_cost": 73.5,
+      "actual_cost": 73.5,
+      "success": false,
+      "daily_total": 1029.0
+    },
+    {
+      "timestamp": "2025-07-24T14:25:58.393265",
+      "operation_type": "analyze_showbiz",
+      "params": {
+        "num_channels": 21,
+        "days": 3
+      },
+      "estimated_cost": 73.5,
+      "actual_cost": 73.5,
+      "success": true,
+      "daily_total": 1102.5
+    },
+    {
+      "timestamp": "2025-07-26T10:50:38.767387",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 100
+    },
+    {
+      "timestamp": "2025-07-26T10:52:02.529875",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 200
+    },
+    {
+      "timestamp": "2025-07-26T10:53:32.271618",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 300
+    },
+    {
+      "timestamp": "2025-07-26T10:57:05.186343",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 400
+    },
+    {
+      "timestamp": "2025-07-26T11:02:33.970687",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 500
+    },
+    {
+      "timestamp": "2025-07-26T11:07:55.073078",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 600
+    },
+    {
+      "timestamp": "2025-07-26T11:27:23.637600",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 700
+    },
+    {
+      "timestamp": "2025-07-26T11:28:08.596373",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 800
+    },
+    {
+      "timestamp": "2025-07-26T12:20:59.955052",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 900
+    },
+    {
+      "timestamp": "2025-07-26T12:24:36.949120",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 1000
+    },
+    {
+      "timestamp": "2025-07-26T12:26:00.329323",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 1100
+    },
+    {
+      "timestamp": "2025-07-26T12:49:35.119138",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 1200
+    },
+    {
+      "timestamp": "2025-07-26T12:55:23.166285",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 1300
+    },
+    {
+      "timestamp": "2025-07-26T12:55:38.672861",
+      "operation_type": "quota_check",
+      "params": {
+        "command": "!paliwo",
+        "user": "mpoznanski",
+        "channel": "showbiz"
+      },
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 1400
+    },
+    {
+      "timestamp": "2025-07-26T12:55:39.106463",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 1500
+    },
+    {
+      "timestamp": "2025-07-26T13:32:59.242110",
+      "operation_type": "quota_check",
+      "params": {},
+      "estimated_cost": 10,
+      "actual_cost": 100,
+      "success": true,
+      "daily_total": 1600
+    }
+  ],
+  "last_reset": "2025-07-26T00:09:31.578167"
+}

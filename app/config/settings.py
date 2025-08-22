@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     
+    # Feature flags
+    enable_trend: bool = False
+    
     # Scheduler
     scheduler_hour: int = 23
     scheduler_minute: int = 0
@@ -32,9 +35,6 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     log_file: str = "logs/app.log"
-    
-    # Trend Module
-    enable_trend: bool = False
     
     class Config:
         env_file = ".env"

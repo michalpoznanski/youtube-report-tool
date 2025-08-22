@@ -1,0 +1,25 @@
+# YouTube Data API v3
+YOUTUBE_API_KEY=your_youtube_api_key_here
+
+# FastAPI Settings
+SECRET_KEY=your_secret_key_here_change_this_in_production
+DEBUG=True
+HOST=0.0.0.0
+PORT=8000
+
+# Scheduler Settings
+SCHEDULER_HOUR=23
+SCHEDULER_MINUTE=0
+DAYS_BACK=3
+
+# Storage Settings
+DATA_DIR=data
+REPORTS_DIR=reports
+BACKUP_DIR=backups
+
+# CORS Settings
+ALLOWED_ORIGINS=["http://localhost:3000", "http://localhost:8000"]
+
+# Logging
+LOG_LEVEL=INFO
+LOG_FILE=logs/app.log 

@@ -1,0 +1,21 @@
+{
+  "min_podcast_duration": 1800,
+  "guest_name_patterns": [
+    "gość:",
+    "gość -",
+    "gość:",
+    "z",
+    "z udziałem",
+    "rozmowa z",
+    "wywiad z",
+    "spotkanie z"
+  ],
+  "popularity_weights": {
+    "views": 1.0,
+    "likes": 2.0,
+    "comments": 3.0,
+    "shares": 5.0
+  },
+  "analysis_period_days": 7,
+  "output_directory": "reports"
+}

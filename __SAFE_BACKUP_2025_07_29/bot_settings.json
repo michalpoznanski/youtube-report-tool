@@ -1,0 +1,49 @@
+{
+  "bot_info": {
+    "name": "YouTube Analytics Bot V2",
+    "version": "2.0.0",
+    "created": "2025-07-26",
+    "description": "Nowy bot z modularną architekturą"
+  },
+  
+  "features": {
+    "commands": [
+      "!sledz - Dodawanie kanałów do pokojów",
+      "!raport - Zbieranie danych z YouTube", 
+      "!name - Analiza nazwisk",
+      "!paliwo - Status quota API"
+    ],
+    
+    "modules": [
+      "sledz_system.py - Zarządzanie kanałami",
+      "raport_system.py - Zbieranie danych",
+      "name_system.py - Analiza treści",
+      "quota_manager.py - Zarządzanie quota"
+    ]
+  },
+  
+  "data_structure": {
+    "channels": "config/channels_migrated.json",
+    "quota_usage": "quota_usage.json",
+    "reports": "reports/",
+    "backups": "backup/"
+  },
+  
+  "api_limits": {
+    "youtube_quota_daily": 10000,
+    "max_channels_per_room": 100,
+    "max_videos_per_channel": 50,
+    "safe_quota_threshold": 1000
+  },
+  
+  "room_philosophy": {
+    "description": "Każdy pokój Discord ma swoje niezależne kanały",
+    "examples": {
+      "polityka": "Kanały polityczne",
+      "showbiz": "Kanały rozrywkowe", 
+      "motoryzacja": "Kanały motoryzacyjne",
+      "podcast": "Kanały podcastowe"
+    },
+    "cross_room": "Kanały mogą być w wielu pokojach jednocześnie"
+  }
+} 

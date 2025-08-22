@@ -1,0 +1,21 @@
+{
+  "module_state": {
+    "last_analysis": null,
+    "total_analyses_performed": 0,
+    "last_report_generated": null,
+    "module_version": "1.0.0"
+  },
+  "daily_results": {},
+  "guest_statistics": {
+    "total_guests_detected": 0,
+    "unique_guests": 0,
+    "most_popular_guests": [],
+    "trending_guests": []
+  },
+  "analysis_history": [],
+  "performance_metrics": {
+    "average_analysis_time": 0.0,
+    "total_reports_processed": 0,
+    "last_performance_check": null
+  }
+} 
