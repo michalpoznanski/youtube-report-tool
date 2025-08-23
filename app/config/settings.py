@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     enable_trend: bool = False
     
     # Scheduler
-    scheduler_hour: int = 23
+    scheduler_hour: int = 1
     scheduler_minute: int = 0
     days_back: int = 3
     
