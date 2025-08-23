@@ -537,7 +537,7 @@
                 
                 let html = '';
                 for (const report of data.reports) {
-                    const date = new Date(report.created * 1000).toLocaleString();
+                    const date = new Date(report.created_date).toLocaleString('pl-PL');
                     const size = (report.size / 1024).toFixed(1);
                     
                     html += `
