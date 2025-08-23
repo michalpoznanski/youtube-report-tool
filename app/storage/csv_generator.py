@@ -31,7 +31,7 @@ class CSVGenerator:
             'Has_Captions',
             'Licensed_Content',
             'Topic_Categories',
-            'Names_Extracted',
+            # 'Names_Extracted',  # Usunięte - niepotrzebne
             'Video_ID',
             'Duration',
             'Thumbnail_URL'
@@ -43,10 +43,10 @@ class CSVGenerator:
             # Przygotuj dane
             rows = []
             for video in videos_data:
-                # Wyciągnij nazwiska
-                from ..analysis import NameExtractor
-                extractor = NameExtractor()
-                names = extractor.extract_from_video_data(video)
+                # Wyciągnij nazwiska - WYŁĄCZONE
+                # from ..analysis import NameExtractor
+                # extractor = NameExtractor()
+                # names = extractor.extract_from_video_data(video)
                 
                 # Określ typ filmu (shorts vs long)
                 video_type = self._determine_video_type(video.get('duration', ''), video.get('id', ''), video.get('url', ''))
@@ -78,7 +78,7 @@ class CSVGenerator:
                     'Has_Captions': video.get('caption', ''),
                     'Licensed_Content': video.get('licensed_content', False),
                     'Topic_Categories': video.get('category_id', ''),
-                    'Names_Extracted': ', '.join(names),
+                    # 'Names_Extracted': ', '.join(names),  # Usunięte
                     'Video_ID': video.get('id', ''),
                     'Duration': video.get('duration', ''),
                     'Thumbnail_URL': video.get('thumbnail', '')
