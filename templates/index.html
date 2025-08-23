@@ -26,14 +26,7 @@
             </ul>
         </div>
         
-        <!-- Status Systemu -->
-        <div class="card">
-            <div class="card-header">
-                <h2>📊 Status Systemu</h2>
-            </div>
-            <div id="status"></div>
-            <button onclick="loadStatus()" class="btn btn-primary">Odśwież Status</button>
-        </div>
+
         
         <!-- Dodawanie Kanału -->
         <div class="card">
@@ -149,34 +142,7 @@
     <script>
         const API_BASE = '/api/v1';
         
-        // Funkcje API
-        async function loadStatus() {
-            try {
-                const response = await fetch(`${API_BASE}/status`);
-                const data = await response.json();
-                
-                let html = '';
-                if (data.scheduler_running) {
-                    html = '<div class="status success">Scheduler: Uruchomiony ✅</div>';
-                } else {
-                    html = '<div class="status error">Scheduler: Zatrzymany ❌</div>';
-                }
-                
-                if (data.channels_count !== undefined) {
-                    html += `<div class="status success">Kanały w monitoringu: ${data.channels_count}</div>`;
-                }
-                
-                if (data.last_report_date) {
-                    html += `<div class="status success">Ostatni raport: ${data.last_report_date}</div>`;
-                }
-                
-                document.getElementById('status').innerHTML = html;
-            } catch (error) {
-                document.getElementById('status').innerHTML = `
-                    <div class="status error">Błąd podczas ładowania statusu: ${error.message}</div>
-                `;
-            }
-        }
+
         
         // Funkcje kanałów
         async function loadChannels() {
@@ -217,7 +183,6 @@
                 
                 if (response.ok) {
                     loadChannels();
-                    loadStatus();
                 } else {
                     alert('Błąd podczas usuwania kanału');
                 }
@@ -245,7 +210,6 @@
                 
                 if (response.ok) {
                     document.getElementById('newCategory').value = '';
-                    loadStatus();
                     alert('Kategoria dodana pomyślnie!');
                 } else {
                     alert('Błąd podczas dodawania kategorii');
@@ -272,7 +236,6 @@
                 });
                 
                 if (response.ok) {
-                    loadStatus();
                     alert('Kategoria usunięta pomyślnie!');
                 } else {
                     alert('Błąd podczas usuwania kategorii');
@@ -381,7 +344,6 @@
                 if (response.ok) {
                     // Aktualizuj status bez alertu
                     updateSchedulerStatus(true);
-                    loadStatus();
                 } else {
                     alert('Błąd podczas uruchamiania schedulera');
                 }
@@ -399,7 +361,6 @@
                 if (response.ok) {
                     // Aktualizuj status bez alertu
                     updateSchedulerStatus(false);
-                    loadStatus();
                 } else {
                     alert('Błąd podczas zatrzymywania schedulera');
                 }
@@ -410,7 +371,6 @@
         
         // Inicjalizacja
         document.addEventListener('DOMContentLoaded', function() {
-            loadStatus();
             loadChannels();
             loadReports();
             
@@ -440,7 +400,6 @@
                             document.getElementById('addChannelResult').innerHTML = '';
                         }, 3000);
                         loadChannels();
-                        loadStatus();
                     } else {
                         const error = await response.json();
                         document.getElementById('addChannelResult').innerHTML = `
