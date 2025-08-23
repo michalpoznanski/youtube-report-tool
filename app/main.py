@@ -7,6 +7,8 @@ import logging
 from pathlib import Path
 import os
 
+print("🚀🚀🚀 URUCHAMIAM NAJNOWSZĄ WERSJĘ Z 23 SIERPNIA - NOWY INTERFEJS! 🚀🚀🚀")
+
 # Załaduj zmienne środowiskowe z .env
 try:
     from dotenv import load_dotenv
