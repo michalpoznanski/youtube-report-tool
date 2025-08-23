@@ -83,7 +83,7 @@ class CSVProcessor:
                 return None
             
             # Sprawdź wymagane kolumny
-            required_columns = ['video_id', 'title', 'views_today', 'duration_seconds']
+            required_columns = ['Video_ID', 'Title', 'View_Count', 'Duration']
             missing_columns = [col for col in required_columns if col not in df.columns]
             
             if missing_columns:
@@ -124,9 +124,9 @@ class CSVProcessor:
             # Skopiuj dzisiejsze dane
             result_df = today_df.copy()
             
-            # Dodaj kolumnę video_type na podstawie duration_seconds
-            result_df['video_type'] = result_df['duration_seconds'].apply(
-                lambda x: "Shorts" if pd.notna(x) and float(x) <= 60 else "Longform"
+            # Dodaj kolumnę video_type na podstawie Duration
+            result_df['video_type'] = result_df['Duration'].apply(
+                lambda x: "Shorts" if pd.notna(x) and str(x).startswith('PT') and 'S' in str(x) and int(str(x).split('S')[0].split('T')[-1]) <= 60 else "Longform"
             )
             
             # Inicjalizuj kolumnę delta
@@ -135,37 +135,44 @@ class CSVProcessor:
             # Jeśli mamy wczorajsze dane, oblicz przyrosty
             if yesterday_df is not None and not yesterday_df.empty:
                 # Mapuj wczorajsze wyświetlenia po video_id
-                yesterday_views = yesterday_df.set_index('video_id')['views_today'].to_dict()
+                yesterday_views = yesterday_df.set_index('Video_ID')['View_Count'].to_dict()
                 
                 # Oblicz delta
                 result_df['delta'] = result_df.apply(
-                    lambda row: row['views_today'] - yesterday_views.get(row['video_id'], 0), 
+                    lambda row: row['View_Count'] - yesterday_views.get(row['Video_ID'], 0), 
                     axis=1
                 )
             
             # Dodaj kolumnę thumbnail_url (YouTube thumbnail)
-            result_df['thumbnail_url'] = result_df['video_id'].apply(
+            result_df['thumbnail_url'] = result_df['Video_ID'].apply(
                 lambda x: f"https://img.youtube.com/vi/{x}/mqdefault.jpg" if pd.notna(x) else ""
             )
             
             # Sortuj malejąco według delta
             result_df = result_df.sort_values('delta', ascending=False)
             
-            # Wybierz top 50 wyników
-            top_results = result_df.head(50)
+            # Zwróć wszystkie wyniki (nie tylko top 50)
+            top_results = result_df
             
             # Konwertuj do listy słowników
             result_list = []
             for _, row in top_results.iterrows():
                 result_list.append({
-                    'title': str(row.get('title', '')),
-                    'views': int(row.get('views_today', 0)),
+                    'title': str(row.get('Title', '')),
+                    'views': int(row.get('View_Count', 0)),
                     'delta': int(row.get('delta', 0)),
                     'video_type': str(row.get('video_type', 'Longform')),
                     'thumbnail_url': str(row.get('thumbnail_url', '')),
-                    'video_id': str(row.get('video_id', '')),
-                    'channel': str(row.get('channel', '')),
-                    'duration_seconds': int(row.get('duration_seconds', 0)) if pd.notna(row.get('duration_seconds')) else 0
+                    'video_id': str(row.get('Video_ID', '')),
+                    'channel': str(row.get('Channel_Name', '')),
+                    'duration': str(row.get('Duration', '')),
+                    'description': str(row.get('Description', '')),
+                    'tags': str(row.get('Tags', '')),
+                    'like_count': int(row.get('Like_Count', 0)),
+                    'topic_categories': str(row.get('Topic_Categories', '')),
+                    'channel_id': str(row.get('Channel_ID', '')),
+                    'date_published': str(row.get('Date_of_Publishing', '')),
+                    'hour_published': str(row.get('Hour_GMT2', ''))
                 })
             
             return result_list

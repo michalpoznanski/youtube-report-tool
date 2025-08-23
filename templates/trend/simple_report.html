@@ -4,39 +4,111 @@
     <meta charset="UTF-8">
     <title>Raport Trendów - {{ category.capitalize() }}</title>
     <style>
-        body { font-family: sans-serif; margin: 2em; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        body { font-family: sans-serif; margin: 2em; background-color: #f4f7f6; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        p { margin-bottom: 1em; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background-color: #fff;
+        }
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
         tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        td { font-size: 0.85em; }
+        .delta-positive { color: green; font-weight: bold; }
+        .delta-negative { color: red; font-weight: bold; }
+        .delta-zero { color: gray; }
+        .video-title { font-weight: bold; color: #2980b9; }
+        .channel-name { color: #7f8c8d; }
+        .video-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: white;
+        }
+        .video-type.shorts { background-color: #e74c3c; }
+        .video-type.longform { background-color: #27ae60; }
     </style>
 </head>
 <body>
-    <h1>Trend - {{ category.capitalize() }} ({{ report_date }})</h1>
+    <h1>Raport Trendów - {{ category.capitalize() }} ({{ report_date }})</h1>
     <p>Łącznie: {{ videos|length }} filmów</p>
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Tytuł</th>
-                <th>Kanał</th>
-                <th>Dzisiejsze</th>
-                <th>Wczoraj</th>
-                <th>Δ</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for video in videos %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ video.title }}</td>
-                <td>{{ video.channel }}</td>
-                <td>{{ video.views }}</td>
-                <td>{{ video.views - video.delta }}</td>
-                <td>{{ video.delta }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+    {% if error %}
+        <p style="color: red; font-weight: bold;">Błąd podczas ładowania raportu: {{ error }}</p>
+    {% elif not videos %}
+        <p>Brak danych do wyświetlenia dla kategorii {{ category.capitalize() }} na dzień {{ report_date }}.</p>
+        <p>Upewnij się, że pliki CSV są dostępne w katalogu `/mnt/volume/reports/`.</p>
+    {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tytuł</th>
+                    <th>Kanał</th>
+                    <th>Typ</th>
+                    <th>Wyświetlenia</th>
+                    <th>Δ (24h)</th>
+                    <th>Polubienia</th>
+                    <th>Data pub.</th>
+                    <th>Godzina pub.</th>
+                    <th>Długość</th>
+                    <th>Kategorie YT</th>
+                    <th>Opis</th>
+                    <th>Tagi</th>
+                    <th>ID Kanału</th>
+                    <th>ID Wideo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for video in videos %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank" class="video-title">{{ video.title }}</a></td>
+                    <td class="channel-name">{{ video.channel }}</td>
+                    <td>
+                        <span class="video-type {{ video.video_type | lower }}">{{ video.video_type }}</span>
+                    </td>
+                    <td>{{ "{:,.0f}".format(video.views | default(0)) }}</td>
+                    <td>
+                        {% if video.delta > 0 %}
+                            <span class="delta-positive">+{{ "{:,.0f}".format(video.delta) }}</span>
+                        {% elif video.delta < 0 %}
+                            <span class="delta-negative">{{ "{:,.0f}".format(video.delta) }}</span>
+                        {% else %}
+                            <span class="delta-zero">{{ "{:,.0f}".format(video.delta) }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ "{:,.0f}".format(video.like_count | default(0)) }}</td>
+                    <td>{{ video.date_published }}</td>
+                    <td>{{ video.hour_published }}</td>
+                    <td>{{ video.duration }}</td>
+                    <td>{{ video.topic_categories }}</td>
+                    <td>{{ video.description | truncate(100, True, '...') }}</td>
+                    <td>{{ video.tags | truncate(100, True, '...') }}</td>
+                    <td>{{ video.channel_id }}</td>
+                    <td>{{ video.video_id }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 </body>
 </html>
