@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- CACHE BUSTER: NOWY INTERFEJS Z 23 SIERPNIA - HOOK-BOOST-WEB -->
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
@@ -71,27 +72,11 @@
             </h1>
         </div>
         
-        <!-- Moduł Trendów -->
-        <div class="card">
-            <div class="card-header">
-                <h2>📈 Moduł Trendów</h2>
-                <small>Śledzenie przyrostów i rankingów.</small>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:16px;">
-                <a href="/trend/podcast/top?days=3&k=15" class="btn btn-secondary">Trend: Podcast (TOP 15 z 3 dni)</a>
-                <a href="/trend/podcast?mode=daily" class="btn btn-secondary">Trend: Podcast (Dzienny)</a>
-                <a href="/trend/moto/top?days=3&k=15" class="btn btn-secondary">Trend: Motoryzacja (TOP 15 z 3 dni)</a>
-                <a href="/trend/polityka/top?days=3&k=15" class="btn btn-secondary">Trend: Polityka (TOP 15 z 3 dni)</a>
-            </div>
-        </div>
-        
-        <!-- Status Systemu -->
-        <div class="card">
-            <div class="card-header">
-                <h2>📊 Status Systemu</h2>
-            </div>
-            <div id="status"></div>
-            <button onclick="loadStatus()" class="btn btn-primary">Odśwież Status</button>
+        <!-- Raport Podcast -->
+        <div class="module-box">
+            <h3>📈 Raport Podcast</h3>
+            <p>Dzienne przyrosty wyświetleń dla kategorii Podcast.</p>
+            <a href="/trend/trends/PODCAST" class="btn">Zobacz Raport</a>
         </div>
         
         <!-- Dodawanie Kanału -->
