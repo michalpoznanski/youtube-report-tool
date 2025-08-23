@@ -2,6 +2,10 @@
 # =======================================
 # Minimal Docker image for Railway deployment
 # Cache buster 1 - FORCE CSV PROCESSOR UPDATE
+# Cache buster 2 - AGGRESSIVE FORCE REBUILD
+# Cache buster 3 - FINAL FORCE REBUILD
+# Cache buster 4 - ULTRA AGGRESSIVE FORCE REBUILD
+# Cache buster 5 - NUCLEAR FORCE REBUILD
 
 FROM python:3.11-slim
 
