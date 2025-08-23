@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Raport Trendów - {{ category.capitalize() }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Trend - {{ category.capitalize() }} ({{ report_date }})</h1>
+    <p>Łącznie: {{ videos|length }} filmów</p>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Tytuł</th>
+                <th>Kanał</th>
+                <th>Dzisiejsze</th>
+                <th>Wczoraj</th>
+                <th>Δ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for video in videos %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ video.title }}</td>
+                <td>{{ video.channel }}</td>
+                <td>{{ video.views }}</td>
+                <td>{{ video.views - video.delta }}</td>
+                <td>{{ video.delta }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

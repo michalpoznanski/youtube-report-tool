@@ -21,13 +21,15 @@ async def get_category_trends(request: Request, category_name: str):
         
         log.info(f"Pobrano {len(videos)} wideo dla kategorii {category_name}")
         
-        # Renderuj szablon category_dashboard.html z nowymi danymi
+        # Renderuj szablon simple_report.html z nowymi danymi
         return templates.TemplateResponse(
-            "trend/category_dashboard.html",  # Zaktualizowany szablon
+            "trend/simple_report.html",  # Nowy, prosty szablon
             {
                 "request": request, 
                 "category_name": category_name, 
-                "videos": videos
+                "videos": videos,
+                "category": category_name,
+                "report_date": date.today().strftime("%Y-%m-%d")
             }
         )
         
@@ -36,11 +38,13 @@ async def get_category_trends(request: Request, category_name: str):
         
         # W przypadku błędu zwróć szablon z pustymi danymi
         return templates.TemplateResponse(
-            "trend/category_dashboard.html",
+            "trend/simple_report.html",
             {
                 "request": request, 
                 "category_name": category_name, 
                 "videos": [],
+                "category": category_name,
+                "report_date": date.today().strftime("%Y-%m-%d"),
                 "error": str(e)
             }
         )
