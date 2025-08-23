@@ -36,3 +36,5 @@ EXPOSE 8000
 
 # Uruchom aplikację
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-8000}"] 
+
+# Cache buster 2 - FORCE REBUILD 
