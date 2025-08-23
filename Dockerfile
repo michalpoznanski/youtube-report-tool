@@ -41,4 +41,5 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-8000}"]
 
 # Cache buster 3 - FINAL FORCE REBUILD 
 
-# Cache buster 4 - FORCE TEMPLATES UPDATE 
+# Cache buster 4 - FORCE TEMPLATES UPDATE
+# Cache buster 5 - FORCE CSV PROCESSOR UPDATE 

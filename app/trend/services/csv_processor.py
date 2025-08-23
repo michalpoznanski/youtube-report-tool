@@ -15,8 +15,9 @@ class CSVProcessor:
     """Klasa do przetwarzania plików CSV z raportami trendów"""
     
     def __init__(self):
-        # Stała ścieżka do raportów
-        self.base_path = Path("/mnt/volume/reports")
+        # Użyj tej samej ścieżki co csv_generator
+        from ...config.settings import settings
+        self.base_path = settings.reports_path
     
     def get_trend_data(self, category: str, report_date: date) -> List[Dict[str, Any]]:
         """
@@ -38,11 +39,26 @@ class CSVProcessor:
             today_path = self.base_path / today_file
             yesterday_path = self.base_path / yesterday_file
             
+            print(f"🔍 CSV Processor: Szukam plików w {self.base_path}")
+            print(f"🔍 CSV Processor: Dzisiejszy plik: {today_path}")
+            print(f"🔍 CSV Processor: Wczorajszy plik: {yesterday_path}")
+            
             logger.info(f"Próba wczytania plików: {today_file}, {yesterday_file}")
+            
+            # Sprawdź czy katalog istnieje
+            if not self.base_path.exists():
+                print(f"❌ CSV Processor: Katalog {self.base_path} nie istnieje!")
+                logger.error(f"Katalog raportów nie istnieje: {self.base_path}")
+                return []
+            
+            # Sprawdź jakie pliki są w katalogu
+            available_files = list(self.base_path.glob("*.csv"))
+            print(f"📁 CSV Processor: Dostępne pliki CSV: {[f.name for f in available_files]}")
             
             # Wczytaj dzisiejszy raport
             today_df = self._load_csv_safely(today_path)
             if today_df is None or today_df.empty:
+                print(f"❌ CSV Processor: Nie można wczytać dzisiejszego raportu: {today_file}")
                 logger.warning(f"Nie można wczytać dzisiejszego raportu: {today_file}")
                 return []
             
@@ -52,10 +68,12 @@ class CSVProcessor:
             # Przygotuj dane
             result_data = self._process_trend_data(today_df, yesterday_df)
             
+            print(f"✅ CSV Processor: Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
             logger.info(f"Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
             return result_data
             
         except Exception as e:
+            print(f"❌ CSV Processor: Błąd: {e}")
             logger.error(f"Błąd podczas przetwarzania danych trendów dla {category} {report_date}: {e}")
             return []
     

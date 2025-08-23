@@ -4,8 +4,76 @@
     <meta charset="UTF-8">
     <title>Raport Trendów - {{ category.capitalize() }}</title>
     <style>
-        body { font-family: sans-serif; margin: 2em; background-color: #f4f7f6; color: #333; }
-        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+            border-bottom: none;
+        }
+        .header .subtitle {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .content {
+            padding: 30px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
         p { margin-bottom: 1em; }
         table {
             width: 100%;
@@ -48,8 +116,33 @@
     </style>
 </head>
 <body>
-    <h1>Raport Trendów - {{ category.capitalize() }} ({{ report_date }})</h1>
-    <p>Łącznie: {{ videos|length }} filmów</p>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Raport Trendów - {{ category.capitalize() }}</h1>
+            <p class="subtitle">{{ report_date }}</p>
+        </div>
+        
+        <div class="content">
+            <a href="/" class="back-btn">← Powrót do strony głównej</a>
+            
+            {% if videos and videos|length > 0 %}
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ videos|length }}</div>
+                    <div class="stat-label">Łącznie filmów</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ videos|selectattr('delta', 'gt', 0)|list|length }}</div>
+                    <div class="stat-label">Wzrost wyświetleń</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ videos|selectattr('delta', 'lt', 0)|list|length }}</div>
+                    <div class="stat-label">Spadek wyświetleń</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <p>Łącznie: {{ videos|length }} filmów</p>
 
     {% if error %}
         <p style="color: red; font-weight: bold;">Błąd podczas ładowania raportu: {{ error }}</p>
@@ -109,6 +202,8 @@
                 {% endfor %}
             </tbody>
         </table>
-    {% endif %}
+                {% endif %}
+        </div>
+    </div>
 </body>
 </html>
