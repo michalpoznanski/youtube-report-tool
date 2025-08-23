@@ -276,15 +276,16 @@
         
         async function loadReports() {
             try {
-                const response = await fetch(`${API_BASE}/reports`);
-                const reports = await response.json();
+                const response = await fetch(`${API_BASE}/reports/list`);
+                const data = await response.json();
+                const reports = data.reports || [];
                 
                 let html = '';
                 if (reports.length === 0) {
                     html = '<p>Brak dostępnych raportów</p>';
                 } else {
                     reports.forEach(report => {
-                        const date = new Date(report.created_at).toLocaleString('pl-PL');
+                        const date = new Date(report.created_date).toLocaleString('pl-PL');
                         const size = (report.size / 1024).toFixed(1);
                         html += `
                             <div class="report-item">

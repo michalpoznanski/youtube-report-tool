@@ -76,7 +76,7 @@ body {
 
 /* Logo */
 .logo {
-  max-height: 64px;
+  max-height: 48px;
   width: auto;
   border-radius: 5px;
   display: block;
@@ -96,10 +96,62 @@ body {
   }
 }
 
+/* Module Box - Raport Podcast */
+.module-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  border-radius: var(--r-lg);
+  text-align: center;
+  margin-bottom: 30px;
+  box-shadow: var(--shadow-2);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.module-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+}
+
+.module-box h3 {
+  margin: 0 0 15px 0;
+  font-size: 2em;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.module-box p {
+  margin: 0 0 25px 0;
+  font-size: 1.2em;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.module-box .btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 15px 30px;
+  font-size: 1.1em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.module-box .btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
 /* Header */
 .header h1 {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
