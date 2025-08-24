@@ -21,63 +21,69 @@ class CSVProcessor:
     def get_trend_data(self, category: str, report_date: date) -> List[Dict[str, Any]]:
         """
         Pobiera dane trendów dla danej kategorii i daty.
-        
-        Args:
-            category (str): Nazwa kategorii (np. "PODCAST")
-            report_date (date): Data raportu
-            
-        Returns:
-            List[Dict[str, Any]]: Lista top 50 wyników z danymi trendów
+        Używa tej samej logiki co API routes.
         """
         try:
             print(f"🚀 CSV Processor: Start dla kategorii {category}, data {report_date}")
-            print(f"🚀 CSV Processor: Ścieżka bazowa: {self.base_path}")
-            print(f"🚀 CSV Processor: Katalog istnieje: {self.base_path.exists()}")
             
-            # Sprawdź czy katalog istnieje
-            if not self.base_path.exists():
-                print(f"❌ CSV Processor: Katalog {self.base_path} nie istnieje!")
-                logger.error(f"Katalog raportów nie istnieje: {self.base_path}")
+            # Użyj tej samej logiki co API routes
+            import os
+            reports_dir = "/mnt/volume/reports"
+            
+            if not os.path.exists(reports_dir):
+                print(f"❌ CSV Processor: Katalog {reports_dir} nie istnieje!")
                 return []
             
-            # Sprawdź jakie pliki są w katalogu
-            available_files = list(self.base_path.glob("*.csv"))
-            print(f"📁 CSV Processor: Dostępne pliki CSV: {[f.name for f in available_files]}")
+            # Znajdź pliki CSV dla kategorii
+            csv_files = []
+            for file in os.listdir(reports_dir):
+                if file.startswith(f"report_{category.upper()}_") and file.endswith('.csv'):
+                    csv_files.append(file)
             
-            # Konstruuj nazwy plików
-            today_file = f"report_{category.upper()}_{report_date.strftime('%Y-%m-%d')}.csv"
-            yesterday_file = f"report_{category.upper()}_{(report_date - timedelta(days=1)).strftime('%Y-%m-%d')}.csv"
+            print(f"📁 CSV Processor: Znalezione pliki: {csv_files}")
             
-            # Ścieżki do plików
-            today_path = self.base_path / today_file
-            yesterday_path = self.base_path / yesterday_file
-            
-            print(f"🔍 CSV Processor: Szukam plików w {self.base_path}")
-            print(f"🔍 CSV Processor: Dzisiejszy plik: {today_path}")
-            print(f"🔍 CSV Processor: Wczorajszy plik: {yesterday_path}")
-            
-            logger.info(f"Próba wczytania plików: {today_file}, {yesterday_file}")
-            
-            # Wczytaj dzisiejszy raport
-            today_df = self._load_csv_safely(today_path)
-            if today_df is None or today_df.empty:
-                print(f"❌ CSV Processor: Nie można wczytać dzisiejszego raportu: {today_file}")
-                logger.warning(f"Nie można wczytać dzisiejszego raportu: {today_file}")
+            if not csv_files:
+                print(f"❌ CSV Processor: Brak plików CSV dla kategorii {category}")
                 return []
             
-            # Wczytaj wczorajszy raport (opcjonalny)
-            yesterday_df = self._load_csv_safely(yesterday_path)
+            # Użyj najnowszego pliku
+            latest_file = sorted(csv_files)[-1]  # Ostatni alfabetycznie = najnowszy
+            file_path = os.path.join(reports_dir, latest_file)
             
-            # Przygotuj dane
-            result_data = self._process_trend_data(today_df, yesterday_df)
+            print(f"📁 CSV Processor: Używam pliku: {latest_file}")
             
-            print(f"✅ CSV Processor: Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
-            logger.info(f"Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
-            return result_data
+            # Wczytaj CSV używając pandas
+            import pandas as pd
+            df = pd.read_csv(file_path)
+            
+            print(f"✅ CSV Processor: Wczytano {len(df)} wierszy z {latest_file}")
+            
+            # Konwertuj do listy słowników
+            result_list = []
+            for _, row in df.iterrows():
+                result_list.append({
+                    'title': str(row.get('Title', '')),
+                    'views': int(row.get('View_Count', 0)),
+                    'delta': 0,  # Na razie bez delta
+                    'video_type': str(row.get('video_type', 'Longform')),
+                    'thumbnail_url': f"https://img.youtube.com/vi/{row.get('Video_ID', '')}/mqdefault.jpg",
+                    'video_id': str(row.get('Video_ID', '')),
+                    'channel': str(row.get('Channel_Name', '')),
+                    'duration': str(row.get('Duration', '')),
+                    'description': str(row.get('Description', '')),
+                    'tags': str(row.get('Tags', '')),
+                    'like_count': int(row.get('Like_Count', 0)),
+                    'topic_categories': str(row.get('Topic_Categories', '')),
+                    'channel_id': str(row.get('Channel_ID', '')),
+                    'date_published': str(row.get('Date_of_Publishing', '')),
+                    'hour_published': str(row.get('Hour_GMT2', ''))
+                })
+            
+            print(f"✅ CSV Processor: Zwracam {len(result_list)} wideo")
+            return result_list
             
         except Exception as e:
             print(f"❌ CSV Processor: Błąd: {e}")
-            logger.error(f"Błąd podczas przetwarzania danych trendów dla {category} {report_date}: {e}")
             return []
     
     def _load_csv_safely(self, file_path: Path) -> Optional[pd.DataFrame]:
