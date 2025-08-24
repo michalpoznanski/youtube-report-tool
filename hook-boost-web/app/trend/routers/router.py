@@ -18,6 +18,20 @@ async def get_category_trends(request: Request, category_name: str):
     try:
         log.info(f"Pobieranie trendów dla kategorii {category_name}")
         
+        # SPRAWDZENIE KATALOGU RAPORTÓW - DIAGNOZA
+        import os
+        reports_dir = "/mnt/volume/reports"
+        log.info(f"🔍 Sprawdzam katalog raportów: {reports_dir}")
+        log.info(f"🔍 Katalog istnieje: {os.path.exists(reports_dir)}")
+        
+        if os.path.exists(reports_dir):
+            csv_files = [f for f in os.listdir(reports_dir) if f.endswith('.csv')]
+            log.info(f"🔍 Znalezione pliki CSV: {csv_files}")
+            
+            # Sprawdź pliki dla konkretnej kategorii
+            category_files = [f for f in csv_files if f.startswith(f"report_{category_name.upper()}_")]
+            log.info(f"🔍 Pliki dla kategorii {category_name}: {category_files}")
+        
         # Użyj CSVProcessor do pobrania rzeczywistych danych
         csv_processor = CSVProcessor()
         
