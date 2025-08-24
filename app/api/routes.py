@@ -989,3 +989,39 @@ async def rename_old_format_reports():
         print(f"❌ API: {error_msg}")
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg) 
+
+
+@router.post("/trends/analyze-all")
+async def analyze_all_csvs():
+    """
+    Endpoint do ręcznego uruchomienia analizy wszystkich istniejących plików CSV.
+    """
+    try:
+        # Import tutaj żeby uniknąć problemów z importami
+        from ..trend.core.store.trend_store import analyze_all_existing_csvs
+        
+        logger.info("Ręczne uruchomienie analizy wszystkich plików CSV")
+        
+        # Uruchom analizę
+        result = analyze_all_existing_csvs()
+        
+        return {
+            "message": "Analiza wszystkich plików CSV zakończona",
+            "result": result
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas analizy wszystkich CSV: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/test-trend-endpoint")
+async def test_trend_endpoint():
+    """
+    Test endpoint żeby sprawdzić czy nasze zmiany zostały wdrożone.
+    """
+    return {
+        "message": "✅ Trend endpoint działa!",
+        "timestamp": "2025-08-24",
+        "status": "working"
+    } 
