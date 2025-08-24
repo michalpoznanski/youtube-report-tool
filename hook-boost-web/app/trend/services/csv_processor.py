@@ -30,6 +30,20 @@ class CSVProcessor:
             List[Dict[str, Any]]: Lista top 50 wyników z danymi trendów
         """
         try:
+            print(f"🚀 CSV Processor: Start dla kategorii {category}, data {report_date}")
+            print(f"🚀 CSV Processor: Ścieżka bazowa: {self.base_path}")
+            print(f"🚀 CSV Processor: Katalog istnieje: {self.base_path.exists()}")
+            
+            # Sprawdź czy katalog istnieje
+            if not self.base_path.exists():
+                print(f"❌ CSV Processor: Katalog {self.base_path} nie istnieje!")
+                logger.error(f"Katalog raportów nie istnieje: {self.base_path}")
+                return []
+            
+            # Sprawdź jakie pliki są w katalogu
+            available_files = list(self.base_path.glob("*.csv"))
+            print(f"📁 CSV Processor: Dostępne pliki CSV: {[f.name for f in available_files]}")
+            
             # Konstruuj nazwy plików
             today_file = f"report_{category.upper()}_{report_date.strftime('%Y-%m-%d')}.csv"
             yesterday_file = f"report_{category.upper()}_{(report_date - timedelta(days=1)).strftime('%Y-%m-%d')}.csv"
@@ -43,16 +57,6 @@ class CSVProcessor:
             print(f"🔍 CSV Processor: Wczorajszy plik: {yesterday_path}")
             
             logger.info(f"Próba wczytania plików: {today_file}, {yesterday_file}")
-            
-            # Sprawdź czy katalog istnieje
-            if not self.base_path.exists():
-                print(f"❌ CSV Processor: Katalog {self.base_path} nie istnieje!")
-                logger.error(f"Katalog raportów nie istnieje: {self.base_path}")
-                return []
-            
-            # Sprawdź jakie pliki są w katalogu
-            available_files = list(self.base_path.glob("*.csv"))
-            print(f"📁 CSV Processor: Dostępne pliki CSV: {[f.name for f in available_files]}")
             
             # Wczytaj dzisiejszy raport
             today_df = self._load_csv_safely(today_path)
