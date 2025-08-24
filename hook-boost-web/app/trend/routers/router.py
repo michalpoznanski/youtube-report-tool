@@ -3,7 +3,6 @@ from fastapi import APIRouter, Request, Query
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from ..services.csv_processor import CSVProcessor
-from ..core.store.trend_store import get_latest_analysis, get_analysis_for_date
 from datetime import date
 
 log = logging.getLogger("trend")
@@ -14,36 +13,34 @@ router = APIRouter(prefix="/trend", tags=["trend"])
 async def get_category_trends(request: Request, category_name: str):
     """
     Dynamiczny endpoint do wyświetlania trendów dla danej kategorii.
-    Używa trend_store do pobierania przeanalizowanych danych.
+    Automatycznie pobiera ostatnie dostępne raporty CSV.
     """
     try:
-        # Najpierw spróbuj pobrać przeanalizowane dane z trend_store
-        analysis_data = get_latest_analysis(category_name)
+        log.info(f"Pobieranie trendów dla kategorii {category_name}")
         
-        if analysis_data and analysis_data.get("videos"):
-            # Użyj przeanalizowanych danych
-            videos = analysis_data["videos"]
-            report_date = analysis_data.get("report_date", date.today().strftime("%Y-%m-%d"))
-            log.info(f"Pobrano {len(videos)} wideo z trend_store dla kategorii {category_name}")
-        else:
-            # Fallback: użyj CSVProcessor dla bieżących danych
-            log.info(f"Brak przeanalizowanych danych w trend_store, używam CSVProcessor dla {category_name}")
-            csv_processor = CSVProcessor()
-            videos = csv_processor.get_trend_data(category=category_name, report_date=date.today())
-            report_date = date.today().strftime("%Y-%m-%d")
+        # Użyj CSVProcessor do pobrania rzeczywistych danych
+        csv_processor = CSVProcessor()
+        
+        # Spróbuj pobrać dane z dzisiejszej daty
+        videos = csv_processor.get_trend_data(category=category_name, report_date=date.today())
+        report_date = date.today().strftime("%Y-%m-%d")
+        
+        if not videos:
+            log.info(f"Brak danych dla dzisiejszej daty, sprawdzam dostępne daty")
+            # Sprawdź dostępne daty dla kategorii
+            available_dates = csv_processor.get_available_dates(category_name)
             
-            if not videos:
-                log.warning(f"Brak danych dla kategorii {category_name} - sprawdzam dostępne daty")
-                # Sprawdź dostępne daty
-                available_dates = csv_processor.get_available_dates(category_name)
-                if available_dates:
-                    # Użyj najnowszej dostępnej daty
-                    latest_date = available_dates[0]
-                    log.info(f"Używam najnowszej dostępnej daty: {latest_date}")
-                    videos = csv_processor.get_trend_data(category=category_name, report_date=date.fromisoformat(latest_date))
-                    report_date = latest_date
+            if available_dates:
+                # Użyj najnowszej dostępnej daty
+                latest_date = available_dates[0]
+                log.info(f"Używam najnowszej dostępnej daty: {latest_date}")
+                videos = csv_processor.get_trend_data(category=category_name, report_date=date.fromisoformat(latest_date))
+                report_date = latest_date
+            else:
+                log.warning(f"Brak dostępnych dat dla kategorii {category_name}")
+                videos = []
         
-        log.info(f"Pobrano {len(videos)} wideo dla kategorii {category_name}")
+        log.info(f"Pobrano {len(videos)} wideo dla kategorii {category_name} z daty {report_date}")
         
         # Renderuj szablon simple_report.html z danymi
         return templates.TemplateResponse(
@@ -79,20 +76,33 @@ async def get_category_trends_api(category_name: str, date: str = None):
     API endpoint do pobierania danych trendów w formacie JSON.
     """
     try:
+        csv_processor = CSVProcessor()
+        
         if date:
             # Pobierz dane dla konkretnej daty
-            analysis_data = get_analysis_for_date(category_name, date)
+            videos = csv_processor.get_trend_data(category=category_name, report_date=date.fromisoformat(date))
         else:
             # Pobierz najnowsze dane
-            analysis_data = get_latest_analysis(category_name)
+            videos = csv_processor.get_trend_data(category=category_name, report_date=date.today())
+            
+            if not videos:
+                # Sprawdź dostępne daty
+                available_dates = csv_processor.get_available_dates(category_name)
+                if available_dates:
+                    latest_date = available_dates[0]
+                    videos = csv_processor.get_trend_data(category=category_name, report_date=date.fromisoformat(latest_date))
         
-        if not analysis_data:
+        if not videos:
             return JSONResponse(
                 status_code=404,
                 content={"error": f"Brak danych dla kategorii {category_name}"}
             )
         
-        return JSONResponse(content=analysis_data)
+        return JSONResponse(content={
+            "category": category_name,
+            "videos": videos,
+            "count": len(videos)
+        })
         
     except Exception as e:
         log.error(f"Błąd API dla kategorii {category_name}: {e}")

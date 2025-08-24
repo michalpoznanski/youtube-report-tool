@@ -23,8 +23,6 @@
             <a href="/trend/trends/PODCAST" class="btn">Zobacz Raport</a>
         </div>
         
-
-        
         <!-- Dodawanie Kanału -->
         <div class="card">
             <div class="card-header">
@@ -133,6 +131,16 @@
                 <button onclick="startScheduler()" class="btn btn-success">Uruchom</button>
                 <button onclick="stopScheduler()" class="btn btn-danger">Zatrzymaj</button>
             </div>
+        </div>
+
+        <div class="card">
+            <h3>📊 Analiza Trendów</h3>
+            <p>Zarządzaj automatyczną analizą plików CSV</p>
+            <div class="button-group">
+                <button onclick="analyzeAllTrends()" class="btn btn-primary">🔄 Analizuj wszystkie pliki CSV</button>
+                <button onclick="reanalyzeCategory('PODCAST')" class="btn btn-primary">🔄 Przeanalizuj Podcast</button>
+            </div>
+            <div id="trend-status" class="status" style="display: none;"></div>
         </div>
     </div>
 
