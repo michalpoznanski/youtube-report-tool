@@ -34,12 +34,13 @@ RUN chmod +x /app/start.sh
 # Eksponuj port
 EXPOSE 8000
 
-# Uruchom aplikację
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-8000}"] 
+# Uruchom aplikację przez run.py (zgodnie z Railway)
+CMD ["python", "run.py"]
 
 # Cache buster 2 - FORCE REBUILD 
 
 # Cache buster 3 - FINAL FORCE REBUILD 
 
 # Cache buster 4 - FORCE TEMPLATES UPDATE
-# Cache buster 5 - FORCE CSV PROCESSOR UPDATE 
+# Cache buster 5 - FORCE CSV PROCESSOR UPDATE
+# Cache buster 6 - FORCE TREND ANALYSIS UPDATE 
