@@ -87,43 +87,43 @@ class CSVProcessor:
             Optional[pd.DataFrame]: DataFrame z danymi lub None w przypadku błędu
         """
         try:
+            print(f"🔍 CSV Processor: Próba wczytania pliku: {file_path}")
+            print(f"🔍 CSV Processor: Plik istnieje: {file_path.exists()}")
+            
             if not file_path.exists():
+                print(f"❌ CSV Processor: Plik nie istnieje: {file_path}")
                 logger.debug(f"Plik nie istnieje: {file_path}")
                 return None
             
-            # Wczytaj CSV z obsługą różnych kodowań
-            df = pd.read_csv(file_path, encoding='utf-8')
+            # Sprawdź rozmiar pliku
+            file_size = file_path.stat().st_size
+            print(f"🔍 CSV Processor: Rozmiar pliku: {file_size} bajtów")
             
-            # Sprawdź czy DataFrame nie jest pusty
-            if df.empty:
+            if file_size == 0:
+                print(f"❌ CSV Processor: Plik jest pusty: {file_path}")
                 logger.warning(f"Plik CSV jest pusty: {file_path}")
                 return None
             
-            # Sprawdź wymagane kolumny
-            required_columns = ['Video_ID', 'Title', 'View_Count', 'Duration']
-            missing_columns = [col for col in required_columns if col not in df.columns]
+            # Wczytaj CSV z obsługą różnych kodowań
+            print(f"🔍 CSV Processor: Wczytuję CSV...")
+            df = pd.read_csv(file_path, encoding='utf-8')
+            print(f"✅ CSV Processor: Pomyślnie wczytano CSV: {len(df)} wierszy, {len(df.columns)} kolumn")
             
-            if missing_columns:
-                logger.error(f"Brak wymaganych kolumn w {file_path}: {missing_columns}")
+            # Sprawdź czy DataFrame nie jest pusty
+            if df.empty:
+                print(f"❌ CSV Processor: DataFrame jest pusty: {file_path}")
+                logger.warning(f"Plik CSV jest pusty: {file_path}")
                 return None
             
-            logger.debug(f"Pomyślnie wczytano {len(df)} rekordów z {file_path}")
+            # Sprawdź pierwsze kilka wierszy
+            print(f"🔍 CSV Processor: Pierwsze 3 wiersze:")
+            print(df.head(3))
+            
             return df
             
-        except FileNotFoundError:
-            logger.debug(f"Plik nie znaleziony: {file_path}")
-            return None
-        except pd.errors.EmptyDataError:
-            logger.warning(f"Plik CSV jest pusty: {file_path}")
-            return None
-        except pd.errors.ParserError as e:
-            logger.error(f"Błąd parsowania CSV {file_path}: {e}")
-            return None
-        except UnicodeDecodeError as e:
-            logger.error(f"Błąd kodowania UTF-8 w {file_path}: {e}")
-            return None
         except Exception as e:
-            logger.error(f"Nieoczekiwany błąd podczas wczytywania {file_path}: {e}")
+            print(f"❌ CSV Processor: Błąd podczas wczytywania {file_path}: {e}")
+            logger.error(f"Błąd podczas wczytywania CSV {file_path}: {e}")
             return None
     
     def _process_trend_data(self, today_df: pd.DataFrame, yesterday_df: Optional[pd.DataFrame]) -> List[Dict[str, Any]]:
