@@ -999,13 +999,80 @@ async def analyze_all_csvs():
     try:
         logger.info("Ręczne uruchomienie analizy wszystkich plików CSV")
         
-        # Prosta implementacja bez importów problematycznych
+        # Sprawdź czy katalog raportów istnieje
+        reports_dir = "/mnt/volume/reports"
+        if not os.path.exists(reports_dir):
+            return {
+                "message": "Katalog raportów nie istnieje",
+                "result": {
+                    "total_processed": 0,
+                    "total_success": 0,
+                    "total_errors": 1,
+                    "error": f"Katalog {reports_dir} nie istnieje"
+                }
+            }
+        
+        # Znajdź wszystkie pliki CSV
+        csv_files = []
+        for file in os.listdir(reports_dir):
+            if file.endswith('.csv'):
+                csv_files.append(file)
+        
+        logger.info(f"Znaleziono {len(csv_files)} plików CSV: {csv_files}")
+        
+        if not csv_files:
+            return {
+                "message": "Brak plików CSV do analizy",
+                "result": {
+                    "total_processed": 0,
+                    "total_success": 0,
+                    "total_errors": 0,
+                    "files_found": []
+                }
+            }
+        
+        # Przetwórz każdy plik CSV
+        processed_files = []
+        successful_files = []
+        errors = []
+        
+        for csv_file in csv_files:
+            try:
+                file_path = os.path.join(reports_dir, csv_file)
+                logger.info(f"Przetwarzam plik: {csv_file}")
+                
+                # Wczytaj plik CSV
+                import pandas as pd
+                df = pd.read_csv(file_path)
+                
+                # Podstawowa analiza
+                analysis_result = {
+                    "filename": csv_file,
+                    "rows": len(df),
+                    "columns": list(df.columns),
+                    "file_size": os.path.getsize(file_path),
+                    "processed_at": "2025-08-24"
+                }
+                
+                processed_files.append(analysis_result)
+                successful_files.append(csv_file)
+                logger.info(f"Pomyślnie przetworzono: {csv_file} ({len(df)} wierszy)")
+                
+            except Exception as e:
+                error_msg = f"Błąd podczas przetwarzania {csv_file}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+        
         result = {
-            "total_processed": 0,
-            "total_success": 0,
-            "total_errors": 1,
-            "error": "Funkcja analizy trendów jest w trakcie implementacji"
+            "total_processed": len(processed_files),
+            "total_success": len(successful_files),
+            "total_errors": len(errors),
+            "files_processed": processed_files,
+            "files_successful": successful_files,
+            "errors": errors
         }
+        
+        logger.info(f"Analiza zakończona: {len(processed_files)} przetworzonych, {len(successful_files)} pomyślnie")
         
         return {
             "message": "Analiza wszystkich plików CSV zakończona",
@@ -1014,6 +1081,81 @@ async def analyze_all_csvs():
         
     except Exception as e:
         logger.error(f"Błąd podczas analizy wszystkich CSV: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/trends/{category_name}/reanalyze")
+async def reanalyze_category(category_name: str, date: str = None):
+    """
+    Endpoint do wymuszenia ponownej analizy kategorii.
+    """
+    try:
+        logger.info(f"Wymuszenie ponownej analizy dla kategorii {category_name} {date or 'dzisiaj'}")
+        
+        # Sprawdź czy katalog raportów istnieje
+        reports_dir = "/mnt/volume/reports"
+        if not os.path.exists(reports_dir):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Katalog raportów {reports_dir} nie istnieje"
+            )
+        
+        # Znajdź pliki CSV dla konkretnej kategorii
+        category_pattern = f"report_{category_name.upper()}_*.csv"
+        csv_files = []
+        for file in os.listdir(reports_dir):
+            if file.startswith(f"report_{category_name.upper()}_") and file.endswith('.csv'):
+                csv_files.append(file)
+        
+        if not csv_files:
+            return {
+                "message": f"Brak plików CSV dla kategorii {category_name}",
+                "category": category_name,
+                "date": date or "dzisiaj",
+                "files_found": []
+            }
+        
+        # Przetwórz pliki CSV dla kategorii
+        processed_files = []
+        for csv_file in csv_files:
+            try:
+                file_path = os.path.join(reports_dir, csv_file)
+                logger.info(f"Przetwarzam plik kategorii: {csv_file}")
+                
+                # Wczytaj plik CSV
+                import pandas as pd
+                df = pd.read_csv(file_path)
+                
+                # Analiza dla kategorii
+                analysis_result = {
+                    "filename": csv_file,
+                    "category": category_name,
+                    "rows": len(df),
+                    "columns": list(df.columns),
+                    "file_size": os.path.getsize(file_path),
+                    "processed_at": "2025-08-24"
+                }
+                
+                processed_files.append(analysis_result)
+                logger.info(f"Pomyślnie przeanalizowano {category_name}: {csv_file} ({len(df)} wierszy)")
+                
+            except Exception as e:
+                logger.error(f"Błąd podczas analizy {category_name} {csv_file}: {e}")
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Nie udało się przeanalizować {category_name}: {str(e)}"
+                )
+        
+        return {
+            "message": f"Pomyślnie przeanalizowano {category_name}",
+            "category": category_name,
+            "date": date or "dzisiaj",
+            "files_processed": processed_files,
+            "total_files": len(processed_files)
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas ponownej analizy {category_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
