@@ -152,16 +152,69 @@ async def remove_category(category_name: str, force: bool = False):
 
 @router.get("/categories", response_model=List[CategoryInfo])
 async def get_categories():
-    """Zwraca listę wszystkich kategorii z liczbą kanałów"""
+    """Zwraca listę wszystkich kategorii z informacjami o kanałach"""
     try:
         if not task_scheduler:
             return []
-        
+            
         categories = task_scheduler.get_categories()
         return categories
         
     except Exception as e:
         logger.error(f"Błąd podczas pobierania kategorii: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/trends/analyze-all")
+async def analyze_all_csvs():
+    """
+    Endpoint do ręcznego uruchomienia analizy wszystkich istniejących plików CSV.
+    """
+    try:
+        # Import tutaj żeby uniknąć problemów z importami
+        from ..trend.core.store.trend_store import analyze_all_existing_csvs
+        
+        logger.info("Ręczne uruchomienie analizy wszystkich plików CSV")
+        
+        # Uruchom analizę
+        result = analyze_all_existing_csvs()
+        
+        return {
+            "message": "Analiza wszystkich plików CSV zakończona",
+            "result": result
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas analizy wszystkich CSV: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/trends/{category_name}/reanalyze")
+async def reanalyze_category(category_name: str, date: str = None):
+    """
+    Endpoint do wymuszenia ponownej analizy kategorii.
+    """
+    try:
+        from ..trend.core.store.trend_store import force_reanalyze_category
+        
+        logger.info(f"Wymuszenie ponownej analizy dla kategorii {category_name} {date or 'dzisiaj'}")
+        
+        success = force_reanalyze_category(category_name, date)
+        
+        if success:
+            return {
+                "message": f"Pomyślnie przeanalizowano ponownie {category_name}",
+                "category": category_name,
+                "date": date or "dzisiaj"
+            }
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Nie udało się przeanalizować {category_name}"
+            )
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas ponownej analizy {category_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

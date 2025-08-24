@@ -104,12 +104,35 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="daysBack">Liczba dni wstecz:</label>
-                    <input type="number" id="daysBack" name="days_back" class="input" value="3" min="1" max="30">
+                    <label for="reportDaysBack">Liczba dni wstecz:</label>
+                    <input type="number" id="reportDaysBack" name="days_back" class="input" value="3" min="1" max="30">
                 </div>
-                <button type="submit" class="btn btn-primary">Generuj Raport CSV</button>
+                <button type="submit" class="btn btn-primary">Generuj Raport</button>
             </form>
             <div id="generateReportResult"></div>
+        </div>
+        
+        <!-- Analiza Trendów -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Analiza Trendów</h2>
+                <small>Zarządzaj automatyczną analizą plików CSV</small>
+            </div>
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <button onclick="analyzeAllTrends()" class="btn btn-success" id="analyzeAllBtn">
+                    🔄 Analizuj wszystkie pliki CSV
+                </button>
+                <button onclick="reanalyzeCategory('PODCAST')" class="btn btn-warning">
+                    🔄 Przeanalizuj Podcast
+                </button>
+                <button onclick="reanalyzeCategory('MOTORYZACJA')" class="btn btn-warning">
+                    🔄 Przeanalizuj Motoryzację
+                </button>
+                <button onclick="reanalyzeCategory('POLITYKA')" class="btn btn-warning">
+                    🔄 Przeanalizuj Politykę
+                </button>
+            </div>
+            <div id="trendAnalysisResult"></div>
         </div>
         
         <!-- Lista Raportów -->
@@ -562,6 +585,91 @@
             } catch (error) {
                 alert(`Błąd: ${error.message}`);
             }
+        }
+        
+        // Trend Analysis functions
+        async function analyzeAllTrends() {
+            try {
+                const btn = document.getElementById('analyzeAllBtn');
+                const originalText = btn.textContent;
+                
+                // Wyłącz przycisk
+                btn.disabled = true;
+                btn.textContent = '⏳ Przetwarzanie...';
+                
+                showTrendStatus('🔄 Rozpoczynam analizę wszystkich plików CSV...', 'info');
+                
+                const response = await fetch(`${API_BASE}/trends/analyze-all`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showTrendStatus(`✅ Analiza zakończona! Przetworzono: ${result.result.total_processed}, Pomyślnie: ${result.result.total_success}`, 'success');
+                } else {
+                    showTrendStatus(`❌ Błąd: ${result.detail || result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showTrendStatus(`❌ Błąd połączenia: ${error.message}`, 'error');
+            } finally {
+                // Przywróć przycisk
+                const btn = document.getElementById('analyzeAllBtn');
+                btn.disabled = false;
+                btn.textContent = '🔄 Analizuj wszystkie pliki CSV';
+            }
+        }
+        
+        async function reanalyzeCategory(category) {
+            try {
+                showTrendStatus(`🔄 Przeanalizowuję kategorię ${category}...`, 'info');
+                
+                const response = await fetch(`${API_BASE}/trends/${category.toLowerCase()}/reanalyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showTrendStatus(`✅ Pomyślnie przeanalizowano ${category}!`, 'success');
+                } else {
+                    showTrendStatus(`❌ Błąd: ${result.detail || result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showTrendStatus(`❌ Błąd połączenia: ${error.message}`, 'error');
+            }
+        }
+        
+        function showTrendStatus(message, type = 'info') {
+            const resultDiv = document.getElementById('trendAnalysisResult');
+            
+            // Usuń istniejące komunikaty
+            const existingStatus = resultDiv.querySelector('.status');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            // Utwórz nowy komunikat
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            
+            resultDiv.appendChild(statusDiv);
+            
+            // Automatycznie ukryj po 10 sekundach
+            setTimeout(() => {
+                if (statusDiv.parentElement) {
+                    statusDiv.remove();
+                }
+            }, 10000);
         }
     </script>
 <!-- deploy: 2025-08-10 13:09:30 -->

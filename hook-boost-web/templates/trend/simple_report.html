@@ -113,6 +113,51 @@
         }
         .video-type.shorts { background-color: #e74c3c; }
         .video-type.longform { background-color: #27ae60; }
+        .analyze-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+        .analyze-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .status-message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
     </style>
 </head>
 <body>
@@ -124,6 +169,16 @@
         
         <div class="content">
             <a href="/" class="back-btn">← Powrót do strony głównej</a>
+            
+            <!-- Przyciski analizy -->
+            <div style="margin: 20px 0; text-align: center;">
+                <button onclick="analyzeAllCSVs()" class="analyze-btn" style="margin-right: 10px;">
+                    🔄 Analizuj wszystkie pliki CSV
+                </button>
+                <button onclick="reanalyzeCategory('{{ category.upper() }}')" class="analyze-btn">
+                    🔄 Przeanalizuj ponownie {{ category.capitalize() }}
+                </button>
+            </div>
             
             {% if videos and videos|length > 0 %}
             <div class="stats">
@@ -205,5 +260,112 @@
                 {% endif %}
         </div>
     </div>
+    
+    <script>
+        function showStatus(message, type = 'info') {
+            // Usuń istniejące komunikaty
+            const existingStatus = document.querySelector('.status-message');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            // Utwórz nowy komunikat
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.textContent = message;
+            
+            // Wstaw po przyciskach
+            const buttonsDiv = document.querySelector('.analyze-btn').parentElement;
+            buttonsDiv.parentElement.insertBefore(statusDiv, buttonsDiv.nextSibling);
+            
+            // Automatycznie ukryj po 10 sekundach
+            setTimeout(() => {
+                if (statusDiv.parentElement) {
+                    statusDiv.remove();
+                }
+            }, 10000);
+        }
+        
+        function setButtonsDisabled(disabled) {
+            const buttons = document.querySelectorAll('.analyze-btn');
+            buttons.forEach(btn => {
+                btn.disabled = disabled;
+                if (disabled) {
+                    btn.textContent = '⏳ Przetwarzanie...';
+                } else {
+                    // Przywróć oryginalny tekst
+                    if (btn.textContent.includes('wszystkie pliki CSV')) {
+                        btn.textContent = '🔄 Analizuj wszystkie pliki CSV';
+                    } else {
+                        btn.textContent = '🔄 Przeanalizuj ponownie {{ category.capitalize() }}';
+                    }
+                }
+            });
+        }
+        
+        async function analyzeAllCSVs() {
+            try {
+                setButtonsDisabled(true);
+                showStatus('🔄 Rozpoczynam analizę wszystkich plików CSV...', 'info');
+                
+                const response = await fetch('/api/v1/trends/analyze-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Analiza zakończona! Przetworzono: ${result.result.total_processed}, Pomyślnie: ${result.result.total_success}`, 'success');
+                    
+                    // Odśwież stronę po 3 sekundach
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    showStatus(`❌ Błąd: ${result.detail || result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ Błąd połączenia: ${error.message}`, 'error');
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+        
+        async function reanalyzeCategory(category) {
+            try {
+                setButtonsDisabled(true);
+                showStatus(`🔄 Przeanalizowuję kategorię ${category}...`, 'info');
+                
+                const response = await fetch(`/api/v1/trends/${category.toLowerCase()}/reanalyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Pomyślnie przeanalizowano ${category}!`, 'success');
+                    
+                    // Odśwież stronę po 2 sekundach
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showStatus(`❌ Błąd: ${result.detail || result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ Błąd połączenia: ${error.message}`, 'error');
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+    </script>
 </body>
 </html>

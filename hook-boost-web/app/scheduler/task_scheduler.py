@@ -7,6 +7,7 @@ from ..config import settings
 from ..youtube import YouTubeClient
 from ..storage import CSVGenerator
 from ..storage.state_manager import StateManager
+from ..trend.core.store.trend_store import auto_analyze_and_save
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,20 @@ class TaskScheduler:
                     try:
                         csv_path = self.csv_generator.generate_csv(videos, category)
                         logger.info(f"Wygenerowano raport dla kategorii {category}: {csv_path}")
+                        
+                        # AUTOMATYCZNA ANALIZA CSV - NOWA FUNKCJONALNOŚĆ
+                        try:
+                            logger.info(f"Rozpoczęcie automatycznej analizy CSV dla kategorii {category}")
+                            analysis_success = auto_analyze_and_save(category)
+                            
+                            if analysis_success:
+                                logger.info(f"✅ Pomyślnie przeanalizowano i zapisano wyniki dla {category}")
+                            else:
+                                logger.warning(f"⚠️ Nie udało się przeanalizować danych dla {category}")
+                                
+                        except Exception as analysis_error:
+                            logger.error(f"❌ Błąd podczas automatycznej analizy CSV dla {category}: {analysis_error}")
+                        
                     except Exception as e:
                         logger.error(f"Błąd podczas generowania raportu dla kategorii {category}: {e}")
                 
