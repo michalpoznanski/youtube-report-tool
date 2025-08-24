@@ -1042,3 +1042,38 @@ async def rename_old_format_reports():
         print(f"❌ API: {error_msg}")
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg) 
+
+
+@router.get("/trends/local-analysis/{category_name}")
+async def get_local_trend_analysis(category_name: str):
+    """
+    Endpoint do wyświetlania wyników lokalnej analizy trendów.
+    Wczytuje plik JSON wygenerowany przez lokalny analizator.
+    """
+    try:
+        logger.info(f"Pobieranie lokalnej analizy trendów dla kategorii {category_name}")
+        
+        # Ścieżka do pliku JSON z lokalnej analizy
+        json_file_path = f"/mnt/volume/reports/trend_analysis_{category_name.lower()}_latest.json"
+        
+        if not os.path.exists(json_file_path):
+            return {
+                "error": f"Brak lokalnej analizy dla kategorii {category_name}",
+                "message": "Uruchom lokalny analizator żeby wygenerować analizę",
+                "file_path": json_file_path
+            }
+        
+        # Wczytaj plik JSON
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            analysis_data = json.load(f)
+        
+        logger.info(f"Pomyślnie wczytano lokalną analizę: {len(analysis_data.get('reports', []))} raportów")
+        
+        return {
+            "message": f"Lokalna analiza trendów dla {category_name}",
+            "data": analysis_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas wczytywania lokalnej analizy dla {category_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
