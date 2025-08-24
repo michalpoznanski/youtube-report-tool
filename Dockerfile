@@ -43,4 +43,5 @@ CMD ["python", "run.py"]
 
 # Cache buster 4 - FORCE TEMPLATES UPDATE
 # Cache buster 5 - FORCE CSV PROCESSOR UPDATE
-# Cache buster 6 - FORCE TREND ANALYSIS UPDATE 
+# Cache buster 6 - FORCE TREND ANALYSIS UPDATE
+# Cache buster 7 - FORCE FULL REDEPLOYMENT - TREND ENDPOINTS 
