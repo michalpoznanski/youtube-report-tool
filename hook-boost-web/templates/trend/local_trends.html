@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Lokalna Analiza Trendów - {{ category.capitalize() }}</title>
+    <title>Top 15 Najpopularniejszych Wideo - {{ category.capitalize() }}</title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -12,7 +12,7 @@
             min-height: 100vh;
         }
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -50,6 +50,7 @@
         }
         .back-btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         .summary {
             background: #f8f9fa;
@@ -58,42 +59,53 @@
             border-radius: 10px;
             text-align: center;
         }
-        .summary-stats {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-        }
-        .stat-item {
-            text-align: center;
-        }
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-        .stat-label {
-            color: #666;
-            margin-top: 5px;
-        }
-        .report-section {
-            background: white;
-            padding: 20px;
-            margin: 20px 0;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-        }
         .top-videos {
-            background: #e8f5e8;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
+            margin: 20px 0;
         }
         .video-item {
-            padding: 10px;
-            margin: 5px 0;
-            background: white;
-            border-radius: 5px;
-            border-left: 4px solid #27ae60;
+            padding: 20px;
+            margin: 15px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .video-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .video-rank {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .video-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            padding-right: 50px;
+        }
+        .video-channel {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .video-views {
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 1.1rem;
         }
         .error-message {
             background: #f8d7da;
@@ -111,12 +123,15 @@
             text-align: center;
             margin: 20px 0;
         }
+        .gold { border-left-color: #ffd700; }
+        .silver { border-left-color: #c0c0c0; }
+        .bronze { border-left-color: #cd7f32; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Lokalna Analiza Trendów - {{ category.capitalize() }}</h1>
+            <h1>🏆 Top 15 Najpopularniejszych Wideo - {{ category.capitalize() }}</h1>
             <p class="subtitle">{{ current_date }}</p>
         </div>
         
@@ -128,85 +143,39 @@
                     <h3>❌ Błąd</h3>
                     <p>{{ error }}</p>
                 </div>
-            {% elif not analysis_data %}
+            {% elif not top_videos %}
                 <div class="info-message">
-                    <h3>ℹ️ Brak lokalnej analizy</h3>
-                    <p>Nie znaleziono wyników lokalnej analizy trendów.</p>
-                    <p><strong>Jak to naprawić:</strong></p>
-                    <ol style="text-align: left; max-width: 600px; margin: 20px auto;">
-                        <li>Uruchom lokalny analizator: <code>python3 local_trend_analyzer.py</code></li>
-                        <li>Prześlij wygenerowany plik JSON na Railway</li>
-                        <li>Odśwież tę stronę</li>
-                    </ol>
+                    <h3>ℹ️ Brak danych</h3>
+                    <p>Nie udało się wczytać danych z pliku CSV.</p>
+                    <p>Sprawdź czy istnieją pliki raportów w katalogu <code>/mnt/volume/reports</code></p>
                 </div>
             {% else %}
                 <!-- Podsumowanie -->
                 <div class="summary">
-                    <h2>📈 Podsumowanie Analizy</h2>
-                    <div class="summary-stats">
-                        <div class="stat-item">
-                            <div class="stat-number">{{ analysis_data.summary.total_reports }}</div>
-                            <div class="stat-label">Raporty</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ analysis_data.summary.total_videos }}</div>
-                            <div class="stat-label">Filmy</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ "{:,.0f}".format(analysis_data.summary.total_views) }}</div>
-                            <div class="stat-label">Wyświetlenia</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ "{:,.0f}".format(analysis_data.summary.avg_views_per_video) }}</div>
-                            <div class="stat-label">Średnio/film</div>
-                        </div>
-                    </div>
-                    <p><em>Analiza wygenerowana: {{ analysis_data.generated_at }}</em></p>
+                    <h2>📊 Podsumowanie</h2>
+                    <p><strong>{{ total_videos }}</strong> wideo z najnowszego raportu CSV</p>
+                    <p><em>Dane wczytane bezpośrednio z pliku</em></p>
                 </div>
                 
-                <!-- Szczegóły raportów -->
-                {% for report in analysis_data.reports %}
-                <div class="report-section">
-                    <h3>📁 {{ report.filename }}</h3>
-                    <div class="summary-stats">
-                        <div class="stat-item">
-                            <div class="stat-number">{{ report.total_videos }}</div>
-                            <div class="stat-label">Filmy</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ "{:,.0f}".format(report.total_views) }}</div>
-                            <div class="stat-label">Wyświetlenia</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ "{:,.0f}".format(report.avg_views) }}</div>
-                            <div class="stat-label">Średnio</div>
-                        </div>
-                    </div>
+                <!-- Top wideo -->
+                <div class="top-videos">
+                    <h2>🏆 Ranking według wyświetleń</h2>
                     
-                    {% if report.top_videos %}
-                    <h4>🏆 Top 5 filmów według wyświetleń:</h4>
-                    <div class="top-videos">
-                        {% for video in report.top_videos %}
-                        <div class="video-item">
-                            <strong>{{ video.Title }}</strong><br>
-                            <span style="color: #666;">{{ video.Channel_Name }}</span> - 
-                            <span style="color: #27ae60; font-weight: bold;">{{ "{:,.0f}".format(video.View_Count) }} wyświetleń</span>
-                        </div>
-                        {% endfor %}
+                    {% for video in top_videos %}
+                    <div class="video-item {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
+                        <div class="video-rank">{{ loop.index }}</div>
+                        <div class="video-title">{{ video.title }}</div>
+                        <div class="video-channel">📺 {{ video.channel }}</div>
+                        <div class="video-views">👁️ {{ "{:,.0f}".format(video.views) }} wyświetleń</div>
                     </div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
-                {% endfor %}
                 
                 <!-- Informacja o aktualizacji -->
                 <div class="info-message">
-                    <h3>🔄 Jak aktualizować analizę</h3>
-                    <p>Analiza jest generowana lokalnie. Aby zobaczyć najnowsze dane:</p>
-                    <ol style="text-align: left; max-width: 600px; margin: 20px auto;">
-                        <li>Uruchom: <code>python3 local_trend_analyzer.py</code></li>
-                        <li>Prześlij nowy plik JSON na Railway</li>
-                        <li>Odśwież tę stronę</li>
-                    </ol>
+                    <h3>🔄 Aktualizacja danych</h3>
+                    <p>Dane są wczytywane bezpośrednio z najnowszego pliku CSV w katalogu raportów.</p>
+                    <p>Odśwież stronę, aby zobaczyć najnowsze dane.</p>
                 </div>
             {% endif %}
         </div>

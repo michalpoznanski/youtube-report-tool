@@ -4,10 +4,90 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.trend.services.csv_processor import get_trend_data
 from datetime import date
+import pandas as pd
+import os
+from pathlib import Path
 
 log = logging.getLogger("trend")
 templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/trend", tags=["trend"])
+
+def get_top_videos_from_csv(category_name: str, limit: int = 15):
+    """
+    Prosta funkcja do czytania pliku CSV i zwracania top wideo.
+    """
+    try:
+        # Ścieżka do katalogu raportów
+        reports_dir = Path("/mnt/volume/reports")
+        if not reports_dir.exists():
+            reports_dir = Path("reports")  # Fallback dla lokalnego rozwoju
+        
+        # Znajdź najnowszy plik CSV dla danej kategorii
+        pattern = f"report_{category_name.upper()}_*.csv"
+        csv_files = list(reports_dir.glob(pattern))
+        
+        if not csv_files:
+            log.warning(f"Nie znaleziono plików CSV dla kategorii {category_name}")
+            return []
+        
+        # Weź najnowszy plik (sortuj po nazwie)
+        latest_file = sorted(csv_files)[-1]
+        log.info(f"Używam pliku: {latest_file}")
+        
+        # Wczytaj CSV
+        df = pd.read_csv(latest_file)
+        
+        # Sprawdź jakie kolumny są dostępne
+        log.info(f"Dostępne kolumny: {list(df.columns)}")
+        
+        # Znajdź kolumnę z liczbą wyświetleń (może być View_Count, views_today, etc.)
+        view_column = None
+        for col in ['View_Count', 'views_today', 'views', 'View_Count_Today']:
+            if col in df.columns:
+                view_column = col
+                break
+        
+        if not view_column:
+            log.warning(f"Nie znaleziono kolumny z wyświetleniami w {latest_file}")
+            return []
+        
+        # Znajdź kolumnę z tytułem
+        title_column = None
+        for col in ['Title', 'title', 'video_title']:
+            if col in df.columns:
+                title_column = col
+                break
+        
+        if not title_column:
+            log.warning(f"Nie znaleziono kolumny z tytułem w {latest_file}")
+            return []
+        
+        # Znajdź kolumnę z nazwą kanału
+        channel_column = None
+        for col in ['Channel_Name', 'channel', 'channel_name']:
+            if col in df.columns:
+                channel_column = col
+                break
+        
+        # Sortuj po wyświetleniach i weź top
+        df_sorted = df.sort_values(by=view_column, ascending=False).head(limit)
+        
+        # Przygotuj dane do wyświetlenia
+        top_videos = []
+        for _, row in df_sorted.iterrows():
+            video_data = {
+                'title': str(row.get(title_column, 'Brak tytułu')),
+                'views': int(row.get(view_column, 0)),
+                'channel': str(row.get(channel_column, 'Nieznany kanał')) if channel_column else 'Nieznany kanał'
+            }
+            top_videos.append(video_data)
+        
+        log.info(f"Pomyślnie wczytano {len(top_videos)} wideo z {latest_file}")
+        return top_videos
+        
+    except Exception as e:
+        log.error(f"Błąd podczas wczytywania CSV: {e}")
+        return []
 
 @router.get("/trends/{category_name}", response_class=HTMLResponse)
 async def get_category_trends(request: Request, category_name: str):
@@ -52,26 +132,13 @@ async def get_category_trends(request: Request, category_name: str):
 @router.get("/local-trends/{category_name}", response_class=HTMLResponse)
 async def get_local_trends_page(request: Request, category_name: str):
     """
-    Strona HTML wyświetlająca wyniki lokalnej analizy trendów.
+    Strona HTML wyświetlająca top 15 najpopularniejszych wideo z pliku CSV.
     """
     try:
-        log.info(f"Wyświetlanie lokalnej analizy trendów dla kategorii {category_name}")
+        log.info(f"Wyświetlanie top wideo dla kategorii {category_name}")
         
-        # Pobierz dane lokalnej analizy przez API
-        import requests
-        api_url = f"http://localhost:8000/api/v1/trends/local-analysis/{category_name}"
-        
-        try:
-            response = requests.get(api_url)
-            if response.status_code == 200:
-                analysis_data = response.json()["data"]
-                log.info(f"Pobrano lokalną analizę: {len(analysis_data.get('reports', []))} raportów")
-            else:
-                log.warning(f"Nie udało się pobrać lokalnej analizy: {response.status_code}")
-                analysis_data = None
-        except:
-            log.warning("Nie udało się połączyć z API, używam przykładowych danych")
-            analysis_data = None
+        # Pobierz top 15 wideo bezpośrednio z pliku CSV
+        top_videos = get_top_videos_from_csv(category_name, limit=15)
         
         # Renderuj szablon
         return templates.TemplateResponse(
@@ -79,21 +146,23 @@ async def get_local_trends_page(request: Request, category_name: str):
             {
                 "request": request,
                 "category": category_name,
-                "analysis_data": analysis_data,
-                "current_date": date.today().strftime("%Y-%m-%d")
+                "top_videos": top_videos,
+                "current_date": date.today().strftime("%Y-%m-%d"),
+                "total_videos": len(top_videos)
             }
         )
         
     except Exception as e:
-        log.error(f"Błąd podczas wyświetlania lokalnej analizy dla {category_name}: {e}")
+        log.error(f"Błąd podczas wyświetlania top wideo dla {category_name}: {e}")
         
         return templates.TemplateResponse(
             "trend/local_trends.html",
             {
                 "request": request,
                 "category": category_name,
-                "analysis_data": None,
+                "top_videos": [],
                 "error": str(e),
-                "current_date": date.today().strftime("%Y-%m-%d")
+                "current_date": date.today().strftime("%Y-%m-%d"),
+                "total_videos": 0
             }
         )
