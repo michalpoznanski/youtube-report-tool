@@ -9,6 +9,7 @@ FROM python:3.11-slim
 # Ustaw zmienne środowiskowe
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV ENABLE_TREND=true
 
 # Ustaw katalog roboczy
 WORKDIR /app
@@ -44,4 +45,6 @@ CMD ["python", "run.py"]
 # Cache buster 4 - FORCE TEMPLATES UPDATE
 # Cache buster 5 - FORCE CSV PROCESSOR UPDATE
 # Cache buster 6 - FORCE TREND ANALYSIS UPDATE
-# Cache buster 7 - FORCE FULL REDEPLOYMENT - TREND ENDPOINTS 
+# Cache buster 7 - FORCE FULL REDEPLOYMENT - TREND ENDPOINTS
+# Cache buster 8 - FORCE TREND MODULE ENABLE
+# Cache buster 9 - FORCE TREND ROUTING FIX 

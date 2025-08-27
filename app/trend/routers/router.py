@@ -48,3 +48,52 @@ async def get_category_trends(request: Request, category_name: str):
                 "error": str(e)
             }
         )
+
+@router.get("/local-trends/{category_name}", response_class=HTMLResponse)
+async def get_local_trends_page(request: Request, category_name: str):
+    """
+    Strona HTML wyświetlająca wyniki lokalnej analizy trendów.
+    """
+    try:
+        log.info(f"Wyświetlanie lokalnej analizy trendów dla kategorii {category_name}")
+        
+        # Pobierz dane lokalnej analizy przez API
+        import requests
+        api_url = f"http://localhost:8000/api/v1/trends/local-analysis/{category_name}"
+        
+        try:
+            response = requests.get(api_url)
+            if response.status_code == 200:
+                analysis_data = response.json()["data"]
+                log.info(f"Pobrano lokalną analizę: {len(analysis_data.get('reports', []))} raportów")
+            else:
+                log.warning(f"Nie udało się pobrać lokalnej analizy: {response.status_code}")
+                analysis_data = None
+        except:
+            log.warning("Nie udało się połączyć z API, używam przykładowych danych")
+            analysis_data = None
+        
+        # Renderuj szablon
+        return templates.TemplateResponse(
+            "trend/local_trends.html",
+            {
+                "request": request,
+                "category": category_name,
+                "analysis_data": analysis_data,
+                "current_date": date.today().strftime("%Y-%m-%d")
+            }
+        )
+        
+    except Exception as e:
+        log.error(f"Błąd podczas wyświetlania lokalnej analizy dla {category_name}: {e}")
+        
+        return templates.TemplateResponse(
+            "trend/local_trends.html",
+            {
+                "request": request,
+                "category": category_name,
+                "analysis_data": None,
+                "error": str(e),
+                "current_date": date.today().strftime("%Y-%m-%d")
+            }
+        )

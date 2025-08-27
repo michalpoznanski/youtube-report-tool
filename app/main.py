@@ -187,7 +187,16 @@ print(f"🔍 ENABLE_TREND type = {type(os.environ.get('ENABLE_TREND','false'))}"
 print(f"🔍 ENABLE_TREND.lower() = '{os.environ.get('ENABLE_TREND','false').lower()}'")
 print(f"🔍 Comparison result = {os.environ.get('ENABLE_TREND','false').lower()=='true'}")
 
-if os.environ.get('ENABLE_TREND','false').lower()=='true':
+# Dodatkowe sprawdzenie - może zmienna jest ustawiona w inny sposób
+enable_trend = (
+    os.environ.get('ENABLE_TREND', 'false').lower() == 'true' or
+    os.environ.get('ENABLE_TREND', 'false') == 'true' or
+    os.environ.get('ENABLE_TREND', 'false') == True
+)
+
+print(f"🔍 DEBUG: Final enable_trend decision = {enable_trend}")
+
+if enable_trend:
     print("🔍 DEBUG: ENABLE_TREND is true, loading trend module...")
     try:
         from app.trend.routers.router import router as trend_router
@@ -206,6 +215,17 @@ if os.environ.get('ENABLE_TREND','false').lower()=='true':
         traceback.print_exc()
 else:
     print("ℹ️ Trend module disabled (ENABLE_TREND!=true)")
+    # Fallback - spróbuj załadować moduł trendów mimo wszystko
+    print("🔄 DEBUG: Próbuję załadować moduł trendów mimo wszystko...")
+    try:
+        from app.trend.routers.router import router as trend_router
+        print("🔍 DEBUG: Trend router imported successfully (fallback)")
+        app.include_router(trend_router)
+        print("✅ Trend module loaded successfully (fallback)")
+    except Exception as e:
+        print(f"❌ Trend module fallback failed: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 
@@ -228,6 +248,21 @@ async def health_check():
         "templates_dir": tpl_root,
         "static_dir": static_root,
         "scheduler_running": scheduler.scheduler.running if scheduler else False
+    }
+
+
+@app.get("/test-trend-routing")
+async def test_trend_routing():
+    """Test endpoint żeby sprawdzić czy routing trendów działa"""
+    return {
+        "message": "✅ Trend routing test",
+        "enable_trend": os.environ.get("ENABLE_TREND", "NOT_SET"),
+        "trend_endpoints": [
+            "/trend/local-trends/PODCAST",
+            "/trend/local-trends/MOTO", 
+            "/trend/local-trends/POLITYKA"
+        ],
+        "timestamp": "2025-08-25"
     }
 
 
