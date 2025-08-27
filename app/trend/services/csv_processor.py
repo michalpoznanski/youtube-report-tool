@@ -143,9 +143,33 @@ class CSVProcessor:
             result_df = today_df.copy()
             
             # Dodaj kolumnę video_type na podstawie Duration
-            result_df['video_type'] = result_df['Duration'].apply(
-                lambda x: "Shorts" if pd.notna(x) and str(x).startswith('PT') and 'S' in str(x) and int(str(x).split('S')[0].split('T')[-1]) <= 60 else "Longform"
-            )
+            def safe_parse_duration(duration_str):
+                """Bezpiecznie parsuje Duration w formacie ISO 8601 i zwraca video_type"""
+                try:
+                    if pd.isna(duration_str) or not str(duration_str).startswith('PT'):
+                        return "Longform"
+                    
+                    duration_str = str(duration_str)
+                    # Parsuj format PT1H2M3S
+                    hours = 0
+                    minutes = 0
+                    seconds = 0
+                    
+                    if 'H' in duration_str:
+                        hours = int(duration_str.split('H')[0].split('T')[1])
+                    if 'M' in duration_str:
+                        minutes = int(duration_str.split('M')[0].split('T')[-1])
+                    if 'S' in duration_str:
+                        seconds = int(duration_str.split('S')[0].split('T')[-1])
+                    
+                    total_seconds = hours * 3600 + minutes * 60 + seconds
+                    return "Shorts" if total_seconds <= 60 else "Longform"
+                    
+                except (ValueError, IndexError, AttributeError):
+                    # W przypadku błędu parsowania, domyślnie Longform
+                    return "Longform"
+            
+            result_df['video_type'] = result_df['Duration'].apply(safe_parse_duration)
             
             # Inicjalizuj kolumnę delta
             result_df['delta'] = 0
