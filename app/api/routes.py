@@ -1203,4 +1203,46 @@ async def test_trend_endpoint():
         "message": "✅ Trend endpoint działa!",
         "timestamp": "2025-08-24",
         "status": "working"
-    } 
+    }
+
+
+@router.post("/trends/upload-analysis")
+async def upload_trend_analysis(category_name: str, file: UploadFile = File(...)):
+    """
+    Endpoint do przesyłania plików JSON z analizą trendów.
+    """
+    try:
+        logger.info(f"Przesyłanie analizy trendów dla kategorii {category_name}")
+        
+        # Sprawdź czy plik to JSON
+        if not file.filename.endswith('.json'):
+            raise HTTPException(
+                status_code=400, 
+                detail="Plik musi być w formacie JSON"
+            )
+        
+        # Sprawdź czy katalog reports istnieje
+        reports_dir = "/mnt/volume/reports"
+        if not os.path.exists(reports_dir):
+            os.makedirs(reports_dir, exist_ok=True)
+            logger.info(f"Utworzono katalog: {reports_dir}")
+        
+        # Zapisz plik
+        file_path = os.path.join(reports_dir, f"trend_analysis_{category_name.lower()}_latest.json")
+        
+        with open(file_path, 'wb') as f:
+            content = await file.read()
+            f.write(content)
+        
+        logger.info(f"Pomyślnie zapisano analizę trendów: {file_path}")
+        
+        return {
+            "message": f"Analiza trendów dla {category_name} została przesłana",
+            "file_path": file_path,
+            "file_size": len(content),
+            "category": category_name
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas przesyłania analizy trendów: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 

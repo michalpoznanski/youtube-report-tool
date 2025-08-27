@@ -47,4 +47,5 @@ CMD ["python", "run.py"]
 # Cache buster 6 - FORCE TREND ANALYSIS UPDATE
 # Cache buster 7 - FORCE FULL REDEPLOYMENT - TREND ENDPOINTS
 # Cache buster 8 - FORCE TREND MODULE ENABLE
-# Cache buster 9 - FORCE TREND ROUTING FIX 
+# Cache buster 9 - FORCE TREND ROUTING FIX
+# Cache buster 10 - FORCE TREND UPLOAD ENDPOINT 
