@@ -324,7 +324,7 @@ async def get_status():
                 scheduler_running=False,
                 channels_count=0,
                 categories=[],
-                quota_usage=task_scheduler.get_quota_usage(),
+                quota_usage={"used": 0, "limit": 10000, "percentage": 0.0},
                 next_report=None
             )
             

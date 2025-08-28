@@ -110,12 +110,24 @@
             <div id="reportsList" class="reports-list"></div>
         </div>
         
+        <!-- Status Systemu -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Status Systemu</h2>
+            </div>
+            <div id="status" class="status-container">
+                <div class="status loading">Ładowanie statusu...</div>
+            </div>
+        </div>
+        
         <!-- Kontrola Schedulera -->
-        <div class="section">
-            <h2>⏰ Raport: ON/OFF</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2>⏰ Raport: ON/OFF</h2>
+            </div>
             <div class="scheduler-controls">
-                <button onclick="startScheduler()">Uruchom Scheduler</button>
-                <button onclick="stopScheduler()">Zatrzymaj Scheduler</button>
+                <button onclick="startScheduler()" class="btn btn-primary">Uruchom Scheduler</button>
+                <button onclick="stopScheduler()" class="btn btn-danger">Zatrzymaj Scheduler</button>
                 <div id="schedulerStatus" class="status-indicator">
                     <span class="status-dot" id="statusDot">⚪</span>
                     <span id="statusText">Sprawdzanie...</span>
