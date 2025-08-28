@@ -248,7 +248,7 @@
                                     <th>Tytuł</th>
                                     <th>Kanał</th>
                                     <th>Wyświetlenia</th>
-                                    <th>Długość</th>
+                                    <th>TREND</th>
                                     <th>Miniatura</th>
                                 </tr>
                             </thead>
@@ -264,15 +264,18 @@
                                     <td class="channel-name">{{ video.channel }}</td>
                                     <td class="views">
                                         {{ "{:,.0f}".format(video.views) }}
+                                    </td>
+                                    <td class="trend">
                                         {% if video.trend == 'up' %}
-                                            <span style="color: #28a745; margin-left: 5px;">↑</span>
+                                            <span style="color: #28a745; font-size: 1.2em;">↑</span>
                                         {% elif video.trend == 'down' %}
-                                            <span style="color: #dc3545; margin-left: 5px;">↓</span>
+                                            <span style="color: #dc3545; font-size: 1.2em;">↓</span>
                                         {% elif video.trend == 'new' %}
-                                            <span style="color: #17a2b8; margin-left: 5px;">🆕</span>
+                                            <span style="color: #17a2b8; font-size: 1.2em;">🆕</span>
+                                        {% else %}
+                                            <span style="color: #6c757d; font-size: 1.2em;">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ video.duration }}</td>
                                     <td>
                                         <img src="{{ video.thumbnail_url }}" alt="Thumbnail" style="width: 96px; height: 54px; border-radius: 5px; object-fit: cover;">
                                     </td>
@@ -296,7 +299,7 @@
                                     <th>Tytuł</th>
                                     <th>Kanał</th>
                                     <th>Wyświetlenia</th>
-                                    <th>Długość</th>
+                                    <th>TREND</th>
                                     <th>Miniatura</th>
                                 </tr>
                             </thead>
@@ -312,15 +315,18 @@
                                     <td class="channel-name">{{ video.channel }}</td>
                                     <td class="views">
                                         {{ "{:,.0f}".format(video.views) }}
+                                    </td>
+                                    <td class="trend">
                                         {% if video.trend == 'up' %}
-                                            <span style="color: #28a745; margin-left: 5px;">↑</span>
+                                            <span style="color: #28a745; font-size: 1.2em;">↑</span>
                                         {% elif video.trend == 'down' %}
-                                            <span style="color: #dc3545; margin-left: 5px;">↓</span>
+                                            <span style="color: #dc3545; font-size: 1.2em;">↓</span>
                                         {% elif video.trend == 'new' %}
-                                            <span style="color: #17a2b8; margin-left: 5px;">🆕</span>
+                                            <span style="color: #17a2b8; font-size: 1.2em;">🆕</span>
+                                        {% else %}
+                                            <span style="color: #6c757d; font-size: 1.2em;">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ video.duration }}</td>
                                     <td>
                                         <img src="{{ video.thumbnail_url }}" alt="Thumbnail" style="width: 96px; height: 54px; border-radius: 5px; object-fit: cover;">
                                     </td>
