@@ -203,12 +203,8 @@ if enable_trend:
         print("🔍 DEBUG: Trend router imported successfully")
         app.include_router(trend_router)
         print("✅ Trend module loaded successfully")
-        try:
-            from app.trend.core.scheduler_bind import register_trend_job
-            register_trend_job(scheduler, category='PODCAST')
-            print("✅ Trend scheduler attached")
-        except Exception as e:
-            print(f"⚠️ Trend scheduler attach failed: {e}")
+        # Usunięto nieistniejący import scheduler_bind
+        print("ℹ️ Trend module loaded without scheduler binding (not required)")
     except Exception as e:
         print(f"❌ Trend module failed to load: {e}")
         import traceback

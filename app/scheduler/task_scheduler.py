@@ -51,7 +51,7 @@ class TaskScheduler:
             # Uruchom scheduler
             self.scheduler.start()
             timezone = pytz.timezone(settings.timezone)
-            logger.info(f"Scheduler uruchomiony - raporty codziennie o {settings.scheduler_hour}:{settings.scheduler_minute:02d} {timezone}")
+            logger.info(f"Scheduler uruchomiony - raporty codziennie o {settings.scheduler_hour}:{str(settings.scheduler_minute).zfill(2)} {timezone}")
             
         except Exception as e:
             logger.error(f"Błąd podczas uruchamiania schedulera: {e}")
@@ -165,12 +165,23 @@ class TaskScheduler:
                     logger.info(f"Używam pliku CSV: {latest_csv}")
                     
                     # Sprawdź czy to dzisiejszy raport (z 1:00)
-                    csv_date = latest_csv.stem.split('_')[-1]  # Pobierz datę z nazwy pliku
-                    today = datetime.now().strftime('%Y-%m-%d')
-                    
-                    if csv_date != today:
-                        logger.warning(f"Ostatni raport dla {category} nie jest z dzisiaj: {csv_date} vs {today}")
-                        continue
+                    try:
+                        # Bezpieczniejsze parsowanie daty z nazwy pliku
+                        filename = latest_csv.name
+                        if '_' in filename:
+                            csv_date = filename.split('_')[-1].replace('.csv', '')
+                        else:
+                            csv_date = latest_csv.stem
+                        
+                        today = datetime.now().strftime('%Y-%m-%d')
+                        
+                        if csv_date != today:
+                            logger.warning(f"Ostatni raport dla {category} nie jest z dzisiaj: {csv_date} vs {today}")
+                            continue
+                    except Exception as e:
+                        logger.warning(f"Błąd podczas parsowania daty z nazwy pliku {latest_csv}: {e}")
+                        # Kontynuuj mimo błędu parsowania daty
+                        pass
                     
                     # Wczytaj dane z CSV
                     df = pd.read_csv(latest_csv)
