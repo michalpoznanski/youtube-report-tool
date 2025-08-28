@@ -42,8 +42,8 @@ class TaskScheduler:
             self.scheduler.add_job(
                 self.daily_ranking_analysis_task,
                 'cron',
-                hour=1,
-                minute=30,
+                hour=settings.scheduler_hour,
+                minute=settings.scheduler_minute + 30,
                 id='daily_ranking_analysis',
                 name='Codzienna analiza rankingowa'
             )
@@ -152,7 +152,7 @@ class TaskScheduler:
                     logger.info(f"Analizuję ranking dla kategorii: {category}")
                     
                     # Znajdź najnowszy plik CSV dla tej kategorii
-                    reports_dir = Path("reports")
+                    reports_dir = settings.reports_path
                     pattern = f"report_{category.upper()}_*.csv"
                     csv_files = list(reports_dir.glob(pattern))
                     
@@ -163,6 +163,14 @@ class TaskScheduler:
                     # Weź najnowszy plik
                     latest_csv = sorted(csv_files)[-1]
                     logger.info(f"Używam pliku CSV: {latest_csv}")
+                    
+                    # Sprawdź czy to dzisiejszy raport (z 1:00)
+                    csv_date = latest_csv.stem.split('_')[-1]  # Pobierz datę z nazwy pliku
+                    today = datetime.now().strftime('%Y-%m-%d')
+                    
+                    if csv_date != today:
+                        logger.warning(f"Ostatni raport dla {category} nie jest z dzisiaj: {csv_date} vs {today}")
+                        continue
                     
                     # Wczytaj dane z CSV
                     df = pd.read_csv(latest_csv)
