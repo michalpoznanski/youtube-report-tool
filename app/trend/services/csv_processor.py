@@ -184,12 +184,32 @@ class CSVProcessor:
                         minutes = 0
                         seconds = 0
                         
+                        # Parsuj godziny (H)
                         if 'H' in duration_str:
-                            hours = int(duration_str.split('H')[0].split('T')[1])
+                            hours_part = duration_str.split('H')[0]
+                            hours = int(hours_part.split('T')[1])
+                        
+                        # Parsuj minuty (M) - uwaga na kolejność!
                         if 'M' in duration_str:
-                            minutes = int(duration_str.split('M')[0].split('T')[-1])
+                            # Znajdź część z minutami (po H, przed S)
+                            if 'H' in duration_str:
+                                # Format: PT1H2M3S
+                                minutes_part = duration_str.split('H')[1].split('M')[0]
+                            else:
+                                # Format: PT2M3S
+                                minutes_part = duration_str.split('M')[0].split('T')[1]
+                            minutes = int(minutes_part)
+                        
+                        # Parsuj sekundy (S)
                         if 'S' in duration_str:
-                            seconds = int(duration_str.split('S')[0].split('T')[-1])
+                            # Znajdź część z sekundami (po M lub po T)
+                            if 'M' in duration_str:
+                                # Format: PT1H2M3S lub PT2M3S
+                                seconds_part = duration_str.split('M')[1].split('S')[0]
+                            else:
+                                # Format: PT3S
+                                seconds_part = duration_str.split('T')[1].split('S')[0]
+                            seconds = int(seconds_part)
                         
                         total_seconds = hours * 3600 + minutes * 60 + seconds
                         # Filmy do 10 minut (600 sekund) to shorts, powyżej to long-form

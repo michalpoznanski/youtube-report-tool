@@ -107,37 +107,43 @@ class RankingManager:
         # Załaduj obecny ranking
         current_ranking = self.load_ranking(category)
         
-        # Przygotuj dane do analizy
-        video_data = []
-        for video in videos:
-            try:
-                # Debug: sprawdź co jest w video
-                logger.debug(f"Przetwarzam film: {video.get('Title', 'Brak tytułu')}")
-                logger.debug(f"Video keys: {list(video.keys())}")
-                logger.debug(f"View_Count: {video.get('View_Count', 'BRAK')}")
-                logger.debug(f"Video_ID: {video.get('Video_ID', 'BRAK')}")
-                logger.debug(f"Channel_Name: {video.get('Channel_Name', 'BRAK')}")
+        # Użyj csv_processor do przetworzenia danych z poprawną logiką
+        try:
+            from app.trend.services.csv_processor import get_trend_data
+            from datetime import date
+            
+            # Pobierz przetworzone dane przez csv_processor
+            processed_videos = get_trend_data(category=category, report_date=date.today())
+            
+            if processed_videos:
+                logger.info(f"Użyto csv_processor do przetworzenia {len(processed_videos)} filmów")
                 
-                # Określ typ filmu
-                video_type = self.determine_video_type(video.get('Duration', video.get('duration_seconds', '')))
+                # Użyj przetworzonych danych z csv_processor
+                video_data = []
+                for video in processed_videos:
+                    try:
+                        video_data.append({
+                            'video_id': str(video.get('video_id', '')),
+                            'title': str(video.get('title', '')),
+                            'channel': str(video.get('channel', '')),
+                            'views': int(video.get('views', 0)),
+                            'video_type': str(video.get('video_type', 'Longform')),
+                            'duration': str(video.get('duration', '')),
+                            'thumbnail_url': str(video.get('thumbnail_url', ''))
+                        })
+                    except Exception as e:
+                        logger.warning(f"Pominięto film z błędem: {e}")
+                        continue
                 
-                # Pobierz liczbę wyświetleń
-                view_count = video.get('View_Count', video.get('views_today', 0))
-                if isinstance(view_count, str):
-                    view_count = int(view_count.replace(',', ''))
-                
-                video_data.append({
-                    'video_id': video.get('Video_ID', video.get('video_id', '')),
-                    'title': video.get('Title', video.get('title', '')),
-                    'channel': video.get('Channel_Name', video.get('channel', '')),
-                    'views': int(view_count),
-                    'video_type': video_type,
-                    'duration': video.get('Duration', video.get('duration_seconds', '')),
-                    'thumbnail_url': f"https://img.youtube.com/vi/{video.get('Video_ID', video.get('video_id', ''))}/mqdefault.jpg"
-                })
-            except Exception as e:
-                logger.warning(f"Pominięto film z błędem: {e}")
-                continue
+                logger.info(f"Przetworzono {len(video_data)} filmów przez csv_processor")
+            else:
+                logger.warning("csv_processor nie zwrócił danych, używam surowych danych CSV")
+                # Fallback do starej logiki
+                video_data = self._process_raw_csv_data(videos)
+        except Exception as e:
+            logger.warning(f"Błąd podczas używania csv_processor: {e}, używam surowych danych CSV")
+            # Fallback do starej logiki
+            video_data = self._process_raw_csv_data(videos)
         
         # Podziel na SHORTS i LONG FORM
         shorts = [v for v in video_data if v['video_type'] == 'Shorts']
@@ -318,6 +324,59 @@ class RankingManager:
         trends["falling_stars"].sort(key=lambda x: x["to_position"] - x["from_position"], reverse=True)
         
         return trends
+    
+    def _process_raw_csv_data(self, videos: List[Dict]) -> List[Dict]:
+        """Przetwarza surowe dane CSV jako fallback"""
+        logger.info("Używam fallback do przetwarzania surowych danych CSV")
+        
+        video_data = []
+        
+        # Określ format danych CSV
+        is_new_format = any('Video_ID' in str(video.keys()) for video in videos[:5]) if videos else False
+        
+        for video in videos:
+            try:
+                # Debug: sprawdź co jest w video
+                logger.debug(f"Przetwarzam film: {video.get('Title', video.get('title', 'Brak tytułu'))}")
+                logger.debug(f"Video keys: {list(video.keys())}")
+                
+                # Mapuj kolumny na podstawie formatu
+                if is_new_format:
+                    # Nowy format: Video_ID, Title, View_Count, Duration, Channel_Name
+                    video_id = video.get('Video_ID', '')
+                    title = video.get('Title', '')
+                    view_count = video.get('View_Count', 0)
+                    duration = video.get('Duration', '')
+                    channel = video.get('Channel_Name', '')
+                else:
+                    # Stary format: video_id, title, views_today, duration_seconds, channel
+                    video_id = video.get('video_id', '')
+                    title = video.get('title', '')
+                    view_count = video.get('views_today', 0)
+                    duration = video.get('duration_seconds', '')
+                    channel = video.get('channel', '')
+                
+                # Określ typ filmu
+                video_type = self.determine_video_type(duration)
+                
+                # Pobierz liczbę wyświetleń
+                if isinstance(view_count, str):
+                    view_count = int(view_count.replace(',', ''))
+                
+                video_data.append({
+                    'video_id': str(video_id),
+                    'title': str(title),
+                    'channel': str(channel),
+                    'views': int(view_count),
+                    'video_type': video_type,
+                    'duration': str(duration),
+                    'thumbnail_url': f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+                })
+            except Exception as e:
+                logger.warning(f"Pominięto film z błędem: {e}")
+                continue
+        
+        return video_data
 
 
 # Instancja globalna

@@ -1,6 +1,6 @@
 {
-  "category": "PODCAST",
-  "last_updated": "2025-08-28T13:24:06.788301",
+  "category": "podcast",
+  "last_updated": "2025-08-28T14:29:07.757707",
   "shorts": [
     {
       "video_id": "13irJRBn3Mw",
@@ -19,6 +19,15 @@
       "video_type": "Shorts",
       "duration": "PT35S",
       "thumbnail_url": "https://img.youtube.com/vi/A3XX6Vh59-M/mqdefault.jpg"
+    },
+    {
+      "video_id": "Hko3XedmRBU",
+      "title": "Krzysztof Gonciarz – czym wkurzył te dziewczyny?",
+      "channel": "zurnalistapl",
+      "views": 22878,
+      "video_type": "Shorts",
+      "duration": "PT1M17S",
+      "thumbnail_url": "https://img.youtube.com/vi/Hko3XedmRBU/mqdefault.jpg"
     },
     {
       "video_id": "8V-YADL0lkY",
@@ -66,6 +75,15 @@
       "thumbnail_url": "https://img.youtube.com/vi/ll1NML6ZqX4/mqdefault.jpg"
     },
     {
+      "video_id": "mEn-6dTogow",
+      "title": "Krzysztof Gonciarz: Internet zamienił mnie w ofiarę Hunger Games",
+      "channel": "zurnalistapl",
+      "views": 14822,
+      "video_type": "Shorts",
+      "duration": "PT1M19S",
+      "thumbnail_url": "https://img.youtube.com/vi/mEn-6dTogow/mqdefault.jpg"
+    },
+    {
       "video_id": "dH1ZMIZ3jR8",
       "title": "Krzysztof Gonciarz – co się zmieniło na lepsze?",
       "channel": "zurnalistapl",
@@ -73,327 +91,32 @@
       "video_type": "Shorts",
       "duration": "PT30S",
       "thumbnail_url": "https://img.youtube.com/vi/dH1ZMIZ3jR8/mqdefault.jpg"
-    },
-    {
-      "video_id": "pOz5hrKhta0",
-      "title": "Krzysztof Gonciarz – nie jest zmęczony tą walką?",
-      "channel": "zurnalistapl",
-      "views": 14241,
-      "video_type": "Shorts",
-      "duration": "PT21S",
-      "thumbnail_url": "https://img.youtube.com/vi/pOz5hrKhta0/mqdefault.jpg"
-    },
-    {
-      "video_id": "5U4qyKnPD3Q",
-      "title": "Krzysztof Gonciarz: dziewczyny okłamały siebie nawzajem",
-      "channel": "zurnalistapl",
-      "views": 13827,
-      "video_type": "Shorts",
-      "duration": "PT40S",
-      "thumbnail_url": "https://img.youtube.com/vi/5U4qyKnPD3Q/mqdefault.jpg"
     }
   ],
-  "longform": [
-    {
-      "video_id": "Hko3XedmRBU",
-      "title": "Krzysztof Gonciarz – czym wkurzył te dziewczyny?",
-      "channel": "zurnalistapl",
-      "views": 22878,
-      "video_type": "Longform",
-      "duration": "PT1M17S",
-      "thumbnail_url": "https://img.youtube.com/vi/Hko3XedmRBU/mqdefault.jpg"
-    },
-    {
-      "video_id": "mEn-6dTogow",
-      "title": "Krzysztof Gonciarz: Internet zamienił mnie w ofiarę Hunger Games",
-      "channel": "zurnalistapl",
-      "views": 14822,
-      "video_type": "Longform",
-      "duration": "PT1M19S",
-      "thumbnail_url": "https://img.youtube.com/vi/mEn-6dTogow/mqdefault.jpg"
-    },
-    {
-      "video_id": "pOEfSz10Fgs",
-      "title": "Czy afera zrujnowała Krzysztofa Gonciarza finansowo?",
-      "channel": "zurnalistapl",
-      "views": 13437,
-      "video_type": "Longform",
-      "duration": "PT1M26S",
-      "thumbnail_url": "https://img.youtube.com/vi/pOEfSz10Fgs/mqdefault.jpg"
-    },
-    {
-      "video_id": "IP4wfYWs6Mc",
-      "title": "Krzysztof Gonciarz – kim jest współtwórczyni Perseusza?",
-      "channel": "zurnalistapl",
-      "views": 11806,
-      "video_type": "Longform",
-      "duration": "PT1M6S",
-      "thumbnail_url": "https://img.youtube.com/vi/IP4wfYWs6Mc/mqdefault.jpg"
-    },
-    {
-      "video_id": "hn_uXIhD-rY",
-      "title": "Jak Krzysztof Gonciarz wspomina Fame MMA?",
-      "channel": "zurnalistapl",
-      "views": 9853,
-      "video_type": "Longform",
-      "duration": "PT1M5S",
-      "thumbnail_url": "https://img.youtube.com/vi/hn_uXIhD-rY/mqdefault.jpg"
-    },
-    {
-      "video_id": "kHnRsDnnI9k",
-      "title": "Nie wszystko pokazałem. Gonciarz o granicach opowieści",
-      "channel": "zurnalistapl",
-      "views": 9425,
-      "video_type": "Longform",
-      "duration": "PT1M25S",
-      "thumbnail_url": "https://img.youtube.com/vi/kHnRsDnnI9k/mqdefault.jpg"
-    },
-    {
-      "video_id": "VdqP-NU63II",
-      "title": "Krzysztof Gonciarz – Wardęga ostrzegał go przed samym sobą?",
-      "channel": "zurnalistapl",
-      "views": 8373,
-      "video_type": "Longform",
-      "duration": "PT1M6S",
-      "thumbnail_url": "https://img.youtube.com/vi/VdqP-NU63II/mqdefault.jpg"
-    },
-    {
-      "video_id": "e_T5pyz9BuU",
-      "title": "Ludzie nie zdają sobie sprawy, co mogą mieć na nich inni – Krzysztof Gonciarz",
-      "channel": "zurnalistapl",
-      "views": 5904,
-      "video_type": "Longform",
-      "duration": "PT1M14S",
-      "thumbnail_url": "https://img.youtube.com/vi/e_T5pyz9BuU/mqdefault.jpg"
-    }
-  ],
+  "longform": [],
   "history": {
-    "": {
-      "title": "Krzysztof Gonciarz: hedonizm? To już nie wróci",
-      "channel": "",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 1,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 2,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 3,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 4,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 5,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 6,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 7,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 8,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 9,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 10,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 1,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 2,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 3,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 4,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 5,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 6,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 7,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 8,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 9,
-          "views": 0,
-          "type": "Longform"
-        },
-        {
-          "date": "2025-08-28",
-          "position": 10,
-          "views": 0,
-          "type": "Longform"
-        }
-      ]
-    },
-    "13irJRBn3Mw": {
-      "title": "Krzysztof Gonciarz – miał problem z używkami?",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 1,
-          "views": 32085,
-          "type": "Shorts"
-        }
-      ]
-    },
-    "A3XX6Vh59-M": {
-      "title": "Krzysztof Gonciarz – słowa Żulczyka uderzyły najmocniej?",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 2,
-          "views": 26388,
-          "type": "Shorts"
-        }
-      ]
-    },
-    "8V-YADL0lkY": {
-      "title": "Krzysztof Gonciarz: nie toleruję już braku szacunku",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 3,
-          "views": 20358,
-          "type": "Shorts"
-        }
-      ]
-    },
-    "ogT2tTi1oGg": {
-      "title": "Krzysztof Gonciarz – dlaczego to robi publicznie?",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 4,
-          "views": 19528,
-          "type": "Shorts"
-        }
-      ]
-    },
-    "G3cwuWTkaXs": {
-      "title": "Ciągły lincz w sieci? Krzysztof Gonciarz",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 5,
-          "views": 18209,
-          "type": "Shorts"
-        }
-      ]
-    },
-    "Jtar-ahFiHQ": {
-      "title": "Krzysztof Gonciarz: 2021 to najcięższy rok mojego życia",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 6,
-          "views": 17567,
-          "type": "Shorts"
-        }
-      ]
-    },
-    "ll1NML6ZqX4": {
-      "title": "Krzysztof Gonciarz – stał się mściwy?",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 7,
-          "views": 16025,
-          "type": "Shorts"
-        }
-      ]
-    },
-    "dH1ZMIZ3jR8": {
-      "title": "Krzysztof Gonciarz – co się zmieniło na lepsze?",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 8,
-          "views": 14306,
-          "type": "Shorts"
-        }
-      ]
-    },
     "pOz5hrKhta0": {
       "title": "Krzysztof Gonciarz – nie jest zmęczony tą walką?",
       "channel": "zurnalistapl",
       "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 1,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 1,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 1,
+          "views": 0,
+          "type": "Longform"
+        },
         {
           "date": "2025-08-28",
           "position": 9,
@@ -408,8 +131,362 @@
       "positions": [
         {
           "date": "2025-08-28",
+          "position": 2,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 2,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 2,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
           "position": 10,
           "views": 13827,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "MGezSxNBwp4": {
+      "title": "Krzysztof Gonciarz – czy dostaje dziś propozycje współprac?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 3,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 3,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 3,
+          "views": 0,
+          "type": "Longform"
+        }
+      ]
+    },
+    "Jr4vaVvj78I": {
+      "title": "Krzysztof Gonciarz – prawda leży pośrodku?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 4,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 4,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 4,
+          "views": 0,
+          "type": "Longform"
+        }
+      ]
+    },
+    "IP4wfYWs6Mc": {
+      "title": "Krzysztof Gonciarz – kim jest współtwórczyni Perseusza?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 5,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 5,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 5,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 4,
+          "views": 11806,
+          "type": "Longform"
+        }
+      ]
+    },
+    "13irJRBn3Mw": {
+      "title": "Krzysztof Gonciarz – miał problem z używkami?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 6,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 6,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 6,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 1,
+          "views": 32085,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 1,
+          "views": 32085,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "3DyApd1oo9M": {
+      "title": "Zdjęcie z lotniska? Daria później się z tego wycofała – Krzysztof Gonciarz",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 7,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 7,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 7,
+          "views": 0,
+          "type": "Longform"
+        }
+      ]
+    },
+    "km5Y8zugNfs": {
+      "title": "Krzysztof Gonciarz: trójkąt to nie zbrodnia",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 8,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 8,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 8,
+          "views": 0,
+          "type": "Longform"
+        }
+      ]
+    },
+    "VdqP-NU63II": {
+      "title": "Krzysztof Gonciarz – Wardęga ostrzegał go przed samym sobą?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 9,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 9,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 9,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 7,
+          "views": 8373,
+          "type": "Longform"
+        }
+      ]
+    },
+    "8V-YADL0lkY": {
+      "title": "Krzysztof Gonciarz: nie toleruję już braku szacunku",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 10,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 10,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 10,
+          "views": 0,
+          "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 3,
+          "views": 20358,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 4,
+          "views": 20358,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "A3XX6Vh59-M": {
+      "title": "Krzysztof Gonciarz – słowa Żulczyka uderzyły najmocniej?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 2,
+          "views": 26388,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 2,
+          "views": 26388,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "ogT2tTi1oGg": {
+      "title": "Krzysztof Gonciarz – dlaczego to robi publicznie?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 4,
+          "views": 19528,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 5,
+          "views": 19528,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "G3cwuWTkaXs": {
+      "title": "Ciągły lincz w sieci? Krzysztof Gonciarz",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 5,
+          "views": 18209,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 6,
+          "views": 18209,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "Jtar-ahFiHQ": {
+      "title": "Krzysztof Gonciarz: 2021 to najcięższy rok mojego życia",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 6,
+          "views": 17567,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 7,
+          "views": 17567,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "ll1NML6ZqX4": {
+      "title": "Krzysztof Gonciarz – stał się mściwy?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 7,
+          "views": 16025,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 8,
+          "views": 16025,
+          "type": "Shorts"
+        }
+      ]
+    },
+    "dH1ZMIZ3jR8": {
+      "title": "Krzysztof Gonciarz – co się zmieniło na lepsze?",
+      "channel": "zurnalistapl",
+      "positions": [
+        {
+          "date": "2025-08-28",
+          "position": 8,
+          "views": 14306,
+          "type": "Shorts"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 10,
+          "views": 14306,
           "type": "Shorts"
         }
       ]
@@ -423,6 +500,12 @@
           "position": 1,
           "views": 22878,
           "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 3,
+          "views": 22878,
+          "type": "Shorts"
         }
       ]
     },
@@ -435,6 +518,12 @@
           "position": 2,
           "views": 14822,
           "type": "Longform"
+        },
+        {
+          "date": "2025-08-28",
+          "position": 9,
+          "views": 14822,
+          "type": "Shorts"
         }
       ]
     },
@@ -446,18 +535,6 @@
           "date": "2025-08-28",
           "position": 3,
           "views": 13437,
-          "type": "Longform"
-        }
-      ]
-    },
-    "IP4wfYWs6Mc": {
-      "title": "Krzysztof Gonciarz – kim jest współtwórczyni Perseusza?",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 4,
-          "views": 11806,
           "type": "Longform"
         }
       ]
@@ -482,18 +559,6 @@
           "date": "2025-08-28",
           "position": 6,
           "views": 9425,
-          "type": "Longform"
-        }
-      ]
-    },
-    "VdqP-NU63II": {
-      "title": "Krzysztof Gonciarz – Wardęga ostrzegał go przed samym sobą?",
-      "channel": "zurnalistapl",
-      "positions": [
-        {
-          "date": "2025-08-28",
-          "position": 7,
-          "views": 8373,
           "type": "Longform"
         }
       ]
