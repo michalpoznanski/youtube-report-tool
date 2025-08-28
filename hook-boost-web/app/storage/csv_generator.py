@@ -136,12 +136,12 @@ class CSVGenerator:
                 # Sprawdź czy film może być dostępny jako shorts
                 # YouTube Shorts URL format: https://www.youtube.com/shorts/VIDEO_ID
                 shorts_url = f"https://www.youtube.com/shorts/{video_id}"
-                # Dla uproszczenia, jeśli duration < 60s, uznajemy za potencjalny shorts
-                if total_seconds <= 60:
+                # Dla uproszczenia, jeśli duration <= 3 min (180s), uznajemy za potencjalny shorts
+                if total_seconds <= 180:
                     is_shorts_url = True
             
-            # Logika: Jeśli duration < 60s i URL zawiera "/shorts/" to SHORTS, inaczej LONG
-            if total_seconds <= 60 and is_shorts_url:
+            # Logika: Jeśli duration <= 3 min (180s) to SHORTS, inaczej LONG
+            if total_seconds <= 180:
                 return "shorts"
             else:
                 return "long"

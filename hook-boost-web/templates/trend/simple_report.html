@@ -177,6 +177,7 @@
                             <th>Wyświetlenia</th>
                             <th>Δ (24h)</th>
                             <th>Długość</th>
+                            <th>Miniatura</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -199,6 +200,13 @@
                                 {% endif %}
                             </td>
                             <td>{{ video.duration }}</td>
+                            <td>
+                                {% if video.thumbnail_url %}
+                                    <img src="{{ video.thumbnail_url }}" alt="Thumbnail" style="width: 96px; height: 54px; border-radius: 5px; object-fit: cover;">
+                                {% else %}
+                                    <span style="color: #999;">Brak</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

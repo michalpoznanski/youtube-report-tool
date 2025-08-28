@@ -140,8 +140,8 @@ class CSVGenerator:
                 if total_seconds <= 60:
                     is_shorts_url = True
             
-            # Logika: Jeśli duration < 60s i URL zawiera "/shorts/" to SHORTS, inaczej LONG
-            if total_seconds <= 60 and is_shorts_url:
+            # Logika: Jeśli duration <= 3 min (180s) to SHORTS, inaczej LONG
+            if total_seconds <= 180:
                 return "shorts"
             else:
                 return "long"
