@@ -60,9 +60,11 @@ class CSVProcessor:
                 previous_df = None
             
             # Przygotuj dane
+            print(f"📊 Przetwarzanie danych: {len(latest_df)} filmów w najnowszym raporcie")
             result_data = self._process_trend_data(latest_df, previous_df)
             
             print(f"✅ CSV Processor: Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
+            print(f"📈 Statystyki: {len(latest_df)} → {len(result_data)} filmów")
             logger.info(f"Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
             return result_data
             
@@ -224,6 +226,16 @@ class CSVProcessor:
                     # W przypadku błędu parsowania, domyślnie Longform
                     return "Longform"
             
+            # Debugowanie parsowania Duration
+            print(f"🔍 Parsowanie Duration dla {len(result_df)} filmów...")
+            
+            # Sprawdź problematyczne Duration
+            problematic_durations = result_df[result_df[duration_col].isin(['P0D', '', 'nan', 'None'])]
+            if not problematic_durations.empty:
+                print(f"⚠️ Znaleziono problematyczne Duration:")
+                for _, row in problematic_durations.iterrows():
+                    print(f"   - {row.get(title_col, '')[:50]}... | Duration: '{row.get(duration_col, '')}' | Views: {row.get(view_count_col, 0)}")
+            
             result_df['video_type'] = result_df[duration_col].apply(safe_parse_duration)
             
             # Inicjalizuj kolumnę delta
@@ -254,17 +266,27 @@ class CSVProcessor:
             # Konwertuj do listy słowników
             result_list = []
             for _, row in top_results.iterrows():
+                # Pomiń zaplanowane transmisje live (0 wyświetleń, niepoprawny Duration)
+                views = int(row.get(view_count_col, 0))
+                duration = str(row.get(duration_col, ''))
+                
+                # Filtruj filmy z 0 wyświetleniami lub niepoprawnym Duration
+                if views == 0 or duration == 'P0D' or duration == '':
+                    print(f"⚠️ Pomijam film: {row.get(title_col, '')[:50]}... (views: {views}, duration: {duration})")
+                    continue
+                
                 result_list.append({
                     'title': str(row.get(title_col, '')),
-                    'views': int(row.get(view_count_col, 0)),
+                    'views': views,
                     'delta': int(row.get('delta', 0)),
                     'video_type': str(row.get('video_type', 'Longform')),
                     'thumbnail_url': str(row.get('thumbnail_url', '')),
                     'video_id': str(row.get(video_id_col, '')),
                     'channel': str(row.get(channel_col, '')),
-                    'duration': str(row.get(duration_col, ''))
+                    'duration': duration
                 })
             
+            print(f"✅ Po filtrowaniu: {len(result_list)} filmów (pominięto zaplanowane transmisje live)")
             return result_list
             
         except Exception as e:
