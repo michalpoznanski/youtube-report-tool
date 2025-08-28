@@ -36,6 +36,46 @@
     <script>
         const API_BASE = '/api/v1';
         
+        // Funkcja do wymuszenia generowania raportu
+        async function forceReport(categoryName) {
+            if (!confirm(`Czy na pewno chcesz wymusić generowanie raportu dla kategorii "${categoryName}"?\n\nTo może zająć kilka minut i zużyć quota YouTube API.`)) {
+                return;
+            }
+            
+            try {
+                // Pokaż status ładowania
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '⏳ Generuję...';
+                button.disabled = true;
+                
+                const response = await fetch(`/api/v1/force-report/${categoryName}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`✅ Raport został wygenerowany pomyślnie!\n\n📊 Filmy: ${result.videos_count}\n📺 Kanały: ${result.channels_count}\n📁 Plik: ${result.csv_path}\n\nRanking zostanie automatycznie zaktualizowany.`);
+                    
+                    // Odśwież stronę po 2 sekundach
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    alert(`❌ Błąd: ${result.detail}`);
+                }
+                
+            } catch (error) {
+                alert(`❌ Błąd połączenia: ${error.message}`);
+            } finally {
+                // Przywróć oryginalny tekst przycisku
+                const button = event.target;
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+        
         // Funkcja do ładowania kategorii
         async function loadCategories() {
             try {
@@ -56,9 +96,11 @@
                                 </div>
                                 <div class="category-actions">
                                     ${category.has_reports ? `
-                                        <a href="/trend/trends/${category.name}" class="btn btn-primary">📈 Analiza Trendów</a>
                                         <a href="/trend/rankings/${category.name}" class="btn btn-success">🏆 Ranking Top 10</a>
-                                    ` : '<span class="no-actions">Brak dostępnych akcji</span>'}
+                                        <button onclick="forceReport('${category.name}')" class="btn btn-warning">🔄 Wymuś Raport</button>
+                                    ` : `
+                                        <button onclick="forceReport('${category.name}')" class="btn btn-primary">🔄 Wymuś Raport</button>
+                                    `}
                                 </div>
                             </div>
                         `;

@@ -109,6 +109,13 @@ class RankingManager:
         video_data = []
         for video in videos:
             try:
+                # Debug: sprawdź co jest w video
+                logger.debug(f"Przetwarzam film: {video.get('Title', 'Brak tytułu')}")
+                logger.debug(f"Video keys: {list(video.keys())}")
+                logger.debug(f"View_Count: {video.get('View_Count', 'BRAK')}")
+                logger.debug(f"Video_ID: {video.get('Video_ID', 'BRAK')}")
+                logger.debug(f"Channel_Name: {video.get('Channel_Name', 'BRAK')}")
+                
                 # Określ typ filmu
                 video_type = self.determine_video_type(video.get('Duration', video.get('duration_seconds', '')))
                 

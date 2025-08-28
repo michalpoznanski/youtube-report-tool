@@ -1247,3 +1247,77 @@ async def upload_trend_analysis(category_name: str, file: UploadFile = File(...)
     except Exception as e:
         logger.error(f"Błąd podczas przesyłania analizy trendów: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.post("/force-report/{category}")
+async def force_report_generation(category: str):
+    """
+    Wymusza wygenerowanie raportu dla danej kategorii.
+    Użyteczne do testowania i debugowania.
+    """
+    try:
+        logger.info(f"Wymuszam generowanie raportu dla kategorii: {category}")
+        
+        # Pobierz kanały dla danej kategorii
+        channels = task_scheduler.get_channels().get(category, [])
+        
+        if not channels:
+            return {"detail": f"Nie znaleziono kanałów dla kategorii {category}"}
+        
+        # Pobierz dane z YouTube API
+        all_videos = []
+        for channel in channels:
+            try:
+                videos = await task_scheduler.get_channel_videos(
+                    channel['id'], 
+                    settings.days_back
+                )
+                
+                # Dodaj informacje o kanale do każdego filmu
+                for video in videos:
+                    video['channel_title'] = channel['title']
+                    video['channel_id'] = channel['id']
+                
+                all_videos.extend(videos)
+                logger.info(f"Pobrano {len(videos)} filmów z kanału {channel['title']}")
+                
+            except Exception as e:
+                logger.error(f"Błąd podczas pobierania filmów z kanału {channel['title']}: {e}")
+        
+        if not all_videos:
+            return {"detail": f"Nie udało się pobrać filmów dla kategorii {category}"}
+        
+        # Generuj raport CSV
+        csv_generator = CSVGenerator()
+        csv_path = csv_generator.generate_csv(all_videos, category)
+        logger.info(f"Wygenerowano raport dla kategorii {category}: {csv_path}")
+        
+        # Generuj ranking (jeśli moduł trendów jest aktywny)
+        ranking_path = None
+        if os.environ.get("ENABLE_TREND", "false").lower() == "true":
+            try:
+                from app.trend.services.ranking_manager import ranking_manager
+                import pandas as pd
+                
+                # Wczytaj dane z wygenerowanego CSV
+                df = pd.read_csv(csv_path)
+                csv_videos = df.to_dict('records')
+                
+                # Aktualizuj ranking używając danych z CSV
+                ranking = ranking_manager.update_ranking(category, csv_videos)
+                ranking_path = f"data/rankings/ranking_{category.upper()}.json"
+                logger.info(f"Wygenerowano ranking dla kategorii {category}")
+            except Exception as e:
+                logger.warning(f"Nie udało się wygenerować rankingu: {e}")
+        
+        return {
+            "message": f"Raport dla kategorii {category} został wygenerowany pomyślnie",
+            "csv_path": str(csv_path),
+            "ranking_path": ranking_path,
+            "videos_count": len(all_videos),
+            "channels_count": len(channels)
+        }
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas wymuszonego generowania raportu dla {category}: {e}")
+        return {"detail": f"Błąd podczas generowania raportu: {str(e)}"} 
