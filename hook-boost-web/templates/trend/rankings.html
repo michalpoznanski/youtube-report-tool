@@ -262,7 +262,16 @@
                                         </a>
                                     </td>
                                     <td class="channel-name">{{ video.channel }}</td>
-                                    <td class="views">{{ "{:,.0f}".format(video.views) }}</td>
+                                    <td class="views">
+                                        {{ "{:,.0f}".format(video.views) }}
+                                        {% if video.trend == 'up' %}
+                                            <span style="color: #28a745; margin-left: 5px;">↑</span>
+                                        {% elif video.trend == 'down' %}
+                                            <span style="color: #dc3545; margin-left: 5px;">↓</span>
+                                        {% elif video.trend == 'new' %}
+                                            <span style="color: #17a2b8; margin-left: 5px;">🆕</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ video.duration }}</td>
                                     <td>
                                         <img src="{{ video.thumbnail_url }}" alt="Thumbnail" style="width: 96px; height: 54px; border-radius: 5px; object-fit: cover;">
@@ -301,7 +310,16 @@
                                         </a>
                                     </td>
                                     <td class="channel-name">{{ video.channel }}</td>
-                                    <td class="views">{{ "{:,.0f}".format(video.views) }}</td>
+                                    <td class="views">
+                                        {{ "{:,.0f}".format(video.views) }}
+                                        {% if video.trend == 'up' %}
+                                            <span style="color: #28a745; margin-left: 5px;">↑</span>
+                                        {% elif video.trend == 'down' %}
+                                            <span style="color: #dc3545; margin-left: 5px;">↓</span>
+                                        {% elif video.trend == 'new' %}
+                                            <span style="color: #17a2b8; margin-left: 5px;">🆕</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ video.duration }}</td>
                                     <td>
                                         <img src="{{ video.thumbnail_url }}" alt="Thumbnail" style="width: 96px; height: 54px; border-radius: 5px; object-fit: cover;">
@@ -315,60 +333,7 @@
                     {% endif %}
                 </div>
                 
-                <!-- Analiza trendów -->
-                {% if summary.trends %}
-                <div class="trends">
-                    <h2>📈 Analiza trendów</h2>
-                    
-                    <!-- Wzloty -->
-                    {% if summary.trends.rising_stars %}
-                    <div class="trend-section">
-                        <h3 class="trend-title">🚀 Wzloty</h3>
-                        {% for video in summary.trends.rising_stars %}
-                        <div class="trend-item rising">
-                            <strong>{{ video.title }}</strong> ({{ video.channel }})
-                            <span class="position-change position-up">
-                                {{ video.from_position }} → {{ video.to_position }}
-                            </span>
-                            <span class="views">+{{ "{:,.0f}".format(video.views_change) }} wyświetleń</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Spadki -->
-                    {% if summary.trends.falling_stars %}
-                    <div class="trend-section">
-                        <h3 class="trend-title">📉 Spadki</h3>
-                        {% for video in summary.trends.falling_stars %}
-                        <div class="trend-item falling">
-                            <strong>{{ video.title }}</strong> ({{ video.channel }})
-                            <span class="position-change position-down">
-                                {{ video.from_position }} → {{ video.to_position }}
-                            </span>
-                            <span class="views">{{ "{:,.0f}".format(video.views_change) }} wyświetleń</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Stabilne -->
-                    {% if summary.trends.stable_stars %}
-                    <div class="trend-section">
-                        <h3 class="trend-title">⚖️ Stabilne</h3>
-                        {% for video in summary.trends.stable_stars %}
-                        <div class="trend-item stable">
-                            <strong>{{ video.title }}</strong> ({{ video.channel }})
-                            <span class="position-change position-same">
-                                Pozycja {{ video.position }}
-                            </span>
-                            <span class="views">{{ "{:,.0f}".format(video.views) }} wyświetleń</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
+                <!-- Sekcja analizy trendów została usunięta zgodnie z prośbą użytkownika -->
                 
             {% else %}
                 <div class="no-data">

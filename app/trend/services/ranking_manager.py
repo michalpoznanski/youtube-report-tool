@@ -169,6 +169,9 @@ class RankingManager:
         # Aktualizuj historię pozycji
         self._update_position_history(new_ranking, current_ranking)
         
+        # Oblicz trendy dla każdego filmu
+        self._calculate_trends(new_ranking, current_ranking)
+        
         # Usuń filmy starsze niż 10 dni
         self._cleanup_old_videos(new_ranking)
         
@@ -377,6 +380,58 @@ class RankingManager:
                 continue
         
         return video_data
+    
+    def _calculate_trends(self, new_ranking: Dict, old_ranking: Dict):
+        """Oblicza trendy dla każdego filmu (wzloty/spadki)"""
+        if not old_ranking.get("shorts") and not old_ranking.get("longform"):
+            # Brak poprzedniego rankingu, nie można obliczyć trendów
+            return
+        
+        # Oblicz trendy dla SHORTS
+        for video in new_ranking["shorts"]:
+            video_id = video['video_id']
+            old_position = self._find_old_position(video_id, old_ranking, "shorts")
+            if old_position:
+                video['trend'] = self._determine_trend(old_position, video['views'])
+            else:
+                video['trend'] = 'new'  # Nowy film
+        
+        # Oblicz trendy dla LONG FORM
+        for video in new_ranking["longform"]:
+            video_id = video['video_id']
+            old_position = self._find_old_position(video_id, old_ranking, "longform")
+            if old_position:
+                video['trend'] = self._determine_trend(old_position, video['views'])
+            else:
+                video['trend'] = 'new'  # Nowy film
+    
+    def _find_old_position(self, video_id: str, old_ranking: Dict, category: str) -> Dict:
+        """Znajduje poprzednią pozycję filmu w rankingu"""
+        if not old_ranking.get(category):
+            return None
+        
+        for i, video in enumerate(old_ranking[category]):
+            if video.get('video_id') == video_id:
+                return {
+                    'position': i + 1,
+                    'views': video.get('views', 0)
+                }
+        return None
+    
+    def _determine_trend(self, old_data: Dict, new_views: int) -> str:
+        """Określa trend filmu na podstawie zmiany pozycji i wyświetleń"""
+        old_position = old_data['position']
+        old_views = old_data['views']
+        
+        # Oblicz zmianę wyświetleń
+        views_change = new_views - old_views
+        
+        if views_change > 0:
+            return 'up'  # Film rośnie
+        elif views_change < 0:
+            return 'down'  # Film maleje
+        else:
+            return 'stable'  # Film stabilny
 
 
 # Instancja globalna
