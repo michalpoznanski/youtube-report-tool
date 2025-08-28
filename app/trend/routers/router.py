@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 log = logging.getLogger("trend")
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="hook-boost-web/templates")
 router = APIRouter(prefix="/trend", tags=["trend"])
 
 def get_top_videos_from_csv(category_name: str, limit: int = 15):

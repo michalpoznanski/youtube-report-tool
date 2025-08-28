@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Raport Trendów - {{ category.capitalize() }}</title>
+    <title>Raport Trendów - {{ category_name.capitalize() }}</title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -113,30 +113,6 @@
         }
         .video-type.shorts { background-color: #e74c3c; }
         .video-type.longform { background-color: #27ae60; }
-        .analyze-btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-            color: white;
-            text-decoration: none;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .analyze-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
-        }
-        .analyze-btn:disabled {
-            background: #95a5a6;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
         .status-message {
             margin: 10px 0;
             padding: 10px;
@@ -163,22 +139,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Raport Trendów - {{ category.capitalize() }}</h1>
+            <h1>📊 Raport Trendów - {{ category_name.capitalize() }}</h1>
             <p class="subtitle">{{ report_date }}</p>
         </div>
         
         <div class="content">
-            <a href="/" class="back-btn">← Powrót do strony głównej</a>
-            
-            <!-- Przyciski analizy -->
-            <div style="margin: 20px 0; text-align: center;">
-                <button onclick="analyzeAllCSVs()" class="analyze-btn" style="margin-right: 10px;">
-                    🔄 Analizuj wszystkie pliki CSV
-                </button>
-                <button onclick="reanalyzeCategory('{{ category.upper() }}')" class="analyze-btn">
-                    🔄 Przeanalizuj ponownie {{ category.capitalize() }}
-                </button>
-            </div>
+            <a href="/reports" class="back-btn">← Powrót do raportów</a>
             
             {% if videos and videos|length > 0 %}
             <div class="stats">
@@ -195,177 +161,54 @@
                     <div class="stat-label">Spadek wyświetleń</div>
                 </div>
             </div>
-            {% endif %}
             
             <p>Łącznie: {{ videos|length }} filmów</p>
 
-    {% if error %}
-        <p style="color: red; font-weight: bold;">Błąd podczas ładowania raportu: {{ error }}</p>
-    {% elif not videos %}
-        <p>Brak danych do wyświetlenia dla kategorii {{ category.capitalize() }} na dzień {{ report_date }}.</p>
-        <p>Upewnij się, że pliki CSV są dostępne w katalogu `/mnt/volume/reports/`.</p>
-    {% else %}
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Tytuł</th>
-                    <th>Kanał</th>
-                    <th>Typ</th>
-                    <th>Wyświetlenia</th>
-                    <th>Δ (24h)</th>
-                    <th>Polubienia</th>
-                    <th>Data pub.</th>
-                    <th>Godzina pub.</th>
-                    <th>Długość</th>
-                    <th>Kategorie YT</th>
-                    <th>Opis</th>
-                    <th>Tagi</th>
-                    <th>ID Kanału</th>
-                    <th>ID Wideo</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for video in videos %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td><a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank" class="video-title">{{ video.title }}</a></td>
-                    <td class="channel-name">{{ video.channel }}</td>
-                    <td>
-                        <span class="video-type {{ video.video_type | lower }}">{{ video.video_type }}</span>
-                    </td>
-                    <td>{{ "{:,.0f}".format(video.views | default(0)) }}</td>
-                    <td>
-                        {% if video.delta > 0 %}
-                            <span class="delta-positive">+{{ "{:,.0f}".format(video.delta) }}</span>
-                        {% elif video.delta < 0 %}
-                            <span class="delta-negative">{{ "{:,.0f}".format(video.delta) }}</span>
-                        {% else %}
-                            <span class="delta-zero">{{ "{:,.0f}".format(video.delta) }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ "{:,.0f}".format(video.like_count | default(0)) }}</td>
-                    <td>{{ video.date_published }}</td>
-                    <td>{{ video.hour_published }}</td>
-                    <td>{{ video.duration }}</td>
-                    <td>{{ video.topic_categories }}</td>
-                    <td>{{ video.description | truncate(100, True, '...') }}</td>
-                    <td>{{ video.tags | truncate(100, True, '...') }}</td>
-                    <td>{{ video.channel_id }}</td>
-                    <td>{{ video.video_id }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-                {% endif %}
+            {% if error %}
+                <p style="color: red; font-weight: bold;">Błąd podczas ładowania raportu: {{ error }}</p>
+            {% else %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Tytuł</th>
+                            <th>Kanał</th>
+                            <th>Typ</th>
+                            <th>Wyświetlenia</th>
+                            <th>Δ (24h)</th>
+                            <th>Długość</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank" class="video-title">{{ video.title }}</a></td>
+                            <td class="channel-name">{{ video.channel }}</td>
+                            <td>
+                                <span class="video-type {{ video.video_type | lower }}">{{ video.video_type }}</span>
+                            </td>
+                            <td>{{ "{:,.0f}".format(video.views | default(0)) }}</td>
+                            <td>
+                                {% if video.delta > 0 %}
+                                    <span class="delta-positive">+{{ "{:,.0f}".format(video.delta) }}</span>
+                                {% elif video.delta < 0 %}
+                                    <span class="delta-negative">{{ "{:,.0f}".format(video.delta) }}</span>
+                                {% else %}
+                                    <span class="delta-zero">{{ "{:,.0f}".format(video.delta) }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ video.duration }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+            {% else %}
+                <p>Brak danych do wyświetlenia dla kategorii {{ category_name.capitalize() }} na dzień {{ report_date }}.</p>
+                <p>Upewnij się, że pliki CSV są dostępne w katalogu raportów.</p>
+            {% endif %}
         </div>
     </div>
-    
-    <script>
-        function showStatus(message, type = 'info') {
-            // Usuń istniejące komunikaty
-            const existingStatus = document.querySelector('.status-message');
-            if (existingStatus) {
-                existingStatus.remove();
-            }
-            
-            // Utwórz nowy komunikat
-            const statusDiv = document.createElement('div');
-            statusDiv.className = `status-message status-${type}`;
-            statusDiv.textContent = message;
-            
-            // Wstaw po przyciskach
-            const buttonsDiv = document.querySelector('.analyze-btn').parentElement;
-            buttonsDiv.parentElement.insertBefore(statusDiv, buttonsDiv.nextSibling);
-            
-            // Automatycznie ukryj po 10 sekundach
-            setTimeout(() => {
-                if (statusDiv.parentElement) {
-                    statusDiv.remove();
-                }
-            }, 10000);
-        }
-        
-        function setButtonsDisabled(disabled) {
-            const buttons = document.querySelectorAll('.analyze-btn');
-            buttons.forEach(btn => {
-                btn.disabled = disabled;
-                if (disabled) {
-                    btn.textContent = '⏳ Przetwarzanie...';
-                } else {
-                    // Przywróć oryginalny tekst
-                    if (btn.textContent.includes('wszystkie pliki CSV')) {
-                        btn.textContent = '🔄 Analizuj wszystkie pliki CSV';
-                    } else {
-                        btn.textContent = '🔄 Przeanalizuj ponownie {{ category.capitalize() }}';
-                    }
-                }
-            });
-        }
-        
-        async function analyzeAllCSVs() {
-            try {
-                setButtonsDisabled(true);
-                showStatus('🔄 Rozpoczynam analizę wszystkich plików CSV...', 'info');
-                
-                const response = await fetch('/api/v1/trends/analyze-all', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    showStatus(`✅ Analiza zakończona! Przetworzono: ${result.result.total_processed}, Pomyślnie: ${result.result.total_success}`, 'success');
-                    
-                    // Odśwież stronę po 3 sekundach
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                } else {
-                    showStatus(`❌ Błąd: ${result.detail || result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showStatus(`❌ Błąd połączenia: ${error.message}`, 'error');
-            } finally {
-                setButtonsDisabled(false);
-            }
-        }
-        
-        async function reanalyzeCategory(category) {
-            try {
-                setButtonsDisabled(true);
-                showStatus(`🔄 Przeanalizowuję kategorię ${category}...`, 'info');
-                
-                const response = await fetch(`/api/v1/trends/${category.toLowerCase()}/reanalyze`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    showStatus(`✅ Pomyślnie przeanalizowano ${category}!`, 'success');
-                    
-                    // Odśwież stronę po 2 sekundach
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                } else {
-                    showStatus(`❌ Błąd: ${result.detail || result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showStatus(`❌ Błąd połączenia: ${error.message}`, 'error');
-            } finally {
-                setButtonsDisabled(false);
-            }
-        }
-    </script>
 </body>
 </html>
