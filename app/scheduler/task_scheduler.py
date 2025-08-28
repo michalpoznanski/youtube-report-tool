@@ -9,6 +9,7 @@ from ..storage import CSVGenerator
 from ..storage.state_manager import StateManager
 from pathlib import Path
 import pandas as pd
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,9 @@ class TaskScheduler:
     """Scheduler zadań z APScheduler"""
     
     def __init__(self):
-        self.scheduler = AsyncIOScheduler()
+        # Użyj polskiej strefy czasowej
+        timezone = pytz.timezone(settings.timezone)
+        self.scheduler = AsyncIOScheduler(timezone=timezone)
         self.state_manager = StateManager()  # Zarządza trwałymi danymi
         self.youtube_client = YouTubeClient(settings.youtube_api_key, self.state_manager)
         self.csv_generator = CSVGenerator()
@@ -47,7 +50,8 @@ class TaskScheduler:
             
             # Uruchom scheduler
             self.scheduler.start()
-            logger.info(f"Scheduler uruchomiony - raporty codziennie o {settings.scheduler_hour}:{settings.scheduler_minute:02d}")
+            timezone = pytz.timezone(settings.timezone)
+            logger.info(f"Scheduler uruchomiony - raporty codziennie o {settings.scheduler_hour}:{settings.scheduler_minute:02d} {timezone}")
             
         except Exception as e:
             logger.error(f"Błąd podczas uruchamiania schedulera: {e}")

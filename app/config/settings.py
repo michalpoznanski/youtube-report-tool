@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     scheduler_hour: int = 1
     scheduler_minute: int = 0
     days_back: int = 7
+    timezone: str = "Europe/Warsaw"
     
     # Storage
     data_dir: str = "data"
