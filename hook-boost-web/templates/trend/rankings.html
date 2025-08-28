@@ -204,6 +204,16 @@
         <div class="content">
             <a href="/reports" class="back-btn">← Powrót do raportów</a>
             
+            <!-- Przyciski do zarządzania rankingiem -->
+            <div style="margin-bottom: 20px; text-align: center;">
+                <button onclick="clearRanking()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px; cursor: pointer;">
+                    🗑️ Wyczyść ranking
+                </button>
+                <button onclick="regenerateRanking()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                    🔄 Regeneruj ranking
+                </button>
+            </div>
+            
             {% if error %}
                 <div class="error">
                     <strong>Błąd:</strong> {{ error }}
@@ -369,5 +379,51 @@
             {% endif %}
         </div>
     </div>
+    
+    <script>
+        async function clearRanking() {
+            if (!confirm('Czy na pewno chcesz wyczyścić ranking? To wymusi regenerację z nową logiką.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/trend/rankings/{{ category_name }}/clear`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.status === 'cleared') {
+                    alert('Ranking został wyczyszczony! Odśwież stronę, aby zobaczyć nowy ranking.');
+                    location.reload();
+                } else {
+                    alert('Błąd podczas czyszczenia rankingu: ' + result.message);
+                }
+            } catch (error) {
+                alert('Błąd podczas czyszczenia rankingu: ' + error.message);
+            }
+        }
+        
+        async function regenerateRanking() {
+            if (!confirm('Czy na pewno chcesz zregenerować ranking? To użyje najnowszych danych CSV i nowej logiki klasyfikacji.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/trend/rankings/{{ category_name }}/regenerate`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.status === 'regenerated') {
+                    alert(`Ranking został zregenerowany!\n\nFilmy: ${result.videos_count}\nShorts: ${result.shorts_count}\nLong-form: ${result.longform_count}\n\nOdśwież stronę, aby zobaczyć nowy ranking.`);
+                    location.reload();
+                } else {
+                    alert('Błąd podczas regeneracji rankingu: ' + result.message);
+                }
+            } catch (error) {
+                alert('Błąd podczas regeneracji rankingu: ' + error.message);
+            }
+        }
+    </script>
 </body>
 </html>

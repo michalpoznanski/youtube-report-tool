@@ -228,6 +228,22 @@ class RankingManager:
             if not ranking["history"][video_id]["positions"]:
                 del ranking["history"][video_id]
     
+    def clear_ranking(self, category: str):
+        """Czyści ranking dla danej kategorii, wymuszając regenerację"""
+        ranking_file = self.get_ranking_file_path(category)
+        
+        if ranking_file.exists():
+            try:
+                ranking_file.unlink()
+                logger.info(f"Usunięto stary ranking dla kategorii {category}")
+                return True
+            except Exception as e:
+                logger.error(f"Błąd podczas usuwania rankingu dla {category}: {e}")
+                return False
+        else:
+            logger.info(f"Brak rankingu do usunięcia dla kategorii {category}")
+            return True
+    
     def get_ranking_summary(self, category: str) -> Dict:
         """Zwraca podsumowanie rankingu z wzlotami i upadkami"""
         ranking = self.load_ranking(category)

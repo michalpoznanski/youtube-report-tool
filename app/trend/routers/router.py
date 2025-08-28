@@ -217,3 +217,79 @@ async def get_category_rankings(request: Request, category_name: str):
                 "error": str(e)
             }
         )
+
+@router.post("/rankings/{category_name}/clear")
+async def clear_category_ranking(request: Request, category_name: str):
+    """
+    Czyści ranking dla danej kategorii, wymuszając regenerację z nową logiką.
+    """
+    try:
+        from app.trend.services.ranking_manager import ranking_manager
+        
+        # Wyczyść ranking
+        success = ranking_manager.clear_ranking(category_name)
+        
+        if success:
+            return {
+                "message": f"Ranking dla kategorii {category_name} został wyczyszczony",
+                "category": category_name,
+                "status": "cleared"
+            }
+        else:
+            return {
+                "message": f"Błąd podczas czyszczenia rankingu dla {category_name}",
+                "category": category_name,
+                "status": "error"
+            }
+            
+    except Exception as e:
+        log.error(f"Błąd podczas czyszczenia rankingu dla {category_name}: {e}")
+        return {
+            "message": f"Błąd podczas czyszczenia rankingu: {str(e)}",
+            "category": category_name,
+            "status": "error"
+        }
+
+@router.post("/rankings/{category_name}/regenerate")
+async def regenerate_category_ranking(request: Request, category_name: str):
+    """
+    Regeneruje ranking dla danej kategorii używając najnowszych danych CSV i nowej logiki.
+    """
+    try:
+        from app.trend.services.ranking_manager import ranking_manager
+        from app.trend.services.csv_processor import get_trend_data
+        from datetime import date
+        
+        # Wyczyść stary ranking
+        ranking_manager.clear_ranking(category_name)
+        
+        # Pobierz najnowsze dane CSV
+        videos = get_trend_data(category=category_name, report_date=date.today())
+        
+        if not videos:
+            return {
+                "message": f"Brak danych CSV dla kategorii {category_name}",
+                "category": category_name,
+                "status": "no_data"
+            }
+        
+        # Wygeneruj nowy ranking z nową logiką
+        ranking = ranking_manager.update_ranking(category_name, videos)
+        
+        return {
+            "message": f"Ranking dla kategorii {category_name} został zregenerowany z nową logiką",
+            "category": category_name,
+            "status": "regenerated",
+            "videos_count": len(videos),
+            "shorts_count": len(ranking.get("shorts", [])),
+            "longform_count": len(ranking.get("longform", [])),
+            "last_updated": ranking.get("last_updated")
+        }
+            
+    except Exception as e:
+        log.error(f"Błąd podczas regeneracji rankingu dla {category_name}: {e}")
+        return {
+            "message": f"Błąd podczas regeneracji rankingu: {str(e)}",
+            "category": category_name,
+            "status": "error"
+        }
