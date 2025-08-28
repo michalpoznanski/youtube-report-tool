@@ -15,7 +15,9 @@ class RankingManager:
     """
     
     def __init__(self):
-        self.rankings_dir = Path("data/rankings")
+        # Użyj Railway Volume Path zamiast lokalnego katalogu
+        from app.config.settings import settings
+        self.rankings_dir = settings.data_path / "rankings"
         self.rankings_dir.mkdir(parents=True, exist_ok=True)
         
     def get_ranking_file_path(self, category: str) -> Path:

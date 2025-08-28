@@ -15,8 +15,8 @@ class CSVProcessor:
     """Klasa do przetwarzania plików CSV z raportami trendów"""
     
     def __init__(self):
-        # Użyj tej samej ścieżki co csv_generator
-        from ...config.settings import settings
+        # Użyj Railway Volume Path zamiast lokalnego katalogu
+        from app.config.settings import settings
         self.base_path = settings.reports_path
     
     def get_trend_data(self, category: str, report_date: date) -> List[Dict[str, Any]]:
