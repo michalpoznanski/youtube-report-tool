@@ -25,48 +25,42 @@ class CSVProcessor:
         
         Args:
             category (str): Nazwa kategorii (np. "PODCAST")
-            report_date (date): Data raportu
+            report_date (date): Data raportu (ignorowana - używa najnowszego dostępnego pliku)
             
         Returns:
             List[Dict[str, Any]]: Lista top 50 wyników z danymi trendów
         """
         try:
-            # Konstruuj nazwy plików
-            today_file = f"report_{category.upper()}_{report_date.strftime('%Y-%m-%d')}.csv"
-            yesterday_file = f"report_{category.upper()}_{(report_date - timedelta(days=1)).strftime('%Y-%m-%d')}.csv"
+            # Znajdź najnowszy dostępny plik CSV dla danej kategorii
+            pattern = f"report_{category.upper()}_*.csv"
+            csv_files = list(self.base_path.glob(pattern))
             
-            # Ścieżki do plików
-            today_path = self.base_path / today_file
-            yesterday_path = self.base_path / yesterday_file
-            
-            print(f"🔍 CSV Processor: Szukam plików w {self.base_path}")
-            print(f"🔍 CSV Processor: Dzisiejszy plik: {today_path}")
-            print(f"🔍 CSV Processor: Wczorajszy plik: {yesterday_path}")
-            
-            logger.info(f"Próba wczytania plików: {today_file}, {yesterday_file}")
-            
-            # Sprawdź czy katalog istnieje
-            if not self.base_path.exists():
-                print(f"❌ CSV Processor: Katalog {self.base_path} nie istnieje!")
-                logger.error(f"Katalog raportów nie istnieje: {self.base_path}")
+            if not csv_files:
+                print(f"❌ CSV Processor: Nie znaleziono plików CSV dla kategorii {category}")
+                logger.warning(f"Nie znaleziono plików CSV dla kategorii {category}")
                 return []
             
-            # Sprawdź jakie pliki są w katalogu
-            available_files = list(self.base_path.glob("*.csv"))
-            print(f"📁 CSV Processor: Dostępne pliki CSV: {[f.name for f in available_files]}")
+            # Weź najnowszy plik (sortuj po nazwie)
+            latest_file = sorted(csv_files)[-1]
+            print(f"🔍 CSV Processor: Używam najnowszego pliku: {latest_file}")
             
-            # Wczytaj dzisiejszy raport
-            today_df = self._load_csv_safely(today_path)
-            if today_df is None or today_df.empty:
-                print(f"❌ CSV Processor: Nie można wczytać dzisiejszego raportu: {today_file}")
-                logger.warning(f"Nie można wczytać dzisiejszego raportu: {today_file}")
+            # Wczytaj najnowszy raport
+            latest_df = self._load_csv_safely(latest_file)
+            if latest_df is None or latest_df.empty:
+                print(f"❌ CSV Processor: Nie można wczytać raportu: {latest_file}")
+                logger.warning(f"Nie można wczytać raportu: {latest_file}")
                 return []
             
-            # Wczytaj wczorajszy raport (opcjonalny)
-            yesterday_df = self._load_csv_safely(yesterday_path)
+            # Znajdź poprzedni plik (dla obliczenia delta)
+            if len(csv_files) > 1:
+                previous_file = sorted(csv_files)[-2]
+                print(f"🔍 CSV Processor: Używam poprzedniego pliku: {previous_file}")
+                previous_df = self._load_csv_safely(previous_file)
+            else:
+                previous_df = None
             
             # Przygotuj dane
-            result_data = self._process_trend_data(today_df, yesterday_df)
+            result_data = self._process_trend_data(latest_df, previous_df)
             
             print(f"✅ CSV Processor: Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
             logger.info(f"Pomyślnie przetworzono {len(result_data)} rekordów dla kategorii {category}")
@@ -100,12 +94,18 @@ class CSVProcessor:
                 logger.warning(f"Plik CSV jest pusty: {file_path}")
                 return None
             
-            # Sprawdź wymagane kolumny
-            required_columns = ['Video_ID', 'Title', 'View_Count', 'Duration']
-            missing_columns = [col for col in required_columns if col not in df.columns]
+            # Sprawdź wymagane kolumny - dostosuj do rzeczywistych plików CSV
+            # Obsługuj zarówno stary format (video_id, title, views_today) jak i nowy (Video_ID, Title, View_Count)
+            required_columns_old = ['video_id', 'title', 'views_today']
+            required_columns_new = ['Video_ID', 'Title', 'View_Count']
             
-            if missing_columns:
-                logger.error(f"Brak wymaganych kolumn w {file_path}: {missing_columns}")
+            # Sprawdź czy mamy stary format
+            missing_columns_old = [col for col in required_columns_old if col not in df.columns]
+            # Sprawdź czy mamy nowy format
+            missing_columns_new = [col for col in required_columns_new if col not in df.columns]
+            
+            if missing_columns_old and missing_columns_new:
+                logger.error(f"Brak wymaganych kolumn w {file_path}. Stary format: {missing_columns_old}, Nowy format: {missing_columns_new}")
                 return None
             
             logger.debug(f"Pomyślnie wczytano {len(df)} rekordów z {file_path}")
@@ -142,34 +142,67 @@ class CSVProcessor:
             # Skopiuj dzisiejsze dane
             result_df = today_df.copy()
             
+            # Określ format pliku CSV
+            is_new_format = 'Video_ID' in today_df.columns and 'Title' in today_df.columns and 'View_Count' in today_df.columns
+            is_old_format = 'video_id' in today_df.columns and 'title' in today_df.columns and 'views_today' in today_df.columns
+            
+            if not (is_new_format or is_old_format):
+                logger.error("Nieznany format pliku CSV")
+                return []
+            
+            # Mapuj kolumny na standardowe nazwy
+            if is_new_format:
+                # Nowy format: Video_ID, Title, View_Count, Duration
+                video_id_col = 'Video_ID'
+                title_col = 'Title'
+                view_count_col = 'View_Count'
+                duration_col = 'Duration'
+                channel_col = 'Channel_Name'
+            else:
+                # Stary format: video_id, title, views_today, duration_seconds
+                video_id_col = 'video_id'
+                title_col = 'title'
+                view_count_col = 'views_today'
+                duration_col = 'duration_seconds'
+                channel_col = 'channel'
+            
             # Dodaj kolumnę video_type na podstawie Duration
-            def safe_parse_duration(duration_str):
-                """Bezpiecznie parsuje Duration w formacie ISO 8601 i zwraca video_type"""
+            def safe_parse_duration(duration_val):
+                """Bezpiecznie parsuje Duration i zwraca video_type"""
                 try:
-                    if pd.isna(duration_str) or not str(duration_str).startswith('PT'):
+                    if pd.isna(duration_val):
                         return "Longform"
                     
-                    duration_str = str(duration_str)
-                    # Parsuj format PT1H2M3S
-                    hours = 0
-                    minutes = 0
-                    seconds = 0
+                    if is_new_format:
+                        # Nowy format: Duration w formacie ISO 8601 (PT1H2M3S)
+                        duration_str = str(duration_val)
+                        if not duration_str.startswith('PT'):
+                            return "Longform"
+                        
+                        # Parsuj format PT1H2M3S
+                        hours = 0
+                        minutes = 0
+                        seconds = 0
+                        
+                        if 'H' in duration_str:
+                            hours = int(duration_str.split('H')[0].split('T')[1])
+                        if 'M' in duration_str:
+                            minutes = int(duration_str.split('M')[0].split('T')[-1])
+                        if 'S' in duration_str:
+                            seconds = int(duration_str.split('S')[0].split('T')[-1])
+                        
+                        total_seconds = hours * 3600 + minutes * 60 + seconds
+                        return "Shorts" if total_seconds <= 60 else "Longform"
+                    else:
+                        # Stary format: duration_seconds jako liczba
+                        duration_seconds = int(duration_val)
+                        return "Shorts" if duration_seconds <= 60 else "Longform"
                     
-                    if 'H' in duration_str:
-                        hours = int(duration_str.split('H')[0].split('T')[1])
-                    if 'M' in duration_str:
-                        minutes = int(duration_str.split('M')[0].split('T')[-1])
-                    if 'S' in duration_str:
-                        seconds = int(duration_str.split('S')[0].split('T')[-1])
-                    
-                    total_seconds = hours * 3600 + minutes * 60 + seconds
-                    return "Shorts" if total_seconds <= 60 else "Longform"
-                    
-                except (ValueError, IndexError, AttributeError):
+                except (ValueError, TypeError):
                     # W przypadku błędu parsowania, domyślnie Longform
                     return "Longform"
             
-            result_df['video_type'] = result_df['Duration'].apply(safe_parse_duration)
+            result_df['video_type'] = result_df[duration_col].apply(safe_parse_duration)
             
             # Inicjalizuj kolumnę delta
             result_df['delta'] = 0
@@ -177,16 +210,16 @@ class CSVProcessor:
             # Jeśli mamy wczorajsze dane, oblicz przyrosty
             if yesterday_df is not None and not yesterday_df.empty:
                 # Mapuj wczorajsze wyświetlenia po video_id
-                yesterday_views = yesterday_df.set_index('Video_ID')['View_Count'].to_dict()
+                yesterday_views = yesterday_df.set_index(video_id_col)[view_count_col].to_dict()
                 
                 # Oblicz delta
                 result_df['delta'] = result_df.apply(
-                    lambda row: row['View_Count'] - yesterday_views.get(row['Video_ID'], 0), 
+                    lambda row: row[view_count_col] - yesterday_views.get(row[video_id_col], 0), 
                     axis=1
                 )
             
             # Dodaj kolumnę thumbnail_url (YouTube thumbnail)
-            result_df['thumbnail_url'] = result_df['Video_ID'].apply(
+            result_df['thumbnail_url'] = result_df[video_id_col].apply(
                 lambda x: f"https://img.youtube.com/vi/{x}/mqdefault.jpg" if pd.notna(x) else ""
             )
             
@@ -200,21 +233,14 @@ class CSVProcessor:
             result_list = []
             for _, row in top_results.iterrows():
                 result_list.append({
-                    'title': str(row.get('Title', '')),
-                    'views': int(row.get('View_Count', 0)),
+                    'title': str(row.get(title_col, '')),
+                    'views': int(row.get(view_count_col, 0)),
                     'delta': int(row.get('delta', 0)),
                     'video_type': str(row.get('video_type', 'Longform')),
                     'thumbnail_url': str(row.get('thumbnail_url', '')),
-                    'video_id': str(row.get('Video_ID', '')),
-                    'channel': str(row.get('Channel_Name', '')),
-                    'duration': str(row.get('Duration', '')),
-                    'description': str(row.get('Description', '')),
-                    'tags': str(row.get('Tags', '')),
-                    'like_count': int(row.get('Like_Count', 0)),
-                    'topic_categories': str(row.get('Topic_Categories', '')),
-                    'channel_id': str(row.get('Channel_ID', '')),
-                    'date_published': str(row.get('Date_of_Publishing', '')),
-                    'hour_published': str(row.get('Hour_GMT2', ''))
+                    'video_id': str(row.get(video_id_col, '')),
+                    'channel': str(row.get(channel_col, '')),
+                    'duration': str(row.get(duration_col, ''))
                 })
             
             return result_list

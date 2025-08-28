@@ -266,6 +266,12 @@ async def test_trend_routing():
     }
 
 
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request):
+    """Strona z listą wszystkich kategorii dostępnych do analizy"""
+    return templates.TemplateResponse("reports.html", {"request": request})
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

@@ -837,14 +837,30 @@ class StateManager:
             raise
 
     def get_categories(self) -> List[Dict]:
-        """Zwraca listę kategorii z liczbą kanałów"""
+        """Zwraca listę kategorii z liczbą kanałów i informacją o dostępnych raportach"""
         categories = []
         
+        # Sprawdź katalog raportów
+        reports_dir = Path("reports")
+        has_reports_dir = reports_dir.exists()
+        
         for category_name, channels in self.channels_data.items():
+            # Sprawdź czy są dostępne raporty CSV dla tej kategorii
+            has_reports = False
+            if has_reports_dir:
+                try:
+                    # Szukaj plików CSV dla tej kategorii
+                    pattern = f"report_{category_name.upper()}_*.csv"
+                    csv_files = list(reports_dir.glob(pattern))
+                    has_reports = len(csv_files) > 0
+                except Exception:
+                    has_reports = False
+            
             categories.append({
                 'name': category_name,
                 'channels_count': len(channels),
-                'channels': [{'id': c['id'], 'title': c['title']} for c in channels]
+                'channels': [{'id': c['id'], 'title': c['title']} for c in channels],
+                'has_reports': has_reports
             })
         
         return categories

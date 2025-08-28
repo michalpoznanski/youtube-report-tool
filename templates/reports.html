@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raporty - Hook Boost Web</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <img src="/static/logo.png" alt="HOOK BOOST" class="logo" />
+            </h1>
+        </div>
+        
+        <!-- Powrót do strony głównej -->
+        <div style="margin-bottom: 30px;">
+            <a href="/" class="btn btn-secondary">← Powrót do strony głównej</a>
+        </div>
+        
+        <!-- Lista kategorii -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Dostępne Raporty</h2>
+                <p>Wybierz kategorię, aby zobaczyć analizę trendów</p>
+            </div>
+            
+            <div id="categoriesList" class="categories-list">
+                <!-- Kategorie będą ładowane dynamicznie -->
+                <div class="loading">Ładowanie kategorii...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1';
+        
+        // Funkcja do ładowania kategorii
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const categories = await response.json();
+                
+                let html = '';
+                if (categories.length === 0) {
+                    html = '<p>Brak dostępnych kategorii</p>';
+                } else {
+                    categories.forEach(category => {
+                        const channelCount = category.channels_count || 0;
+                        const hasReports = category.has_reports || false;
+                        
+                        html += `
+                            <div class="category-item">
+                                <div class="category-info">
+                                    <h3>${category.name}</h3>
+                                    <p>Kanałów: ${channelCount}</p>
+                                    ${hasReports ? '<span class="status-badge success">Dostępne raporty</span>' : '<span class="status-badge warning">Brak raportów</span>'}
+                                </div>
+                                <div class="category-actions">
+                                    <a href="/trend/trends/${category.name.toUpperCase()}" class="btn btn-primary">Zobacz Analizę</a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                document.getElementById('categoriesList').innerHTML = html;
+            } catch (error) {
+                document.getElementById('categoriesList').innerHTML = `
+                    <div class="status error">Błąd podczas ładowania kategorii: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Inicjalizacja
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+        });
+    </script>
+    
+    <style>
+        .categories-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .category-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .category-info h3 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 1.2em;
+        }
+        
+        .category-info p {
+            margin: 0 0 8px 0;
+            color: #666;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .category-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</body>
+</html>

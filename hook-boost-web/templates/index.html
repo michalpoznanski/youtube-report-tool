@@ -17,9 +17,9 @@
         
         <!-- Raport Podcast -->
         <div class="module-box">
-            <h3>📈 Raport Podcast</h3>
-            <p>Dzienne przyrosty wyświetleń dla kategorii Podcast.</p>
-            <a href="/trend/trends/PODCAST" class="btn">Zobacz Raport</a>
+            <h3>📊 RAPORTY</h3>
+            <p>Przeglądaj analizy trendów dla wszystkich kategorii.</p>
+            <a href="/reports" class="btn">Zobacz Raporty</a>
         </div>
         
         <!-- Dodawanie Kanału -->
@@ -36,11 +36,7 @@
                 <div class="form-group">
                     <label for="category">Kategoria:</label>
                     <select id="category" name="category" class="input">
-                        <option value="polityka">Polityka</option>
-                        <option value="showbiz">Showbiz</option>
-                        <option value="sport">Sport</option>
-                        <option value="technologia">Technologia</option>
-                        <option value="general">Ogólne</option>
+                        <option value="">Ładowanie kategorii...</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary">Dodaj Kanał</button>
@@ -96,11 +92,6 @@
                     <label for="reportCategory">Kategoria (opcjonalnie):</label>
                     <select id="reportCategory" name="category" class="input">
                         <option value="">Wszystkie kategorie</option>
-                        <option value="polityka">Polityka</option>
-                        <option value="showbiz">Showbiz</option>
-                        <option value="sport">Sport</option>
-                        <option value="technologia">Technologia</option>
-                        <option value="general">Ogólne</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -220,14 +211,14 @@
                 const categories = await response.json();
                 
                 // Update category dropdowns
-                updateCategoryDropdowns(categories);
+                updateCategoryOptions(categories);
                 
             } catch (error) {
                 console.error('Błąd podczas ładowania kategorii:', error);
             }
         }
         
-        function updateCategoryDropdowns(categories) {
+        function updateCategoryOptions(categories) {
             // Update add channel category dropdown
             const categorySelect = document.getElementById('category');
             const currentValue = categorySelect.value;
@@ -297,6 +288,7 @@
                     `;
                     document.getElementById('newCategory').value = '';
                     loadCategories();
+                    updateCategoryOptions(); // Odśwież listę kategorii po dodaniu
                     loadStatus();
                 } else {
                     const error = await response.json();
@@ -344,7 +336,7 @@
                     `;
                     document.getElementById('removeCategory').value = '';
                     loadCategories();
-                    loadChannels();
+                    updateCategoryOptions(); // Odśwież listę kategorii po usunięciu
                     loadStatus();
                 } else {
                     const error = await response.json();

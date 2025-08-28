@@ -69,6 +69,7 @@ class CategoryInfo(BaseModel):
     name: str
     channels_count: int
     channels: List[Dict]
+    has_reports: bool
 
 
 @router.post("/channels", response_model=ChannelResponse)

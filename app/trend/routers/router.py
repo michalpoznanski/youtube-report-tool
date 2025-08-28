@@ -17,10 +17,13 @@ def get_top_videos_from_csv(category_name: str, limit: int = 15):
     Prosta funkcja do czytania pliku CSV i zwracania top wideo.
     """
     try:
-        # Ścieżka do katalogu raportów
-        reports_dir = Path("/mnt/volume/reports")
+        # Ścieżka do katalogu raportów - użyj ustawień aplikacji
+        from ...config.settings import settings
+        reports_dir = settings.reports_path
+        
         if not reports_dir.exists():
-            reports_dir = Path("reports")  # Fallback dla lokalnego rozwoju
+            log.warning(f"Katalog raportów nie istnieje: {reports_dir}")
+            return []
         
         # Znajdź najnowszy plik CSV dla danej kategorii
         pattern = f"report_{category_name.upper()}_*.csv"
@@ -42,7 +45,7 @@ def get_top_videos_from_csv(category_name: str, limit: int = 15):
         
         # Znajdź kolumnę z liczbą wyświetleń (może być View_Count, views_today, etc.)
         view_column = None
-        for col in ['View_Count', 'views_today', 'views', 'View_Count_Today']:
+        for col in ['views_today', 'View_Count', 'views', 'View_Count_Today']:
             if col in df.columns:
                 view_column = col
                 break
@@ -53,7 +56,7 @@ def get_top_videos_from_csv(category_name: str, limit: int = 15):
         
         # Znajdź kolumnę z tytułem
         title_column = None
-        for col in ['Title', 'title', 'video_title']:
+        for col in ['title', 'Title', 'video_title']:
             if col in df.columns:
                 title_column = col
                 break
@@ -64,7 +67,7 @@ def get_top_videos_from_csv(category_name: str, limit: int = 15):
         
         # Znajdź kolumnę z nazwą kanału
         channel_column = None
-        for col in ['Channel_Name', 'channel', 'channel_name']:
+        for col in ['channel', 'Channel_Name', 'channel_name']:
             if col in df.columns:
                 channel_column = col
                 break

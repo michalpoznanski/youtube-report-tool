@@ -18,9 +18,9 @@
         
         <!-- Raport Podcast -->
         <div class="module-box">
-            <h3>📈 Raport Podcast</h3>
-            <p>Dzienne przyrosty wyświetleń dla kategorii Podcast.</p>
-            <a href="/trend/trends/PODCAST" class="btn">Zobacz Raport</a>
+            <h3>📊 RAPORTY</h3>
+            <p>Przeglądaj analizy trendów dla wszystkich kategorii.</p>
+            <a href="/reports" class="btn">Zobacz Raporty</a>
         </div>
         
         <!-- Dodawanie Kanału -->
@@ -37,11 +37,7 @@
                 <div class="form-group">
                     <label for="category">Kategoria:</label>
                     <select id="category" name="category" class="input">
-                        <option value="polityka">Polityka</option>
-                        <option value="showbiz">Showbiz</option>
-                        <option value="sport">Sport</option>
-                        <option value="technologia">Technologia</option>
-                        <option value="general">Ogólne</option>
+                        <option value="">Ładowanie kategorii...</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary">Dodaj Kanał</button>
@@ -97,11 +93,6 @@
                     <label for="reportCategory">Kategoria (opcjonalnie):</label>
                     <select id="reportCategory" name="category" class="input">
                         <option value="">Wszystkie kategorie</option>
-                        <option value="polityka">Polityka</option>
-                        <option value="showbiz">Showbiz</option>
-                        <option value="sport">Sport</option>
-                        <option value="technologia">Technologia</option>
-                        <option value="general">Ogólne</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary">Generuj Raport</button>
@@ -131,16 +122,6 @@
                 <button onclick="startScheduler()" class="btn btn-success">Uruchom</button>
                 <button onclick="stopScheduler()" class="btn btn-danger">Zatrzymaj</button>
             </div>
-        </div>
-
-        <div class="card">
-            <h3>📊 Analiza Trendów</h3>
-            <p>Zarządzaj automatyczną analizą plików CSV</p>
-            <div class="button-group">
-                <button onclick="analyzeAllTrends()" class="btn btn-primary">🔄 Analizuj wszystkie pliki CSV</button>
-                <button onclick="reanalyzeCategory('PODCAST')" class="btn btn-primary">🔄 Przeanalizuj Podcast</button>
-            </div>
-            <div id="trend-status" class="status" style="display: none;"></div>
         </div>
     </div>
 
@@ -216,6 +197,8 @@
                 if (response.ok) {
                     document.getElementById('newCategory').value = '';
                     alert('Kategoria dodana pomyślnie!');
+                    // Odśwież listę kategorii w formularzu dodawania kanału
+                    updateCategoryOptions();
                 } else {
                     alert('Błąd podczas dodawania kategorii');
                 }
@@ -242,13 +225,77 @@
                 
                 if (response.ok) {
                     alert('Kategoria usunięta pomyślnie!');
+                    // Odśwież listę kategorii
+                    updateCategoryOptions();
                 } else {
                     alert('Błąd podczas usuwania kategorii');
                 }
             } catch (error) {
                 alert(`Błąd: ${error.message}`);
             }
+        }
+        
+        // Funkcja do aktualizacji opcji kategorii w formularzach
+        async function updateCategoryOptions() {
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const categories = await response.json();
+                
+                // Aktualizuj select w formularzu dodawania kanału
+                const channelCategorySelect = document.getElementById('category');
+                const reportCategorySelect = document.getElementById('reportCategory');
+                const removeCategorySelect = document.getElementById('removeCategory');
+                
+                // Zachowaj obecnie wybraną wartość
+                const currentChannelCategory = channelCategorySelect.value;
+                const currentReportCategory = reportCategorySelect.value;
+                const currentRemoveCategory = removeCategorySelect.value;
+                
+                // Wyczyść i dodaj opcje
+                channelCategorySelect.innerHTML = '';
+                reportCategorySelect.innerHTML = '<option value="">Wszystkie kategorie</option>';
+                removeCategorySelect.innerHTML = '<option value="">Wybierz kategorię...</option>';
+                
+                categories.forEach(category => {
+                    // Dodaj do selecta kanałów
+                    const option1 = document.createElement('option');
+                    option1.value = category.name;
+                    option1.textContent = category.name;
+                    channelCategorySelect.appendChild(option1);
+                    
+                    // Dodaj do selecta raportów
+                    const option2 = document.createElement('option');
+                    option2.value = category.name;
+                    option2.textContent = category.name;
+                    reportCategorySelect.appendChild(option2);
+                    
+                    // Dodaj do selecta usuwania
+                    const option3 = document.createElement('option');
+                    option3.value = category.name;
+                    option3.textContent = `${category.name} (${category.channels_count || 0} kanałów)`;
+                    removeCategorySelect.appendChild(option3);
+                });
+                
+                // Przywróć wybrane wartości
+                if (currentChannelCategory && categories.find(c => c.name === currentChannelCategory)) {
+                    channelCategorySelect.value = currentChannelCategory;
+                }
+                if (currentReportCategory && categories.find(c => c.name === currentReportCategory)) {
+                    reportCategorySelect.value = currentReportCategory;
+                }
+                if (currentRemoveCategory && categories.find(c => c.name === currentRemoveCategory)) {
+                    removeCategorySelect.value = currentRemoveCategory;
+                }
+                
+            } catch (error) {
+                console.error('Błąd podczas aktualizacji kategorii:', error);
+                // W przypadku błędu, dodaj domyślne opcje
+                const channelCategorySelect = document.getElementById('category');
+                if (channelCategorySelect) {
+                    channelCategorySelect.innerHTML = '<option value="">Błąd ładowania kategorii</option>';
+                }
             }
+        }
         
         // Funkcje raportów
         async function generateReport() {
@@ -379,6 +426,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadChannels();
             loadReports();
+            updateCategoryOptions(); // Odśwież listę kategorii przy załadowaniu strony
             
             // Form handlers
             document.getElementById('addChannelForm').addEventListener('submit', async function(e) {
