@@ -7,6 +7,8 @@ from ..config import settings
 from ..youtube import YouTubeClient
 from ..storage import CSVGenerator
 from ..storage.state_manager import StateManager
+from pathlib import Path
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -23,16 +25,24 @@ class TaskScheduler:
     def start(self):
         """Uruchamia scheduler"""
         try:
-            # Dodaj zadanie codziennego raportu
+            # Dodaj zadanie codziennego raportowania o 1:00
             self.scheduler.add_job(
-                func=self.daily_report_task,
-                trigger=CronTrigger(
-                    hour=settings.scheduler_hour,
-                    minute=settings.scheduler_minute
-                ),
+                self.daily_report_task,
+                'cron',
+                hour=settings.scheduler_hour,
+                minute=settings.scheduler_minute,
                 id='daily_report',
-                name='Codzienny raport YouTube',
-                replace_existing=True
+                name='Codzienny raport YouTube'
+            )
+            
+            # Dodaj zadanie analizy rankingowej o 1:30 (30 minut po raporcie)
+            self.scheduler.add_job(
+                self.daily_ranking_analysis_task,
+                'cron',
+                hour=1,
+                minute=30,
+                id='daily_ranking_analysis',
+                name='Codzienna analiza rankingowa'
             )
             
             # Uruchom scheduler
@@ -118,6 +128,57 @@ class TaskScheduler:
             
         except Exception as e:
             logger.error(f"Błąd podczas wykonywania codziennego zadania: {e}")
+    
+    async def daily_ranking_analysis_task(self):
+        """
+        Codzienne zadanie analizy rankingowej o 1:30.
+        Aktualizuje rankingi top 10 dla wszystkich kategorii.
+        """
+        try:
+            logger.info("Rozpoczynam codzienną analizę rankingową...")
+            
+            # Import ranking managera
+            from app.trend.services.ranking_manager import ranking_manager
+            
+            # Pobierz wszystkie kategorie
+            categories = self.state_manager.get_channels().keys()
+            
+            for category in categories:
+                try:
+                    logger.info(f"Analizuję ranking dla kategorii: {category}")
+                    
+                    # Znajdź najnowszy plik CSV dla tej kategorii
+                    reports_dir = Path("reports")
+                    pattern = f"report_{category.upper()}_*.csv"
+                    csv_files = list(reports_dir.glob(pattern))
+                    
+                    if not csv_files:
+                        logger.warning(f"Nie znaleziono plików CSV dla kategorii {category}")
+                        continue
+                    
+                    # Weź najnowszy plik
+                    latest_csv = sorted(csv_files)[-1]
+                    logger.info(f"Używam pliku CSV: {latest_csv}")
+                    
+                    # Wczytaj dane z CSV
+                    df = pd.read_csv(latest_csv)
+                    
+                    # Konwertuj DataFrame na listę słowników
+                    videos = df.to_dict('records')
+                    
+                    # Aktualizuj ranking
+                    ranking = ranking_manager.update_ranking(category, videos)
+                    
+                    logger.info(f"Zaktualizowano ranking dla {category}: {len(ranking['shorts'])} shorts, {len(ranking['longform'])} longform")
+                    
+                except Exception as e:
+                    logger.error(f"Błąd podczas analizy rankingu dla kategorii {category}: {e}")
+                    continue
+            
+            logger.info("Codzienna analiza rankingowa zakończona")
+            
+        except Exception as e:
+            logger.error(f"Błąd podczas wykonywania codziennej analizy rankingowej: {e}")
     
     def add_channel(self, channel_data: Dict, category: str = "general"):
         """Dodaje kanał do monitorowania"""

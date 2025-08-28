@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Ranking Top 10 - {{ category_name.capitalize() }}</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        .header .subtitle {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .content {
+            padding: 30px;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .ranking-section {
+            margin-bottom: 40px;
+        }
+        .ranking-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background-color: #fff;
+        }
+        .ranking-table th, .ranking-table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .ranking-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        .ranking-table tr:nth-child(even) { background-color: #f9f9f9; }
+        .ranking-table tr:hover { background-color: #f1f1f1; }
+        .position {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #667eea;
+            text-align: center;
+        }
+        .position-1 { color: #f39c12; }
+        .position-2 { color: #95a5a6; }
+        .position-3 { color: #e67e22; }
+        .video-title {
+            font-weight: bold;
+            color: #2980b9;
+        }
+        .channel-name {
+            color: #7f8c8d;
+        }
+        .views {
+            font-weight: bold;
+            color: #27ae60;
+        }
+        .trends {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .trend-section {
+            margin-bottom: 20px;
+        }
+        .trend-title {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #27ae60;
+        }
+        .trend-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            border-left: 3px solid #3498db;
+        }
+        .rising { border-left-color: #27ae60; }
+        .falling { border-left-color: #e74c3c; }
+        .stable { border-left-color: #f39c12; }
+        .position-change {
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+        }
+        .position-up {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .position-down {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .position-same {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .error {
+            color: #e74c3c;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .no-data {
+            color: #7f8c8d;
+            text-align: center;
+            padding: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Ranking Top 10 - {{ category_name.capitalize() }}</h1>
+            <p class="subtitle">
+                {% if ranking.last_updated %}
+                    Ostatnia aktualizacja: {{ ranking.last_updated[:10] }}
+                {% else %}
+                    Brak danych rankingu
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="content">
+            <a href="/reports" class="back-btn">← Powrót do raportów</a>
+            
+            {% if error %}
+                <div class="error">
+                    <strong>Błąd:</strong> {{ error }}
+                </div>
+            {% endif %}
+            
+            {% if ranking.last_updated %}
+                <!-- Statystyki ogólne -->
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ ranking.shorts|length }}</div>
+                        <div class="stat-label">Top Shorts</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ ranking.longform|length }}</div>
+                        <div class="stat-label">Top Long Form</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ ranking.history|length }}</div>
+                        <div class="stat-label">Śledzone filmy</div>
+                    </div>
+                </div>
+                
+                <!-- Ranking SHORTS -->
+                <div class="ranking-section">
+                    <h2 class="ranking-title">📱 Top 10 SHORTS</h2>
+                    {% if ranking.shorts %}
+                        <table class="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tytuł</th>
+                                    <th>Kanał</th>
+                                    <th>Wyświetlenia</th>
+                                    <th>Długość</th>
+                                    <th>Miniatura</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for video in ranking.shorts %}
+                                <tr>
+                                    <td class="position position-{{ loop.index if loop.index <= 3 else '' }}">{{ loop.index }}</td>
+                                    <td>
+                                        <a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank" class="video-title">
+                                            {{ video.title }}
+                                        </a>
+                                    </td>
+                                    <td class="channel-name">{{ video.channel }}</td>
+                                    <td class="views">{{ "{:,.0f}".format(video.views) }}</td>
+                                    <td>{{ video.duration }}</td>
+                                    <td>
+                                        <img src="{{ video.thumbnail_url }}" alt="Thumbnail" style="width: 80px; height: 60px; border-radius: 5px;">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="no-data">Brak danych dla SHORTS</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Ranking LONG FORM -->
+                <div class="ranking-section">
+                    <h2 class="ranking-title">🎬 Top 10 LONG FORM</h2>
+                    {% if ranking.longform %}
+                        <table class="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tytuł</th>
+                                    <th>Kanał</th>
+                                    <th>Wyświetlenia</th>
+                                    <th>Długość</th>
+                                    <th>Miniatura</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for video in ranking.longform %}
+                                <tr>
+                                    <td class="position position-{{ loop.index if loop.index <= 3 else '' }}">{{ loop.index }}</td>
+                                    <td>
+                                        <a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank" class="video-title">
+                                            {{ video.title }}
+                                        </a>
+                                    </td>
+                                    <td class="channel-name">{{ video.channel }}</td>
+                                    <td class="views">{{ "{:,.0f}".format(video.views) }}</td>
+                                    <td>{{ video.duration }}</td>
+                                    <td>
+                                        <img src="{{ video.thumbnail_url }}" alt="Thumbnail" style="width: 80px; height: 60px; border-radius: 5px;">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="no-data">Brak danych dla LONG FORM</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Analiza trendów -->
+                {% if summary.trends %}
+                <div class="trends">
+                    <h2>📈 Analiza trendów</h2>
+                    
+                    <!-- Wzloty -->
+                    {% if summary.trends.rising_stars %}
+                    <div class="trend-section">
+                        <h3 class="trend-title">🚀 Wzloty</h3>
+                        {% for video in summary.trends.rising_stars %}
+                        <div class="trend-item rising">
+                            <strong>{{ video.title }}</strong> ({{ video.channel }})
+                            <span class="position-change position-up">
+                                {{ video.from_position }} → {{ video.to_position }}
+                            </span>
+                            <span class="views">+{{ "{:,.0f}".format(video.views_change) }} wyświetleń</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Spadki -->
+                    {% if summary.trends.falling_stars %}
+                    <div class="trend-section">
+                        <h3 class="trend-title">📉 Spadki</h3>
+                        {% for video in summary.trends.falling_stars %}
+                        <div class="trend-item falling">
+                            <strong>{{ video.title }}</strong> ({{ video.channel }})
+                            <span class="position-change position-down">
+                                {{ video.from_position }} → {{ video.to_position }}
+                            </span>
+                            <span class="views">{{ "{:,.0f}".format(video.views_change) }} wyświetleń</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Stabilne -->
+                    {% if summary.trends.stable_stars %}
+                    <div class="trend-section">
+                        <h3 class="trend-title">⚖️ Stabilne</h3>
+                        {% for video in summary.trends.stable_stars %}
+                        <div class="trend-item stable">
+                            <strong>{{ video.title }}</strong> ({{ video.channel }})
+                            <span class="position-change position-same">
+                                Pozycja {{ video.position }}
+                            </span>
+                            <span class="views">{{ "{:,.0f}".format(video.views) }} wyświetleń</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+            {% else %}
+                <div class="no-data">
+                    <h3>Brak danych rankingu</h3>
+                    <p>Ranking dla kategorii {{ category_name.capitalize() }} nie został jeszcze wygenerowany.</p>
+                    <p>Pierwszy ranking zostanie utworzony automatycznie o 1:30 po wygenerowaniu raportu CSV.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

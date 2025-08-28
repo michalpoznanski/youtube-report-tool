@@ -169,3 +169,51 @@ async def get_local_trends_page(request: Request, category_name: str):
                 "total_videos": 0
             }
         )
+
+@router.get("/rankings/{category_name}", response_class=HTMLResponse)
+async def get_category_rankings(request: Request, category_name: str):
+    """
+    Wyświetla ranking top 10 filmów dla danej kategorii.
+    Pokazuje podział na SHORTS i LONG FORM z historią pozycji.
+    """
+    try:
+        # Import ranking managera
+        from app.trend.services.ranking_manager import ranking_manager
+        
+        # Pobierz ranking dla kategorii
+        ranking = ranking_manager.load_ranking(category_name)
+        
+        # Pobierz podsumowanie z trendami
+        summary = ranking_manager.get_ranking_summary(category_name)
+        
+        # Renderuj szablon rankingów
+        return templates.TemplateResponse(
+            "trend/rankings.html",
+            {
+                "request": request,
+                "category_name": category_name,
+                "ranking": ranking,
+                "summary": summary
+            }
+        )
+        
+    except Exception as e:
+        log.error(f"Błąd podczas pobierania rankingu dla kategorii {category_name}: {e}")
+        
+        # W przypadku błędu zwróć szablon z pustymi danymi
+        return templates.TemplateResponse(
+            "trend/rankings.html",
+            {
+                "request": request,
+                "category_name": category_name,
+                "ranking": {
+                    "category": category_name,
+                    "last_updated": None,
+                    "shorts": [],
+                    "longform": [],
+                    "history": {}
+                },
+                "summary": {"error": str(e)},
+                "error": str(e)
+            }
+        )
