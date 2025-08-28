@@ -98,8 +98,8 @@ def load_daily_report(category: str, date: str) -> List[Dict[str, Any]]:
             video_type_value = video_type_value.strip().lower()
             duration_seconds = normalized.get("duration_seconds")
 
-            # 1. Reguła długości: jeśli mamy czas trwania i jest krótszy niż 3 minuty, traktujemy jako Short
-            if duration_seconds is not None and duration_seconds < 180:
+            # 1. Reguła długości: jeśli mamy czas trwania i jest krótszy niż 10 minut, traktujemy jako Short
+            if duration_seconds is not None and duration_seconds < 600:
                 is_short = True
             # 2. Wykorzystanie video_type, gdy czas trwania nie kwalifikuje się do krótkiej formy
             elif "short" in video_type_value:

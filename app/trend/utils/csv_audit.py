@@ -13,8 +13,8 @@ AUDIT_RECOMMENDATION = """
 REKOMENDACJE POPRAWY GENERATORA RAPORTÓW CSV:
 
 1. KLASYFIKACJA SHORT vs LONG:
-   - Ustawić video_type = "shorts" jeśli duration_seconds < 180
-   - Ustawić video_type = "long" jeśli duration_seconds >= 180
+   - Ustawić video_type = "shorts" jeśli duration_seconds < 600
+   - Ustawić video_type = "long" jeśli duration_seconds >= 600
    - Ignorować tagi #short/#shorts w logice generatora
 
 2. KOLUMNY DO USUNIĘCIA:
@@ -45,7 +45,7 @@ REKOMENDACJE POPRAWY GENERATORA RAPORTÓW CSV:
    - Walidacja regex: PT(?:([0-9]+)H)?(?:([0-9]+)M)?(?:([0-9]+)S)?
 
 6. LOGIKA KLASYFIKACJI:
-   if duration_seconds < 180:
+   if duration_seconds < 600:
        video_type = "shorts"
    else:
        video_type = "long"
@@ -128,8 +128,8 @@ def audit_csv(category: str, days: int = 7, reports_dir: str = "/mnt/volume/repo
                             duration_seconds = hours * 3600 + minutes * 60 + seconds
                             
                             # Sprawdź niespójność
-                            if (video_type == "long" and duration_seconds < 180) or \
-                               (video_type == "shorts" and duration_seconds >= 180):
+                            if (video_type == "long" and duration_seconds < 600) or \
+                               (video_type == "shorts" and duration_seconds >= 600):
                                 counts["video_type_vs_duration_mismatch"] += 1
                                 if len(sample_rows) < 10:
                                     sample_rows.append({

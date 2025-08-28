@@ -500,7 +500,7 @@ class YouTubeClient:
             seconds = int(match.group(3) or 0)
             total_seconds = hours * 3600 + minutes * 60 + seconds
             
-            # Filmy do 3 minut (180 sekund) to shorts
-            return total_seconds <= 180
+            # Filmy do 10 minut (600 sekund) to shorts
+            return total_seconds <= 600
         
         return False 

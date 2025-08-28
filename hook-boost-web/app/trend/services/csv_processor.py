@@ -153,7 +153,7 @@ class CSVProcessor:
             
             # Dodaj kolumnę video_type na podstawie Duration
             result_df['video_type'] = result_df['Duration'].apply(
-                lambda x: "Shorts" if pd.notna(x) and str(x).startswith('PT') and 'S' in str(x) and int(str(x).split('S')[0].split('T')[-1]) <= 180 else "Longform"
+                lambda x: "Shorts" if pd.notna(x) and str(x).startswith('PT') and 'S' in str(x) and int(str(x).split('S')[0].split('T')[-1]) <= 600 else "Longform"
             )
             
             # Inicjalizuj kolumnę delta

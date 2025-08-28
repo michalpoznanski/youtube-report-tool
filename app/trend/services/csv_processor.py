@@ -192,13 +192,13 @@ class CSVProcessor:
                             seconds = int(duration_str.split('S')[0].split('T')[-1])
                         
                         total_seconds = hours * 3600 + minutes * 60 + seconds
-                        # Filmy do 3 minut (180 sekund) to shorts, powyżej to long-form
-                        return "Shorts" if total_seconds <= 180 else "Longform"
+                        # Filmy do 10 minut (600 sekund) to shorts, powyżej to long-form
+                        return "Shorts" if total_seconds <= 600 else "Longform"
                     else:
                         # Stary format: duration_seconds jako liczba
                         duration_seconds = int(duration_val)
-                        # Filmy do 3 minut (180 sekund) to shorts, powyżej to long-form
-                        return "Shorts" if duration_seconds <= 180 else "Longform"
+                        # Filmy do 10 minut (600 sekund) to shorts, powyżej to long-form
+                        return "Shorts" if duration_seconds <= 600 else "Longform"
                     
                 except (ValueError, TypeError):
                     # W przypadku błędu parsowania, domyślnie Longform
