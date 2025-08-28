@@ -219,7 +219,7 @@ class TaskScheduler:
             logger.error(f"Błąd podczas dodawania kanału: {e}")
             raise
     
-    async def get_channel_videos(self, channel_id: str, days_back: int = 3):
+    async def get_channel_videos(self, channel_id: str, days_back: int = 7):
         """Pobiera filmy z kanału"""
         return await self.youtube_client.get_channel_videos(channel_id, days_back)
     

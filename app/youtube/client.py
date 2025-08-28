@@ -154,7 +154,7 @@ class YouTubeClient:
             logger.error(f"Błąd podczas pobierania informacji o kanale: {e}")
             raise ValueError(f"Błąd podczas pobierania informacji o kanale: {e}")
     
-    async def get_channel_videos(self, channel_id: str, days_back: int = 3) -> List[Dict]:
+    async def get_channel_videos(self, channel_id: str, days_back: int = 7) -> List[Dict]:
         """Pobiera filmy z kanału z ostatnich N dni"""
         try:
             # Oblicz datę początkową (offset-aware)

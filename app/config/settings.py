@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Scheduler
     scheduler_hour: int = 1
     scheduler_minute: int = 0
-    days_back: int = 3
+    days_back: int = 7
     
     # Storage
     data_dir: str = "data"

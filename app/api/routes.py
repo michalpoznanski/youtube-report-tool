@@ -43,7 +43,7 @@ class ChannelResponse(BaseModel):
 
 class ReportRequest(BaseModel):
     category: Optional[str] = None
-    days_back: int = 3
+    days_back: int = 7
 
 
 class StatusResponse(BaseModel):
