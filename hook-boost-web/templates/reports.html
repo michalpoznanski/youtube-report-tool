@@ -76,6 +76,46 @@
             }
         }
         
+        // Funkcja do regeneracji rankingu
+        async function forceRanking(categoryName) {
+            if (!confirm(`Czy na pewno chcesz zregenerować ranking dla kategorii "${categoryName}"?\n\nTo użyje najnowszych danych CSV i nowej logiki klasyfikacji (10 min zamiast 3 min).`)) {
+                return;
+            }
+            
+            try {
+                // Pokaż status ładowania
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '⏳ Regeneruję...';
+                button.disabled = true;
+                
+                const response = await fetch(`/api/v1/force-ranking/${categoryName}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`✅ Ranking został zregenerowany pomyślnie!\n\n📊 Filmy: ${result.videos_count}\n📱 Shorts: ${result.shorts_count}\n🎬 Long-form: ${result.longform_count}\n\n${result.note}\n\nOdśwież stronę, aby zobaczyć nowy ranking.`);
+                    
+                    // Odśwież stronę po 2 sekundach
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    alert(`❌ Błąd: ${result.detail}`);
+                }
+                
+            } catch (error) {
+                alert(`❌ Błąd połączenia: ${error.message}`);
+            } finally {
+                // Przywróć oryginalny tekst przycisku
+                const button = event.target;
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+        
         // Funkcja do ładowania kategorii
         async function loadCategories() {
             try {
@@ -98,6 +138,7 @@
                                     ${category.has_reports ? `
                                         <a href="/trend/rankings/${category.name}" class="btn btn-success">🏆 Ranking Top 10</a>
                                         <button onclick="forceReport('${category.name}')" class="btn btn-warning">🔄 Wymuś Raport</button>
+                                        <button onclick="forceRanking('${category.name}')" class="btn btn-info">🔧 Regeneruj Ranking</button>
                                     ` : `
                                         <button onclick="forceReport('${category.name}')" class="btn btn-primary">🔄 Wymuś Raport</button>
                                     `}

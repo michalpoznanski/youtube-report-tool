@@ -1320,4 +1320,64 @@ async def force_report_generation(category: str):
         
     except Exception as e:
         logger.error(f"Błąd podczas wymuszonego generowania raportu dla {category}: {e}")
-        return {"detail": f"Błąd podczas generowania raportu: {str(e)}"} 
+        return {"detail": f"Błąd podczas generowania raportu: {str(e)}"}
+
+@router.post("/force-ranking/{category}")
+async def force_ranking_regeneration(category: str):
+    """
+    Wymusza regenerację rankingu dla danej kategorii używając najnowszych danych CSV i nowej logiki.
+    """
+    try:
+        logger.info(f"Wymuszam regenerację rankingu dla kategorii: {category}")
+        
+        # Sprawdź czy moduł trendów jest aktywny
+        if os.environ.get("ENABLE_TREND", "false").lower() != "true":
+            return {"detail": "Moduł trendów nie jest aktywny"}
+        
+        # Import ranking managera
+        from app.trend.services.ranking_manager import ranking_manager
+        from app.trend.services.csv_processor import get_trend_data
+        from datetime import date
+        
+        # Wyczyść stary ranking
+        success = ranking_manager.clear_ranking(category)
+        if not success:
+            logger.warning(f"Nie udało się wyczyścić rankingu dla {category}")
+        
+        # Pobierz najnowsze dane CSV
+        videos = get_trend_data(category=category, report_date=date.today())
+        
+        if not videos:
+            return {
+                "detail": f"Brak danych CSV dla kategorii {category}. Najpierw wygeneruj raport używając /force-report/{category}",
+                "category": category,
+                "status": "no_csv_data"
+            }
+        
+        # Wygeneruj nowy ranking z nową logiką
+        ranking = ranking_manager.update_ranking(category, videos)
+        
+        # Sprawdź czy ranking został wygenerowany poprawnie
+        shorts_count = len(ranking.get("shorts", []))
+        longform_count = len(ranking.get("longform", []))
+        
+        logger.info(f"Ranking dla {category} został zregenerowany: {shorts_count} shorts, {longform_count} long-form")
+        
+        return {
+            "message": f"Ranking dla kategorii {category} został zregenerowany z nową logiką",
+            "category": category,
+            "status": "regenerated",
+            "videos_count": len(videos),
+            "shorts_count": shorts_count,
+            "longform_count": longform_count,
+            "last_updated": ranking.get("last_updated"),
+            "note": "Nowa logika: filmy do 10 min = Shorts, powyżej 10 min = Long-form"
+        }
+            
+    except Exception as e:
+        logger.error(f"Błąd podczas regeneracji rankingu dla {category}: {e}")
+        return {
+            "detail": f"Błąd podczas regeneracji rankingu: {str(e)}",
+            "category": category,
+            "status": "error"
+        } 
