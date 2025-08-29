@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 import logging
 from pathlib import Path
 import os
+from contextlib import asynccontextmanager
 
 print("🚀🚀🚀 URUCHAMIAM NAJNOWSZĄ WERSJĘ Z 23 SIERPNIA - NOWY INTERFEJS! 🚀🚀🚀")
 
@@ -78,11 +79,57 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
-# Tworzenie aplikacji FastAPI
+# Scheduler
+scheduler = TaskScheduler() if TaskScheduler else None
+
+# Upewnij się, że dane są załadowane przed startem API
+if scheduler and scheduler.state_manager:
+    print("🔄 Wymuszanie załadowania danych przed startem API...")
+    scheduler.state_manager.load_all_data()
+    print("✅ Dane załadowane przed startem API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Nowy system lifecycle dla FastAPI 0.104.1+"""
+    try:
+        logger.info("🚀 Uruchamianie aplikacji Hook Boost Web...")
+        
+        # Utwórz wymagane katalogi
+        settings.create_directories()
+        
+        # Uruchom scheduler jeśli dostępny
+        if scheduler:
+            print("🔄 Uruchamiam scheduler...")
+            scheduler.start()
+            print("✅ Scheduler uruchomiony pomyślnie!")
+        
+        logger.info("✅ Aplikacja uruchomiona pomyślnie!")
+        
+        yield  # Aplikacja działa
+        
+    except Exception as e:
+        logger.error(f"❌ Błąd podczas uruchamiania aplikacji: {e}")
+        raise
+    finally:
+        try:
+            logger.info("🛑 Zatrzymywanie aplikacji...")
+            
+            # Zatrzymaj scheduler jeśli dostępny
+            if scheduler:
+                scheduler.stop()
+                logger.info("✅ Scheduler zatrzymany")
+            
+            logger.info("✅ Aplikacja zatrzymana pomyślnie!")
+            
+        except Exception as e:
+            logger.error(f"❌ Błąd podczas zatrzymywania aplikacji: {e}")
+
+# Tworzenie aplikacji FastAPI z nowym systemem lifecycle
 app = FastAPI(
     title="Hook Boost Web",
     description="Aplikacja webowa do raportowania danych z kanałów YouTube",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan  # ✅ NOWY SYSTEM LIFECYCLE
 )
 
 # CORS middleware
@@ -121,52 +168,6 @@ except RuntimeError as e:
     print(f"⚠️ Static files mount failed: {e}")
     # Jeśli katalog static nie istnieje, pomiń montowanie
     pass
-
-# Scheduler
-scheduler = TaskScheduler() if TaskScheduler else None
-
-# Upewnij się, że dane są załadowane przed startem API
-if scheduler and scheduler.state_manager:
-    print("🔄 Wymuszanie załadowania danych przed startem API...")
-    scheduler.state_manager.load_all_data()
-    print("✅ Dane załadowane przed startem API")
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Event uruchamiany przy starcie aplikacji"""
-    try:
-        logger.info("Uruchamianie aplikacji Hook Boost Web...")
-        
-        # Utwórz wymagane katalogi
-        settings.create_directories()
-        
-        # Uruchom scheduler jeśli dostępny
-        if scheduler:
-            scheduler.start()
-        
-        logger.info("Aplikacja uruchomiona pomyślnie!")
-        
-    except Exception as e:
-        logger.error(f"Błąd podczas uruchamiania aplikacji: {e}")
-        # Nie rzucaj błędu - pozwól aplikacji się uruchomić
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Event uruchamiany przy zatrzymaniu aplikacji"""
-    try:
-        logger.info("Zatrzymywanie aplikacji...")
-        
-        # Zatrzymaj scheduler jeśli dostępny
-        if scheduler:
-            scheduler.stop()
-        
-        logger.info("Aplikacja zatrzymana pomyślnie!")
-        
-    except Exception as e:
-        logger.error(f"Błąd podczas zatrzymywania aplikacji: {e}")
-
 
 # Dodaj router API jeśli dostępny
 if router:
