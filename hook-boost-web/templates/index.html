@@ -118,6 +118,7 @@
             <div id="status" class="status-container">
                 <div class="status loading">Ładowanie statusu...</div>
             </div>
+            <button onclick="checkSchedulerStatus()" class="btn btn-info">🔄 Sprawdź Status Schedulera</button>
         </div>
         
         <!-- Kontrola Schedulera -->
@@ -565,6 +566,17 @@
                 }
             } catch (error) {
                 alert(`Błąd: ${error.message}`);
+            }
+        }
+
+        async function checkSchedulerStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/scheduler/status`);
+                const status = await response.json();
+                alert(`Status schedulera: ${status.scheduler_running ? '🟢 Uruchomiony' : '🔴 Zatrzymany'}`);
+                loadStatus(); // Odśwież status głównego dashboardu
+            } catch (error) {
+                alert(`Błąd podczas sprawdzania statusu schedulera: ${error.message}`);
             }
         }
         

@@ -29,6 +29,26 @@ class RankingManager:
         ranking_file = self.get_ranking_file_path(category)
         
         if not ranking_file.exists():
+            logger.info(f"Ranking dla kategorii {category} nie istnieje - generuję automatycznie")
+            # Automatycznie wygeneruj ranking jeśli nie istnieje
+            try:
+                from app.trend.services.csv_processor import get_trend_data
+                from datetime import date
+                
+                # Pobierz najnowsze dane CSV
+                videos = get_trend_data(category=category, report_date=date.today())
+                
+                if videos:
+                    # Wygeneruj ranking
+                    ranking_data = self.update_ranking(category, videos)
+                    logger.info(f"Automatycznie wygenerowano ranking dla kategorii {category}")
+                    return ranking_data
+                else:
+                    logger.warning(f"Brak danych CSV dla kategorii {category} - nie można wygenerować rankingu")
+            except Exception as e:
+                logger.error(f"Błąd podczas automatycznego generowania rankingu dla {category}: {e}")
+            
+            # Zwróć pusty ranking jeśli nie udało się wygenerować
             return {
                 "category": category,
                 "last_updated": None,

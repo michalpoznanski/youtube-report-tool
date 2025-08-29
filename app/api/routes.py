@@ -1381,3 +1381,42 @@ async def force_ranking_regeneration(category: str):
             "category": category,
             "status": "error"
         } 
+
+@router.get("/scheduler/status")
+async def get_scheduler_status():
+    """Sprawdza status schedulera i zaplanowane zadania"""
+    try:
+        from app.scheduler.task_scheduler import scheduler
+        
+        if not scheduler:
+            return {
+                "status": "error",
+                "message": "Scheduler nie jest dostępny",
+                "scheduler_running": False,
+                "jobs": []
+            }
+        
+        scheduler_status = {
+            "scheduler_running": scheduler.scheduler.running if scheduler.scheduler else False,
+            "jobs": []
+        }
+        
+        if scheduler.scheduler and scheduler.scheduler.running:
+            jobs = scheduler.scheduler.get_jobs()
+            for job in jobs:
+                scheduler_status["jobs"].append({
+                    "id": job.id,
+                    "name": job.name,
+                    "next_run": str(job.next_run_time) if job.next_run_time else "Nie zaplanowane",
+                    "trigger": str(job.trigger)
+                })
+        
+        return scheduler_status
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Błąd podczas sprawdzania statusu schedulera: {str(e)}",
+            "scheduler_running": False,
+            "jobs": []
+        } 

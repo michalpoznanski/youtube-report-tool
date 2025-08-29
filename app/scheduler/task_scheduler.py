@@ -25,43 +25,39 @@ class TaskScheduler:
         self.youtube_client = YouTubeClient(settings.youtube_api_key, self.state_manager)
         self.csv_generator = CSVGenerator()
     
-    def start(self):
+    def start(self) -> bool:
         """Uruchamia scheduler"""
         try:
-            print("🔄 Uruchamiam scheduler...")
-            logger.info("Uruchamiam scheduler...")
-            
-            # Sprawdź czy scheduler już działa
             if self.scheduler.running:
-                print("⚠️ Scheduler już działa")
-                logger.warning("Scheduler już działa")
+                print("ℹ️ Scheduler już uruchomiony")
+                logger.info("Scheduler już uruchomiony")
                 return True
             
-            # Dodaj zadanie codziennego raportowania o 1:00
+            # Sprawdź czy zadania już istnieją
+            existing_jobs = self.scheduler.get_jobs()
+            if existing_jobs:
+                print(f"⚠️ Znaleziono {len(existing_jobs)} istniejących zadań - usuwam")
+                for job in existing_jobs:
+                    job.remove()
+            
+            # Dodaj zadania
             self.scheduler.add_job(
                 self.daily_report_task,
                 'cron',
                 hour=settings.scheduler_hour,
                 minute=settings.scheduler_minute,
                 id='daily_report',
-                name='Codzienny raport YouTube'
+                name='Codzienny raport o 1:00'
             )
             
-            # Dodaj zadanie analizy rankingowej o 1:30 (30 minut po raporcie)
             self.scheduler.add_job(
                 self.daily_ranking_analysis_task,
                 'cron',
                 hour=settings.scheduler_hour,
                 minute=settings.scheduler_minute + 30,
                 id='daily_ranking_analysis',
-                name='Codzienna analiza rankingowa'
+                name='Codzienna analiza rankingowa o 1:30'
             )
-            
-            # Sprawdź czy zadania zostały dodane
-            if not self.scheduler.get_jobs():
-                print("❌ Brak zadań w schedulerze")
-                logger.error("Brak zadań w schedulerze")
-                return False
             
             # Uruchom scheduler
             self.scheduler.start()
@@ -72,8 +68,15 @@ class TaskScheduler:
                 logger.error("Scheduler nie uruchomił się")
                 return False
             
-            timezone = pytz.timezone(settings.timezone)
+            # Sprawdź czy zadania są zaplanowane
+            jobs = self.scheduler.get_jobs()
             print(f"✅ Scheduler uruchomiony pomyślnie!")
+            print(f"📅 Zaplanowane zadania: {len(jobs)}")
+            for job in jobs:
+                print(f"   - {job.name}: {job.next_run_time}")
+            
+            timezone = pytz.timezone(settings.timezone)
+            print(f"✅ Scheduler uruchomiony - raporty codziennie o {settings.scheduler_hour}:{str(settings.scheduler_minute).zfill(2)} {timezone}")
             logger.info(f"Scheduler uruchomiony - raporty codziennie o {settings.scheduler_hour}:{str(settings.scheduler_minute).zfill(2)} {timezone}")
             
         except Exception as e:
