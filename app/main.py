@@ -95,16 +95,26 @@ async def lifespan(app: FastAPI):
         logger.info("🚀 Uruchamianie aplikacji Hook Boost Web...")
         
         # Utwórz wymagane katalogi
-        settings.create_directories()
+        try:
+            settings.create_directories()
+            print("✅ Katalogi utworzone")
+        except Exception as e:
+            print(f"⚠️ Błąd tworzenia katalogów: {e}")
+            logger.warning(f"Błąd tworzenia katalogów: {e}")
         
         # Uruchom scheduler jeśli dostępny
         if scheduler:
             print("🔄 Uruchamiam scheduler...")
-            success = scheduler.start()
-            if success:
-                print("✅ Scheduler uruchomiony pomyślnie!")
-            else:
-                print("⚠️ Scheduler nie uruchomił się, ale aplikacja będzie działać")
+            try:
+                success = scheduler.start()
+                if success:
+                    print("✅ Scheduler uruchomiony pomyślnie!")
+                else:
+                    print("⚠️ Scheduler nie uruchomił się, ale aplikacja będzie działać")
+            except Exception as e:
+                print(f"⚠️ Błąd uruchamiania schedulera: {e}")
+                logger.warning(f"Błąd uruchamiania schedulera: {e}")
+                # Kontynuuj mimo błędu schedulera
         else:
             print("ℹ️ Brak schedulera do uruchomienia")
         
@@ -114,15 +124,22 @@ async def lifespan(app: FastAPI):
         
     except Exception as e:
         logger.error(f"❌ Błąd podczas uruchamiania aplikacji: {e}")
-        raise
+        print(f"❌ Błąd podczas uruchamiania aplikacji: {e}")
+        import traceback
+        traceback.print_exc()
+        # Nie rzucaj błędu - pozwól aplikacji się uruchomić
+        yield
     finally:
         try:
             logger.info("🛑 Zatrzymywanie aplikacji...")
             
             # Zatrzymaj scheduler jeśli dostępny
-            if scheduler:
-                scheduler.stop()
-                logger.info("✅ Scheduler zatrzymany")
+            if scheduler and scheduler.scheduler.running:
+                try:
+                    scheduler.stop()
+                    logger.info("✅ Scheduler zatrzymany")
+                except Exception as e:
+                    logger.warning(f"Błąd zatrzymywania schedulera: {e}")
             
             logger.info("✅ Aplikacja zatrzymana pomyślnie!")
             
