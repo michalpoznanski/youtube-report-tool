@@ -28,9 +28,24 @@
             </div>
             
             <div id="reportsSection" class="reports-section">
-                <div id="categoriesList" class="categories-list">
-                    <!-- Kategorie będą ładowane dynamicznie -->
-                    <div class="loading">Ładowanie kategorii...</div>
+                <!-- Lista raportów CSV -->
+                <div class="reports-list-section">
+                    <div class="section-header">
+                        <h3>📁 Raporty CSV</h3>
+                        <button onclick="loadReports()" class="btn btn-refresh">🔄 Odśwież Listę</button>
+                    </div>
+                    <div id="reportsList" class="reports-list">
+                        <div class="loading">Ładowanie raportów...</div>
+                    </div>
+                </div>
+                
+                <!-- Lista kategorii -->
+                <div class="categories-section">
+                    <h3>📊 Kategorie</h3>
+                    <div id="categoriesList" class="categories-list">
+                        <!-- Kategorie będą ładowane dynamicznie -->
+                        <div class="loading">Ładowanie kategorii...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -158,10 +173,58 @@
                 `;
             }
         }
+
+        // Funkcja do ładowania listy raportów CSV
+        async function loadReports() {
+            try {
+                const response = await fetch(`${API_BASE}/reports/list`);
+                const data = await response.json();
+
+                let html = '';
+                if (!data.reports || data.reports.length === 0) {
+                    html = '<p>Brak dostępnych raportów CSV.</p>';
+                } else {
+                    data.reports.forEach(report => {
+                        // Formatuj rozmiar pliku
+                        const sizeKB = (report.size / 1024).toFixed(1);
+                        const sizeMB = (report.size / (1024 * 1024)).toFixed(2);
+                        const sizeStr = sizeKB < 1024 ? `${sizeKB} KB` : `${sizeMB} MB`;
+                        
+                        // Formatuj datę
+                        const date = new Date(report.created * 1000);
+                        const dateStr = date.toLocaleDateString('pl-PL');
+                        const timeStr = date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+                        
+                        // Wyciągnij kategorię z nazwy pliku
+                        const category = report.filename.split('_')[1] || 'Nieznana';
+                        
+                        html += `
+                            <div class="report-item">
+                                <div class="report-info">
+                                    <h4>📄 ${report.filename}</h4>
+                                    <p>📅 Utworzony: ${dateStr}, ${timeStr}</p>
+                                    <p>🏷️ Kategoria: ${category}</p>
+                                    <p>💾 Rozmiar: ${sizeStr}</p>
+                                </div>
+                                <div class="report-actions">
+                                    <a href="/api/v1/reports/download/${report.filename}" class="btn btn-primary">📥 Pobierz</a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('reportsList').innerHTML = html;
+            } catch (error) {
+                document.getElementById('reportsList').innerHTML = `
+                    <div class="status error">Błąd podczas ładowania raportów: ${error.message}</div>
+                `;
+            }
+        }
         
         // Inicjalizacja
         document.addEventListener('DOMContentLoaded', function() {
             loadCategories();
+            loadReports(); // Wywołaj funkcję ładowania raportów
         });
 
         // Funkcja do zwijania/rozwijania sekcji raportów
@@ -306,6 +369,81 @@
 
         .btn-toggle:hover {
             background: #e0e0e0;
+        }
+
+        .reports-list-section, .categories-section {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .reports-list-section h3, .categories-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .reports-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .report-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .report-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+
+        .report-info h4 {
+            margin: 0 0 5px 0;
+            color: #444;
+            font-size: 1.1em;
+        }
+
+        .report-info p {
+            margin: 0 0 5px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-refresh {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+
+        .btn-refresh:hover {
+            background: #138496;
         }
     </style>
 </body>
