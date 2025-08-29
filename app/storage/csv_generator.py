@@ -88,9 +88,17 @@ class CSVGenerator:
             # Utwórz DataFrame
             df = pd.DataFrame(rows, columns=self.columns)
             
-            # Generuj nazwę pliku w nowym formacie: report_{KATEGORIA}_{YYYY-MM-DD}.csv
-            timestamp = datetime.now().strftime('%Y-%m-%d')
-            filename = f"report_{category.upper()}_{timestamp}.csv"
+            # Generuj nazwę pliku w nowym formacie: report_{KATEGORIA}_{DATA_DANYCH}.csv
+            # Użyj daty z danych (ostatni film) zamiast daty generowania
+            if rows:
+                # Znajdź najnowszą datę w danych
+                latest_date = max(row['Date_of_Publishing'] for row in rows if row['Date_of_Publishing'])
+                filename = f"report_{category.upper()}_{latest_date}.csv"
+            else:
+                # Fallback - użyj dzisiejszej daty
+                timestamp = datetime.now().strftime('%Y-%m-%d')
+                filename = f"report_{category.upper()}_{timestamp}.csv"
+            
             filepath = settings.reports_path / filename
             
             # Upewnij się, że katalog raportów istnieje

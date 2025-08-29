@@ -96,18 +96,23 @@ class TaskScheduler:
         """Codzienne zadanie generowania raportów"""
         try:
             logger.info("Rozpoczęcie codziennego zadania raportowania")
+            print("🔄 Rozpoczynam codzienne zadanie raportowania...")
             
             # Reset quota (tylko raz dziennie)
             self.state_manager.reset_quota()
+            print("✅ Quota zresetowana")
             
             # Pobierz dane ze wszystkich kanałów
             all_videos = {}
+            total_quota_before = self.youtube_client.get_quota_usage()['used']
+            print(f"📊 Quota przed raportowaniem: {total_quota_before}")
             
             for category, channels in self.state_manager.get_channels().items():
                 category_videos = []
                 
                 for channel in channels:
                     try:
+                        print(f"📺 Pobieram dane z kanału: {channel['title']}")
                         videos = await self.youtube_client.get_channel_videos(
                             channel['id'], 
                             settings.days_back
@@ -119,9 +124,11 @@ class TaskScheduler:
                             video['channel_id'] = channel['id']
                         
                         category_videos.extend(videos)
+                        print(f"✅ Pobrano {len(videos)} filmów z kanału {channel['title']}")
                         logger.info(f"Pobrano {len(videos)} filmów z kanału {channel['title']}")
                         
                     except Exception as e:
+                        print(f"❌ Błąd podczas pobierania filmów z kanału {channel['title']}: {e}")
                         logger.error(f"Błąd podczas pobierania filmów z kanału {channel['title']}: {e}")
                 
                 if category_videos:
@@ -129,37 +136,47 @@ class TaskScheduler:
             
             # Generuj raporty CSV
             if all_videos:
+                total_videos = sum(len(videos) for videos in all_videos.values())
+                print(f"📊 Łącznie pobrano {total_videos} filmów")
+                
                 # Raport dla każdej kategorii
                 for category, videos in all_videos.items():
                     try:
                         csv_path = self.csv_generator.generate_csv(videos, category)
+                        print(f"✅ Wygenerowano raport dla kategorii {category}: {csv_path}")
                         logger.info(f"Wygenerowano raport dla kategorii {category}: {csv_path}")
                     except Exception as e:
+                        print(f"❌ Błąd podczas generowania raportu dla kategorii {category}: {e}")
                         logger.error(f"Błąd podczas generowania raportu dla kategorii {category}: {e}")
                 
-                # Raport podsumowujący - WYŁĄCZONY w schedulerze cyklicznym
-                # Raport zbiorczy dostępny tylko jako opcja manualna z UI/API
-                # try:
-                #     summary_path = self.csv_generator.generate_summary_csv(all_videos)
-                #     logger.info(f"Wygenerowano raport podsumowujący: {summary_path}")
-                # except Exception as e:
-                #     logger.error(f"Błąd podczas generowania raportu podsumowującego: {e}")
+                # Sprawdź zużycie quota po raportowaniu
+                total_quota_after = self.youtube_client.get_quota_usage()['used']
+                quota_used = total_quota_after - total_quota_before
+                print(f"📊 Quota po raportowaniu: {total_quota_after}")
+                print(f"📊 Zużyto quota: {quota_used} jednostek")
                 
                 # Zapisz aktualne zużycie quota po wygenerowaniu raportów
                 try:
                     current_quota = self.youtube_client.get_quota_usage()
                     self.state_manager.persist_quota(current_quota['used'])
+                    print(f"✅ Zapisano quota: {current_quota['used']}")
                     logger.info(f"Zapisano quota po wygenerowaniu raportów: {current_quota['used']}")
                 except Exception as e:
+                    print(f"❌ Błąd podczas zapisywania quota: {e}")
                     logger.error(f"Błąd podczas zapisywania quota: {e}")
+            else:
+                print("⚠️ Brak filmów do raportowania")
             
             # Log quota usage
             quota_state = self.state_manager.get_quota_state()
+            print(f"📊 Stan quota: {quota_state['used']}/10000 ({quota_state['used']/100:.1f}%)")
             logger.info(f"Zużycie quota: {quota_state['used']}/10000 ({quota_state['used']/100:.1f}%)")
             
+            print("✅ Codzienne zadanie raportowania zakończone")
             logger.info("Codzienne zadanie raportowania zakończone")
             
         except Exception as e:
+            print(f"❌ Błąd podczas wykonywania codziennego zadania: {e}")
             logger.error(f"Błąd podczas wykonywania codziennego zadania: {e}")
     
     async def daily_ranking_analysis_task(self):
