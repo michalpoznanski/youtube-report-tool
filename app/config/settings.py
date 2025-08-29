@@ -1,7 +1,15 @@
-from pydantic_settings import BaseSettings
-from typing import List
-import os
-from pathlib import Path
+try:
+    from pydantic_settings import BaseSettings
+    from typing import List
+    import os
+    from pathlib import Path
+    
+    print("✅ Wszystkie importy w config udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w config: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 
 class Settings(BaseSettings):
@@ -47,7 +55,20 @@ class Settings(BaseSettings):
         # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie lokalny katalog
         railway_volume = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
         if railway_volume:
-            return Path(railway_volume) / "data"
+            try:
+                # Sprawdź czy katalog jest zapisywalny
+                test_path = Path(railway_volume) / "data"
+                test_path.mkdir(parents=True, exist_ok=True)
+                # Sprawdź czy można zapisać plik testowy
+                test_file = test_path / ".test_write"
+                test_file.write_text("test")
+                test_file.unlink()  # Usuń plik testowy
+                print(f"✅ Railway volume dostępny i zapisywalny: {railway_volume}")
+                return test_path
+            except Exception as e:
+                print(f"⚠️ Railway volume niedostępny lub tylko do odczytu: {e}")
+                # Fallback do lokalnego katalogu
+                return Path(self.data_dir)
         else:
             return Path(self.data_dir)
     
@@ -57,7 +78,20 @@ class Settings(BaseSettings):
         # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie lokalny katalog
         railway_volume = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
         if railway_volume:
-            return Path(railway_volume) / "reports"
+            try:
+                # Sprawdź czy katalog jest zapisywalny
+                test_path = Path(railway_volume) / "reports"
+                test_path.mkdir(parents=True, exist_ok=True)
+                # Sprawdź czy można zapisać plik testowy
+                test_file = test_path / ".test_write"
+                test_file.write_text("test")
+                test_file.unlink()  # Usuń plik testowy
+                print(f"✅ Railway reports volume dostępny i zapisywalny: {railway_volume}")
+                return test_path
+            except Exception as e:
+                print(f"⚠️ Railway reports volume niedostępny lub tylko do odczytu: {e}")
+                # Fallback do lokalnego katalogu
+                return Path(self.reports_dir)
         else:
             return Path(self.reports_dir)
     

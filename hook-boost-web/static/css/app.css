@@ -354,6 +354,37 @@ body {
   background: var(--success);
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.btn-toggle {
+  background: var(--secondary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-toggle:hover {
+  background: var(--primary);
+  transform: scale(1.05);
+}
+
+.channels-section {
+  transition: all 0.3s ease;
+}
+
+.channels-section.collapsed {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 1rem;

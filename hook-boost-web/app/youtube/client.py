@@ -1,13 +1,21 @@
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from typing import List, Dict, Optional
-import logging
-from datetime import datetime, timedelta
-import pytz
-import json
-import os
-from pathlib import Path
-from ..config import settings
+try:
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    from typing import List, Dict, Optional
+    import logging
+    from datetime import datetime, timedelta
+    import pytz
+    import json
+    import os
+    from pathlib import Path
+    from ..config import settings
+    
+    print("✅ Wszystkie importy w hook-boost-web YouTube client udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w hook-boost-web YouTube client: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 

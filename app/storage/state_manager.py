@@ -1,10 +1,19 @@
-import json
-import logging
-import os
-from pathlib import Path
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
-import re
+try:
+    import json
+    import logging
+    import os
+    from pathlib import Path
+    from typing import Dict, List, Optional, Any
+    from datetime import datetime, timedelta
+    import re
+    from ..config import settings
+    
+    print("✅ Wszystkie importy w state_manager udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w state_manager: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 
@@ -840,8 +849,14 @@ class StateManager:
         """Zwraca listę kategorii z liczbą kanałów i informacją o dostępnych raportach"""
         categories = []
         
-        # Sprawdź katalog raportów
-        reports_dir = Path("reports")
+        # Sprawdź katalog raportów używając settings
+        try:
+            from app.config.settings import settings
+            reports_dir = settings.reports_path
+        except ImportError:
+            # Fallback do lokalnego katalogu
+            reports_dir = Path("reports")
+        
         has_reports_dir = reports_dir.exists()
         
         for category_name, channels in self.channels_data.items():

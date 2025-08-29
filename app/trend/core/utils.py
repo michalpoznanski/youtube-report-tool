@@ -1,4 +1,12 @@
-import math
+try:
+    import math
+    
+    print("✅ Wszystkie importy w trend utils udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w trend utils: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 def is_short(row):
     # Obsługa różnych wariantów kolumn

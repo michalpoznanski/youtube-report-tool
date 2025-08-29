@@ -1,8 +1,16 @@
-import csv
-from typing import Dict, Any, List
-from datetime import date
-from pathlib import Path
-from app.trend.core.store.trend_store import report_path_for_date
+try:
+    import csv
+    from typing import Dict, Any, List
+    from datetime import date
+    from pathlib import Path
+    from app.trend.core.store.trend_store import report_path_for_date
+    
+    print("✅ Wszystkie importy w trend csv_loader udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w trend csv_loader: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 def normalize_key(k: str) -> str:
     """Normalizuj klucz: strip, lower, usuń BOM, zamień spacje/- na _"""

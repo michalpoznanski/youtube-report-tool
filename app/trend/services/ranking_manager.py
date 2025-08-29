@@ -1,10 +1,18 @@
-import json
-import logging
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import pandas as pd
-from app.config.settings import settings
+try:
+    import json
+    import logging
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    from typing import Dict, List, Optional, Tuple
+    import pandas as pd
+    from app.config.settings import settings
+    
+    print("✅ Wszystkie importy w ranking_manager udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w ranking_manager: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,15 @@
-import os, json, datetime as dt
-from typing import Dict, Any
+try:
+    import os, json, datetime as dt
+    from typing import Dict, Any
+    from pathlib import Path
+    from datetime import date
+    
+    print("✅ Wszystkie importy w trend store udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w trend store: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 def base_dir():
     root = os.environ.get("RAILWAY_VOLUME_PATH", "/mnt/volume")

@@ -1,16 +1,19 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from typing import List, Dict, Optional
-import logging
-import os
-from ..youtube import YouTubeClient
-from ..scheduler import TaskScheduler
-from ..storage import CSVGenerator
-from ..config import settings
-import json
-from pathlib import Path
-from datetime import datetime
+try:
+    from fastapi import APIRouter, HTTPException, File, UploadFile
+    from fastapi.responses import FileResponse
+    from pydantic import BaseModel
+    from typing import Dict, List, Optional
+    import logging
+    from ..config import settings
+    from ..storage.csv_generator import CSVGenerator
+    from pathlib import Path
+    
+    print("✅ Wszystkie importy w API routes udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w API routes: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 
@@ -97,11 +100,28 @@ async def add_channel(channel_request: ChannelRequest):
 async def get_channels():
     """Zwraca listę wszystkich kanałów"""
     try:
+        print("🔍 Pobieranie kanałów...")
+        logger.info("Pobieranie kanałów...")
+        
         if not task_scheduler:
+            print("❌ Task scheduler nie jest dostępny")
             return {}
+        
+        print("✅ Task scheduler dostępny, pobieram kanały...")
         channels = task_scheduler.get_channels()
+        
+        # Dodaj szczegółowe logowanie
+        total_channels = sum(len(channel_list) for channel_list in channels.values())
+        print(f"📊 Pobrano {total_channels} kanałów z {len(channels)} kategorii:")
+        for category, channel_list in channels.items():
+            print(f"   📺 {category}: {len(channel_list)} kanałów")
+            for channel in channel_list:
+                print(f"      - {channel.get('title', 'Brak tytułu')} ({channel.get('subscriber_count', 0)} subskrybentów)")
+        
         return channels
+        
     except Exception as e:
+        print(f"❌ Błąd podczas pobierania kanałów: {e}")
         logger.error(f"Błąd podczas pobierania kanałów: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -155,13 +175,25 @@ async def remove_category(category_name: str, force: bool = False):
 async def get_categories():
     """Zwraca listę wszystkich kategorii z liczbą kanałów"""
     try:
+        print("🔍 Pobieranie kategorii...")
+        logger.info("Pobieranie kategorii...")
+        
         if not task_scheduler:
+            print("❌ Task scheduler nie jest dostępny")
             return []
         
+        print("✅ Task scheduler dostępny, pobieram kategorie...")
         categories = task_scheduler.get_categories()
+        print(f"📊 Pobrano {len(categories)} kategorii: {[cat['name'] for cat in categories]}")
+        
+        # Dodaj szczegółowe logowanie dla każdej kategorii
+        for cat in categories:
+            print(f"   📺 {cat['name']}: {cat['channels_count']} kanałów, raporty: {'✅' if cat['has_reports'] else '❌'}")
+        
         return categories
         
     except Exception as e:
+        print(f"❌ Błąd podczas pobierania kategorii: {e}")
         logger.error(f"Błąd podczas pobierania kategorii: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -170,29 +202,40 @@ async def get_categories():
 async def generate_report(report_request: ReportRequest):
     """Generuje raport CSV dla określonej kategorii"""
     try:
+        print(f"🚀 Generowanie raportu: kategoria={report_request.category}, dni wstecz={report_request.days_back}")
+        logger.info(f"Generowanie raportu: kategoria={report_request.category}, dni wstecz={report_request.days_back}")
+        
         if not task_scheduler:
+            print("❌ Scheduler nie jest dostępny")
             raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
             
         channels = task_scheduler.get_channels()
+        print(f"📺 Dostępne kategorie: {list(channels.keys())}")
+        print(f"📺 Kanały w kategorii {report_request.category}: {len(channels.get(report_request.category, [])) if report_request.category else 'wszystkie'}")
         
         if report_request.category and report_request.category not in channels:
+            print(f"❌ Kategoria {report_request.category} nie istnieje")
             raise HTTPException(status_code=404, detail=f"Kategoria {report_request.category} nie istnieje")
         
         all_videos = {}
         
         # Pobierz dane z kanałów
         target_categories = [report_request.category] if report_request.category else channels.keys()
+        print(f"🎯 Generuję raport dla kategorii: {target_categories}")
         
         for category in target_categories:
             if category in channels:
                 category_videos = []
+                print(f"📊 Pobieranie filmów dla kategorii: {category} ({len(channels[category])} kanałów)")
                 
                 for channel in channels[category]:
                     try:
+                        print(f"   📺 Pobieranie filmów z kanału: {channel['title']}")
                         videos = await task_scheduler.get_channel_videos(
                             channel['id'], 
                             report_request.days_back
                         )
+                        print(f"   ✅ Pobrano {len(videos)} filmów z kanału {channel['title']}")
                         
                         # Dodaj informacje o kanale
                         for video in videos:
@@ -202,23 +245,54 @@ async def generate_report(report_request: ReportRequest):
                         category_videos.extend(videos)
                         
                     except Exception as e:
+                        print(f"   ❌ Błąd podczas pobierania filmów z kanału {channel['title']}: {e}")
                         logger.error(f"Błąd podczas pobierania filmów z kanału {channel['title']}: {e}")
                 
                 if category_videos:
                     all_videos[category] = category_videos
+                    print(f"📊 Kategoria {category}: {len(category_videos)} filmów")
+                else:
+                    print(f"⚠️ Kategoria {category}: brak filmów")
         
         if not all_videos:
+            print("❌ Brak danych do wygenerowania raportu")
             raise HTTPException(status_code=404, detail="Brak danych do wygenerowania raportu")
         
+        print(f"📊 Łącznie filmów do raportu: {sum(len(videos) for videos in all_videos.values())}")
+        
         # Generuj CSV
-        csv_generator = CSVGenerator()
+        print("🔄 Generowanie pliku CSV...")
+        try:
+            csv_generator = CSVGenerator()
+            print("✅ CSVGenerator zaimportowany pomyślnie")
+        except Exception as e:
+            print(f"❌ Błąd importu CSVGenerator: {e}")
+            logger.error(f"Błąd importu CSVGenerator: {e}")
+            raise HTTPException(status_code=500, detail=f"Błąd importu CSVGenerator: {e}")
         
         if report_request.category:
             # Raport dla jednej kategorii
-            csv_path = csv_generator.generate_csv(all_videos[report_request.category], report_request.category)
+            print(f"📄 Generowanie raportu dla kategorii: {report_request.category}")
+            try:
+                csv_path = csv_generator.generate_csv(all_videos[report_request.category], report_request.category)
+                print(f"✅ Raport CSV wygenerowany: {csv_path}")
+            except Exception as e:
+                print(f"❌ Błąd generowania CSV dla kategorii {report_request.category}: {e}")
+                logger.error(f"Błąd generowania CSV dla kategorii {report_request.category}: {e}")
+                raise HTTPException(status_code=500, detail=f"Błąd generowania CSV: {e}")
         else:
             # Raport podsumowujący
-            csv_path = csv_generator.generate_summary_csv(all_videos)
+            print("📄 Generowanie raportu podsumowującego")
+            try:
+                csv_path = csv_generator.generate_summary_csv(all_videos)
+                print(f"✅ Raport podsumowujący CSV wygenerowany: {csv_path}")
+            except Exception as e:
+                print(f"❌ Błąd generowania CSV podsumowującego: {e}")
+                logger.error(f"Błąd generowania CSV podsumowującego: {e}")
+                raise HTTPException(status_code=500, detail=f"Błąd generowania CSV podsumowującego: {e}")
+        
+        print(f"✅ Raport wygenerowany: {csv_path}")
+        logger.info(f"Raport wygenerowany: {csv_path}")
         
         return FileResponse(
             path=csv_path,
@@ -229,6 +303,7 @@ async def generate_report(report_request: ReportRequest):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Błąd podczas generowania raportu: {e}")
         logger.error(f"Błąd podczas generowania raportu: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -251,9 +326,28 @@ async def list_reports():
             print(f"⚠️ Katalog raportów nie istnieje: {reports_dir.absolute()}")
             logger.warning(f"Katalog raportów nie istnieje: {reports_dir.absolute()}")
             # Utwórz katalog
-            reports_dir.mkdir(parents=True, exist_ok=True)
-            print(f"✅ Utworzono katalog raportów: {reports_dir.absolute()}")
-            logger.info(f"Utworzono katalog raportów: {reports_dir.absolute()}")
+            try:
+                reports_dir.mkdir(parents=True, exist_ok=True)
+                print(f"✅ Utworzono katalog raportów: {reports_dir.absolute()}")
+                logger.info(f"Utworzono katalog raportów: {reports_dir.absolute()}")
+            except Exception as e:
+                print(f"❌ Nie można utworzyć katalogu raportów: {e}")
+                logger.error(f"Nie można utworzyć katalogu raportów: {e}")
+                # Fallback do lokalnego katalogu
+                fallback_dir = Path("reports")
+                if fallback_dir.exists():
+                    reports_dir = fallback_dir
+                    print(f"🔄 Używam fallback katalogu: {fallback_dir.absolute()}")
+                    logger.info(f"Używam fallback katalogu: {fallback_dir.absolute()}")
+                else:
+                    print(f"❌ Brak dostępnego katalogu raportów")
+                    logger.error(f"Brak dostępnego katalogu raportów")
+                    return {
+                        "reports": [],
+                        "total_count": 0,
+                        "reports_directory": "brak dostępu",
+                        "error": "Nie można uzyskać dostępu do katalogu raportów"
+                    }
         
         # Listuj pliki CSV
         csv_files = list(reports_dir.glob("*.csv"))

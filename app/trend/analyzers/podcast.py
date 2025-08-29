@@ -1,5 +1,13 @@
-import pandas as pd, re
-from ..core.utils import safe_int
+try:
+    import pandas as pd, re
+    from ..core.utils import safe_int
+    
+    print("✅ Wszystkie importy w podcast analyzer udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w podcast analyzer: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 STOP = {"podcast","odcinek","live","część","czesc","ft","feat","ep","premiera","rozmowa",
         "gość","gosc","prowadzący","z","u","vs","x"}

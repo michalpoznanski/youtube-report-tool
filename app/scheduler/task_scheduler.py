@@ -1,15 +1,23 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
-import logging
-from datetime import datetime
-from typing import Dict, List
-from ..config import settings
-from ..youtube import YouTubeClient
-from ..storage import CSVGenerator
-from ..storage.state_manager import StateManager
-from pathlib import Path
-import pandas as pd
-import pytz
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    import logging
+    from datetime import datetime
+    from typing import Dict, List
+    from ..config import settings
+    from ..youtube import YouTubeClient
+    from ..storage import CSVGenerator
+    from ..storage.state_manager import StateManager
+    from pathlib import Path
+    import pandas as pd
+    import pytz
+    
+    print("✅ Wszystkie importy w TaskScheduler udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w TaskScheduler: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 

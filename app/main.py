@@ -1,12 +1,20 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
-import logging
-from pathlib import Path
-import os
-from contextlib import asynccontextmanager
+try:
+    from fastapi import FastAPI, Request
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.templating import Jinja2Templates
+    from fastapi.responses import HTMLResponse
+    import logging
+    from pathlib import Path
+    import os
+    from contextlib import asynccontextmanager
+    
+    print("✅ Wszystkie importy w main udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w main: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 print("🚀🚀🚀 URUCHAMIAM NAJNOWSZĄ WERSJĘ Z 23 SIERPNIA - NOWY INTERFEJS! 🚀🚀🚀")
 
@@ -40,11 +48,17 @@ except Exception as e:
 
 # Import z obsługą błędów
 try:
+    print("🔍 Importuję moduły aplikacji...")
     from .config import settings
+    print("✅ Config zaimportowany")
     from .api import router
+    print("✅ API router zaimportowany")
     from .scheduler import TaskScheduler
+    print("✅ TaskScheduler zaimportowany")
 except ImportError as e:
-    print(f"Błąd importu: {e}")
+    print(f"❌ Błąd importu: {e}")
+    import traceback
+    traceback.print_exc()
     # Fallback settings
     class FallbackSettings:
         log_level = "INFO"
@@ -80,13 +94,33 @@ except Exception:
 logger = logging.getLogger(__name__)
 
 # Scheduler
-scheduler = TaskScheduler() if TaskScheduler else None
+print("🔍 Inicjalizacja schedulera...")
+if TaskScheduler:
+    try:
+        scheduler = TaskScheduler()
+        print("✅ TaskScheduler zainicjalizowany pomyślnie")
+    except Exception as e:
+        print(f"❌ Błąd inicjalizacji TaskScheduler: {e}")
+        import traceback
+        traceback.print_exc()
+        scheduler = None
+else:
+    print("❌ TaskScheduler nie jest dostępny")
+    scheduler = None
+
+print(f"📊 Status schedulera: {'✅ Dostępny' if scheduler else '❌ Niedostępny'}")
 
 # Upewnij się, że dane są załadowane przed startem API
 if scheduler and scheduler.state_manager:
     print("🔄 Wymuszanie załadowania danych przed startem API...")
-    scheduler.state_manager.load_all_data()
-    print("✅ Dane załadowane przed startem API")
+    try:
+        scheduler.state_manager.load_all_data()
+        print("✅ Dane załadowane przed startem API")
+    except Exception as e:
+        print(f"⚠️ Błąd podczas ładowania danych: {e}")
+        logger.warning(f"Błąd podczas ładowania danych: {e}")
+else:
+    print("⚠️ Scheduler lub state_manager niedostępny - dane nie zostaną załadowane")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -231,11 +265,19 @@ if router:
     try:
         from .api.routes import set_task_scheduler
         if scheduler:
+            print("🔄 Przekazuję scheduler do API...")
             set_task_scheduler(scheduler)
-    except ImportError:
+            print("✅ Scheduler przekazany do API")
+        else:
+            print("⚠️ Scheduler niedostępny - API może nie działać poprawnie")
+    except ImportError as e:
+        print(f"❌ Nie można zaimportować set_task_scheduler: {e}")
         pass
     
     app.include_router(router, prefix="/api/v1", tags=["api"])
+    print("✅ API router dodany")
+else:
+    print("⚠️ API router niedostępny")
 
 # --- Trend module (feature-flag) ---
 print("🔍 DEBUG: Sprawdzam moduł trendów...")

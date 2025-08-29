@@ -77,9 +77,12 @@
         <div class="card">
             <div class="card-header">
                 <h2>📺 Kanały w Monitoringu</h2>
+                <button onclick="toggleChannelsSection()" class="btn btn-toggle">▼</button>
             </div>
-            <button onclick="loadChannels()" class="btn btn-secondary">Odśwież Listę</button>
-            <div id="channelsList" class="channels-list"></div>
+            <div id="channelsSection" class="channels-section">
+                <button onclick="loadChannels()" class="btn btn-secondary">Odśwież Listę</button>
+                <div id="channelsList" class="channels-list"></div>
+            </div>
         </div>
         
         <!-- Generowanie Raportów -->
@@ -140,13 +143,26 @@
     <script>
         const API_BASE = '/api/v1';
         
-        // Load status on page load
+        // Inicjalizacja
         document.addEventListener('DOMContentLoaded', function() {
             loadStatus();
             loadChannels();
             loadReports();
             loadCategories();
         });
+        
+        // Funkcja do zwijania/rozwijania sekcji kanałów
+        function toggleChannelsSection() {
+            const channelsSection = document.getElementById('channelsSection');
+            const toggleBtn = document.querySelector('.btn-toggle');
+            if (channelsSection.classList.contains('collapsed')) {
+                channelsSection.classList.remove('collapsed');
+                toggleBtn.textContent = '▼';
+            } else {
+                channelsSection.classList.add('collapsed');
+                toggleBtn.textContent = '▶';
+            }
+        }
         
         // Status functions
         async function loadStatus() {

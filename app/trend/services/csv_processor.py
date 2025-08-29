@@ -3,11 +3,19 @@ Serwis do przetwarzania danych z raportów CSV dla modułu trend.
 Zapewnia niezawodne wczytywanie i analizę danych z plików CSV.
 """
 
-import pandas as pd
-import logging
-from datetime import date, timedelta
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+try:
+    import pandas as pd
+    import logging
+    from datetime import date, timedelta
+    from typing import List, Dict, Any, Optional
+    from pathlib import Path
+    
+    print("✅ Wszystkie importy w csv_processor udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w csv_processor: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 

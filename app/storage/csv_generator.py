@@ -1,11 +1,19 @@
-import pandas as pd
-from typing import List, Dict, Any
-from datetime import datetime
-import pytz
-import logging
-from pathlib import Path
-from ..config import settings
-import re
+try:
+    import pandas as pd
+    from typing import List, Dict, Any
+    from datetime import datetime
+    import pytz
+    import logging
+    from pathlib import Path
+    from ..config import settings
+    import re
+    
+    print("✅ Wszystkie importy w CSVGenerator udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w CSVGenerator: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 

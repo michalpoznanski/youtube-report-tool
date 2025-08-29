@@ -1,5 +1,13 @@
-import pandas as pd
-from .utils import is_short, safe_int
+try:
+    import pandas as pd
+    from .utils import is_short, safe_int
+    
+    print("✅ Wszystkie importy w trend stats udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w trend stats: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 def publish_hour_stats(df: pd.DataFrame):
     # oczekujemy kolumny Published_At lub Date_of_Publishing (ISO)

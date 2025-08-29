@@ -1,12 +1,20 @@
-import logging
-from fastapi import APIRouter, Request, Query
-from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
-from app.trend.services.csv_processor import get_trend_data
-from datetime import date
-import pandas as pd
-import os
-from pathlib import Path
+try:
+    import logging
+    from fastapi import APIRouter, Request, Query
+    from fastapi.responses import JSONResponse, HTMLResponse
+    from fastapi.templating import Jinja2Templates
+    from app.trend.services.csv_processor import get_trend_data
+    from datetime import date
+    import pandas as pd
+    import os
+    from pathlib import Path
+    
+    print("✅ Wszystkie importy w trend router udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w trend router: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 log = logging.getLogger("trend")
 templates = Jinja2Templates(directory="hook-boost-web/templates")

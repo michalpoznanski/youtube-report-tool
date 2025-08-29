@@ -1,9 +1,17 @@
-from typing import Dict, Any
-import pandas as pd
-from .stats import publish_hour_stats
-from ..analyzers import podcast as podcast_an
-from ..analyzers import moto as moto_an
-from ..analyzers import polityka as pol_an
+try:
+    from typing import Dict, Any
+    import pandas as pd
+    from .stats import publish_hour_stats
+    from ..analyzers import podcast as podcast_an
+    from ..analyzers import moto as moto_an
+    from ..analyzers import polityka as pol_an
+    
+    print("✅ Wszystkie importy w trend dispatcher udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w trend dispatcher: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 def analyze_category(category: str, df: pd.DataFrame) -> Dict[str, Any]:
     cat = category.upper()

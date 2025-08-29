@@ -14,5 +14,6 @@ pydantic-settings==2.2.1
 apscheduler==3.10.4
 requests
 python-multipart
+pytz
 
 # FORCE REBUILD - Cache buster 2 

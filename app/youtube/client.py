@@ -1,13 +1,22 @@
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from typing import List, Dict, Optional
-import logging
-from datetime import datetime, timedelta
-import pytz
-import json
-import os
-from pathlib import Path
-from ..config import settings
+try:
+    import asyncio
+    import logging
+    from typing import Dict, List, Optional, Any
+    from datetime import datetime, timedelta
+    import json
+    from pathlib import Path
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    import time
+    import re
+    import pytz
+    
+    print("✅ Wszystkie importy w YouTube client udane")
+except ImportError as e:
+    print(f"❌ Błąd importu w YouTube client: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 logger = logging.getLogger(__name__)
 
