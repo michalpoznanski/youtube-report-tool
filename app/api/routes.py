@@ -258,19 +258,45 @@ async def list_reports():
         # Listuj pliki CSV
         csv_files = list(reports_dir.glob("*.csv"))
         print(f"📄 Znaleziono {len(csv_files)} plików CSV")
-        logger.info(f"Znaleziono {len(csv_files)} plików CSV")
+        logger.info(f"📄 Znaleziono {len(csv_files)} plików CSV")
         
         for file_path in csv_files:
             try:
                 stats = os.stat(file_path)
+                
+                # Sprawdź czy nazwa pliku zawiera datę
+                filename = file_path.name
+                file_date = None
+                
+                # Próbuj wyciągnąć datę z nazwy pliku (format: report_CATEGORY_YYYY-MM-DD.csv)
+                if 'report_' in filename and '.csv' in filename:
+                    try:
+                        # Wyciągnij datę z nazwy pliku
+                        date_part = filename.split('_')[-1].replace('.csv', '')
+                        if len(date_part) == 10 and date_part.count('-') == 2:  # format YYYY-MM-DD
+                            file_date = datetime.strptime(date_part, '%Y-%m-%d')
+                            print(f"   📅 Data z nazwy pliku {filename}: {file_date.strftime('%Y-%m-%d')}")
+                    except ValueError:
+                        pass
+                
+                # Użyj datę z nazwy pliku jeśli dostępna, w przeciwnym razie z systemu
+                if file_date:
+                    created_time = file_date.timestamp()
+                    created_date = file_date.isoformat()
+                    print(f"   📄 {filename} - data z nazwy: {file_date.strftime('%Y-%m-%d')}")
+                else:
+                    created_time = stats.st_ctime
+                    created_date = datetime.fromtimestamp(stats.st_ctime).isoformat()
+                    print(f"   📄 {filename} - data systemowa: {datetime.fromtimestamp(stats.st_ctime).strftime('%Y-%m-%d %H:%M:%S')}")
+                
                 reports.append({
-                    'filename': file_path.name,
+                    'filename': filename,
                     'size': stats.st_size,
-                    'created': stats.st_ctime,
-                    'created_date': datetime.fromtimestamp(stats.st_ctime).isoformat(),
+                    'created': created_time,
+                    'created_date': created_date,
                     'path': str(file_path.absolute())
                 })
-                print(f"   📄 {file_path.name} ({stats.st_size} bytes)")
+                
             except Exception as e:
                 print(f"   ❌ Błąd podczas czytania {file_path.name}: {e}")
                 logger.error(f"Błąd podczas czytania {file_path.name}: {e}")
@@ -279,7 +305,7 @@ async def list_reports():
         sorted_reports = sorted(reports, key=lambda x: x['created'], reverse=True)
         
         print(f"✅ Zwracam {len(sorted_reports)} raportów")
-        logger.info(f"Zwracam {len(sorted_reports)} raportów")
+        logger.info(f"✅ Zwracam {len(sorted_reports)} raportów")
         
         return {
             "reports": sorted_reports,
@@ -289,7 +315,7 @@ async def list_reports():
         
     except Exception as e:
         print(f"❌ Błąd podczas listowania raportów: {e}")
-        logger.error(f"Błąd podczas listowania raportów: {e}")
+        logger.error(f"❌ Błąd podczas listowania raportów: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1386,7 +1412,8 @@ async def force_ranking_regeneration(category: str):
 async def get_scheduler_status():
     """Sprawdza status schedulera i zaplanowane zadania"""
     try:
-        from app.scheduler.task_scheduler import scheduler
+        # Import z main.py gdzie jest zdefiniowany scheduler
+        from app.main import scheduler
         
         if not scheduler:
             return {
