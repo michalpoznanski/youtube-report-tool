@@ -28,6 +28,15 @@ class TaskScheduler:
     def start(self):
         """Uruchamia scheduler"""
         try:
+            print("🔄 Uruchamiam scheduler...")
+            logger.info("Uruchamiam scheduler...")
+            
+            # Sprawdź czy scheduler już działa
+            if self.scheduler.running:
+                print("⚠️ Scheduler już działa")
+                logger.warning("Scheduler już działa")
+                return True
+            
             # Dodaj zadanie codziennego raportowania o 1:00
             self.scheduler.add_job(
                 self.daily_report_task,
@@ -48,14 +57,34 @@ class TaskScheduler:
                 name='Codzienna analiza rankingowa'
             )
             
+            # Sprawdź czy zadania zostały dodane
+            if not self.scheduler.get_jobs():
+                print("❌ Brak zadań w schedulerze")
+                logger.error("Brak zadań w schedulerze")
+                return False
+            
             # Uruchom scheduler
             self.scheduler.start()
+            
+            # Sprawdź czy scheduler się uruchomił
+            if not self.scheduler.running:
+                print("❌ Scheduler nie uruchomił się")
+                logger.error("Scheduler nie uruchomił się")
+                return False
+            
             timezone = pytz.timezone(settings.timezone)
+            print(f"✅ Scheduler uruchomiony pomyślnie!")
             logger.info(f"Scheduler uruchomiony - raporty codziennie o {settings.scheduler_hour}:{str(settings.scheduler_minute).zfill(2)} {timezone}")
             
         except Exception as e:
+            print(f"❌ Błąd podczas uruchamiania schedulera: {e}")
             logger.error(f"Błąd podczas uruchamiania schedulera: {e}")
-            raise
+            import traceback
+            traceback.print_exc()
+            # Nie rzucaj błędu - pozwól aplikacji się uruchomić
+            return False
+        
+        return True
     
     def stop(self):
         """Zatrzymuje scheduler"""

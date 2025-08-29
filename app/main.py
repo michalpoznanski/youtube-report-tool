@@ -100,8 +100,13 @@ async def lifespan(app: FastAPI):
         # Uruchom scheduler jeśli dostępny
         if scheduler:
             print("🔄 Uruchamiam scheduler...")
-            scheduler.start()
-            print("✅ Scheduler uruchomiony pomyślnie!")
+            success = scheduler.start()
+            if success:
+                print("✅ Scheduler uruchomiony pomyślnie!")
+            else:
+                print("⚠️ Scheduler nie uruchomił się, ale aplikacja będzie działać")
+        else:
+            print("ℹ️ Brak schedulera do uruchomienia")
         
         logger.info("✅ Aplikacja uruchomiona pomyślnie!")
         
