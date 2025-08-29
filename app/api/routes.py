@@ -42,8 +42,8 @@ class ChannelResponse(BaseModel):
 
 
 class ReportRequest(BaseModel):
-    category: Optional[str] = None
-    days_back: int = 7
+    category: str
+    days_back: int = 3  # Przywracam oryginalne ustawienie - 3 dni wstecz
 
 
 class StatusResponse(BaseModel):

@@ -7,8 +7,9 @@ from pathlib import Path
 class Settings(BaseSettings):
     """Konfiguracja aplikacji z zmiennych środowiskowych"""
     
-    # YouTube API
-    youtube_api_key: str
+    # YouTube API settings
+    youtube_api_key: str = ""
+    days_back: int = 3  # Przywracam oryginalne ustawienie - 3 dni wstecz
     
     # FastAPI
     secret_key: str
@@ -22,7 +23,6 @@ class Settings(BaseSettings):
     # Scheduler
     scheduler_hour: int = 1
     scheduler_minute: int = 0
-    days_back: int = 7
     timezone: str = "Europe/Warsaw"
     
     # Storage
