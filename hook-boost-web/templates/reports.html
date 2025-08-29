@@ -24,11 +24,14 @@
             <div class="card-header">
                 <h2>📊 Dostępne Raporty</h2>
                 <p>Wybierz kategorię, aby zobaczyć analizę trendów</p>
+                <button onclick="toggleReportsSection()" class="btn btn-toggle">▼</button>
             </div>
             
-            <div id="categoriesList" class="categories-list">
-                <!-- Kategorie będą ładowane dynamicznie -->
-                <div class="loading">Ładowanie kategorii...</div>
+            <div id="reportsSection" class="reports-section">
+                <div id="categoriesList" class="categories-list">
+                    <!-- Kategorie będą ładowane dynamicznie -->
+                    <div class="loading">Ładowanie kategorii...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -160,6 +163,20 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadCategories();
         });
+
+        // Funkcja do zwijania/rozwijania sekcji raportów
+        function toggleReportsSection() {
+            const reportsSection = document.getElementById('reportsSection');
+            const toggleButton = event.target;
+            
+            if (reportsSection.classList.contains('collapsed')) {
+                reportsSection.classList.remove('collapsed');
+                toggleButton.textContent = '▼';
+            } else {
+                reportsSection.classList.add('collapsed');
+                toggleButton.textContent = '▲';
+            }
+        }
     </script>
     
     <style>
@@ -264,6 +281,31 @@
         .no-actions {
             color: #666;
             font-style: italic;
+        }
+
+        .reports-section {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .reports-section.collapsed {
+            max-height: 0;
+            padding: 0;
+            margin: 0;
+        }
+
+        .btn-toggle {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: background 0.3s ease;
+        }
+
+        .btn-toggle:hover {
+            background: #e0e0e0;
         }
     </style>
 </body>
