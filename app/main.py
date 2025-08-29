@@ -118,6 +118,40 @@ async def lifespan(app: FastAPI):
         else:
             print("ℹ️ Brak schedulera do uruchomienia")
         
+        # Automatycznie wygeneruj rankingi po restarcie jeśli nie istnieją
+        try:
+            print("🔄 Sprawdzam czy rankingi istnieją po restarcie...")
+            from app.trend.services.ranking_manager import ranking_manager
+            from app.storage.state_manager import state_manager
+            
+            # Sprawdź każdą kategorię
+            categories = state_manager.get_channels().keys()
+            for category in categories:
+                try:
+                    ranking = ranking_manager.load_ranking(category)
+                    if not ranking.get('shorts') and not ranking.get('longform'):
+                        print(f"⚠️ Ranking dla {category} jest pusty - generuję automatycznie...")
+                        # Automatycznie wygeneruj ranking
+                        from app.trend.services.csv_processor import get_trend_data
+                        from datetime import date
+                        
+                        videos = get_trend_data(category=category, report_date=date.today())
+                        if videos:
+                            ranking_manager.update_ranking(category, videos)
+                            print(f"✅ Automatycznie wygenerowano ranking dla {category}")
+                        else:
+                            print(f"⚠️ Brak danych CSV dla {category}")
+                except Exception as e:
+                    print(f"⚠️ Błąd podczas sprawdzania rankingu dla {category}: {e}")
+                    logger.warning(f"Błąd podczas sprawdzania rankingu dla {category}: {e}")
+            
+            print("✅ Sprawdzanie rankingów po restarcie zakończone")
+            
+        except Exception as e:
+            print(f"⚠️ Błąd podczas automatycznego generowania rankingów: {e}")
+            logger.warning(f"Błąd podczas automatycznego generowania rankingów: {e}")
+            # Nie blokuj uruchamiania aplikacji
+        
         logger.info("✅ Aplikacja uruchomiona pomyślnie!")
         
         yield  # Aplikacja działa

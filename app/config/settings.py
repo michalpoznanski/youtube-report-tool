@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     def data_path(self) -> Path:
         """Ścieżka do katalogu z danymi"""
         # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie lokalny katalog
-        railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
+        railway_volume = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
         if railway_volume:
             return Path(railway_volume) / "data"
         else:
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     def reports_path(self) -> Path:
         """Ścieżka do katalogu z raportami"""
         # Użyj Railway Volume Path jeśli dostępny, w przeciwnym razie lokalny katalog
-        railway_volume = os.getenv("RAILWAY_VOLUME_PATH")
+        railway_volume = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
         if railway_volume:
             return Path(railway_volume) / "reports"
         else:
