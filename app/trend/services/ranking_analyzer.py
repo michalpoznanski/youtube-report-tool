@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 from pathlib import Path
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import List, Dict, Any
 import logging
 
@@ -29,18 +29,35 @@ class RankingAnalyzer:
             today = date.today()
             print(f"🔄 Rozpoczynam analizę rankingu dla kategorii: {category}")
             
-            # 1. Wczytaj dane
-            today_csv_path = self.base_path / f"report_{category.upper()}_{today}.csv"
-            yesterday_ranking_path = self.base_path / f"ranking_{category.upper()}_{today - timedelta(days=1)}.json"
-
-            if not today_csv_path.exists():
-                print(f"⚠️ Nie znaleziono dzisiejszego raportu CSV dla {category}. Pomijam analizę.")
-                logger.warning(f"Nie znaleziono dzisiejszego raportu CSV dla {category}: {today_csv_path}")
+            # 1. Wczytaj dane - znajdź najnowszy dostępny raport CSV
+            pattern = f"report_{category.upper()}_*.csv"
+            csv_files = list(self.base_path.glob(pattern))
+            
+            if not csv_files:
+                print(f"⚠️ Nie znaleziono żadnych raportów CSV dla {category}. Pomijam analizę.")
+                logger.warning(f"Nie znaleziono raportów CSV dla {category}")
                 return False
+            
+            # Weź najnowszy raport
+            latest_csv_path = sorted(csv_files)[-1]
+            latest_date = latest_csv_path.stem.split('_')[-1]  # Wyciągnij datę z nazwy pliku
+            
+            print(f"📊 Używam najnowszego dostępnego raportu: {latest_csv_path}")
+            print(f"📅 Data raportu: {latest_date}")
+            
+            # Sprawdź czy to dzisiejszy raport
+            if latest_date == today.strftime('%Y-%m-%d'):
+                print("✅ Używam dzisiejszego raportu")
+                yesterday_ranking_path = self.base_path / f"ranking_{category.upper()}_{today - timedelta(days=1)}.json"
+            else:
+                print(f"⚠️ Używam raportu z {latest_date} (nie z dzisiaj)")
+                # Użyj daty z raportu do obliczenia wczorajszego rankingu
+                report_date = datetime.strptime(latest_date, '%Y-%m-%d').date()
+                yesterday_ranking_path = self.base_path / f"ranking_{category.upper()}_{report_date - timedelta(days=1)}.json"
 
-            print(f"📊 Wczytuję dzisiejszy raport CSV: {today_csv_path}")
-            df_today = pd.read_csv(today_csv_path)
-            print(f"✅ Wczytano {len(df_today)} filmów z dzisiejszego raportu")
+            print(f"📊 Wczytuję raport CSV: {latest_csv_path}")
+            df_today = pd.read_csv(latest_csv_path)
+            print(f"✅ Wczytano {len(df_today)} filmów z raportu")
 
             # Wczytaj wczorajszy ranking (jeśli istnieje)
             yesterday_ranking = {'shorts': [], 'longform': []}
@@ -107,6 +124,22 @@ class RankingAnalyzer:
             
             print(f"✅ Top 10 Shorts: {len(top_10_shorts)} filmów")
             print(f"✅ Top 10 Long-form: {len(top_10_longform)} filmów")
+
+            # Napraw problemy z serializacją Timestamp
+            def fix_timestamps(data):
+                """Naprawia problemy z serializacją Timestamp w pandas"""
+                if isinstance(data, dict):
+                    return {k: fix_timestamps(v) for k, v in data.items()}
+                elif isinstance(data, list):
+                    return [fix_timestamps(item) for item in data]
+                elif hasattr(data, 'isoformat'):  # Timestamp lub datetime
+                    return data.isoformat()
+                else:
+                    return data
+            
+            # Napraw Timestamp w rankingach
+            top_10_shorts = fix_timestamps(top_10_shorts)
+            top_10_longform = fix_timestamps(top_10_longform)
 
             # 6. Zapisz "pamięć" na jutro
             print("💾 Zapisuję ranking na jutro...")
