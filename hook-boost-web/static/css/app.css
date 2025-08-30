@@ -385,6 +385,27 @@ body {
   display: none;
 }
 
+/* Nowe style dla rankingów */
+.ranking-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ranking-links .btn {
+  flex: 1;
+  min-width: 200px;
+  text-align: center;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+}
+
+.ranking-links .btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 1rem;
@@ -402,5 +423,13 @@ body {
     display: block;
     width: 100%;
     margin: 0.5rem 0;
+  }
+
+  .ranking-links {
+    flex-direction: column;
+  }
+  
+  .ranking-links .btn {
+    min-width: auto;
   }
 }

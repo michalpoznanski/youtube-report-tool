@@ -185,7 +185,10 @@
                 if (!data.reports || data.reports.length === 0) {
                     html = '<p>Brak dostępnych raportów CSV.</p>';
                 } else {
-                    data.reports.forEach(report => {
+                    // Sortuj raporty od najstarszego do najnowszego
+                    const sortedReports = data.reports.sort((a, b) => a.created - b.created);
+                    
+                    sortedReports.forEach(report => {
                         // Formatuj rozmiar pliku
                         const sizeKB = (report.size / 1024).toFixed(1);
                         const sizeMB = (report.size / (1024 * 1024)).toFixed(2);
