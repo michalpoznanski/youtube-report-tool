@@ -1430,19 +1430,31 @@ async def force_report_generation(category: str):
         ranking_path = None
         if os.environ.get("ENABLE_TREND", "false").lower() == "true":
             try:
-                from app.trend.services.ranking_manager import ranking_manager
+                # UŻYWAJ NOWEGO SYSTEMU zamiast starego ranking_manager
+                from app.trend.services.ranking_analyzer import RankingAnalyzer
                 import pandas as pd
+                
+                print(f"🔄 Generowanie rankingu dla {category} - używam nowego systemu...")
                 
                 # Wczytaj dane z wygenerowanego CSV
                 df = pd.read_csv(csv_path)
                 csv_videos = df.to_dict('records')
                 
-                # Aktualizuj ranking używając danych z CSV
-                ranking = ranking_manager.update_ranking(category, csv_videos)
-                ranking_path = f"data/rankings/ranking_{category.upper()}.json"
-                logger.info(f"Wygenerowano ranking dla kategorii {category}")
+                # Użyj nowego systemu RankingAnalyzer
+                analyzer = RankingAnalyzer()
+                success = analyzer.run_analysis_for_category(category)
+                
+                if success:
+                    ranking_path = f"data/rankings/ranking_{category.upper()}.json"
+                    logger.info(f"Wygenerowano ranking dla kategorii {category} nowym systemem")
+                    print(f"✅ Ranking dla {category} wygenerowany nowym systemem")
+                else:
+                    logger.warning(f"Nie udało się wygenerować rankingu nowym systemem dla {category}")
+                    print(f"⚠️ Błąd generowania rankingu nowym systemem dla {category}")
+                    
             except Exception as e:
                 logger.warning(f"Nie udało się wygenerować rankingu: {e}")
+                print(f"❌ Błąd generowania rankingu: {e}")
         
         return {
             "message": f"Raport dla kategorii {category} został wygenerowany pomyślnie",
@@ -1463,53 +1475,44 @@ async def force_ranking_regeneration(category: str):
     """
     try:
         logger.info(f"Wymuszam regenerację rankingu dla kategorii: {category}")
+        print(f"🔄 Wymuszam regenerację rankingu dla {category} - używam nowego systemu...")
         
         # Sprawdź czy moduł trendów jest aktywny
         if os.environ.get("ENABLE_TREND", "false").lower() != "true":
             return {"detail": "Moduł trendów nie jest aktywny"}
         
-        # Import ranking managera
-        from app.trend.services.ranking_manager import ranking_manager
-        from app.trend.services.csv_processor import get_trend_data
-        from datetime import date
+        # UŻYWAJ NOWEGO SYSTEMU RankingAnalyzer zamiast starego ranking_manager
+        from app.trend.services.ranking_analyzer import RankingAnalyzer
         
-        # Wyczyść stary ranking
-        success = ranking_manager.clear_ranking(category)
-        if not success:
-            logger.warning(f"Nie udało się wyczyścić rankingu dla {category}")
+        # Uruchom analizę dla kategorii używając nowego systemu
+        analyzer = RankingAnalyzer()
+        success = analyzer.run_analysis_for_category(category)
         
-        # Pobierz najnowsze dane CSV
-        videos = get_trend_data(category=category, report_date=date.today())
-        
-        if not videos:
+        if success:
+            logger.info(f"Ranking dla {category} został zregenerowany nowym systemem")
+            print(f"✅ Ranking dla {category} zregenerowany nowym systemem")
+            
             return {
-                "detail": f"Brak danych CSV dla kategorii {category}. Najpierw wygeneruj raport używając /force-report/{category}",
+                "message": f"Ranking dla kategorii {category} został zregenerowany nowym systemem",
                 "category": category,
-                "status": "no_csv_data"
+                "status": "regenerated",
+                "method": "new_ranking_analyzer",
+                "note": "Nowa logika: analiza z kilku najnowszych raportów CSV"
             }
-        
-        # Wygeneruj nowy ranking z nową logiką
-        ranking = ranking_manager.update_ranking(category, videos)
-        
-        # Sprawdź czy ranking został wygenerowany poprawnie
-        shorts_count = len(ranking.get("shorts", []))
-        longform_count = len(ranking.get("longform", []))
-        
-        logger.info(f"Ranking dla {category} został zregenerowany: {shorts_count} shorts, {longform_count} long-form")
-        
-        return {
-            "message": f"Ranking dla kategorii {category} został zregenerowany z nową logiką",
-            "category": category,
-            "status": "regenerated",
-            "videos_count": len(videos),
-            "shorts_count": shorts_count,
-            "longform_count": longform_count,
-            "last_updated": ranking.get("last_updated"),
-            "note": "Nowa logika: filmy do 10 min = Shorts, powyżej 10 min = Long-form"
-        }
+        else:
+            logger.warning(f"Nie udało się zregenerować rankingu nowym systemem dla {category}")
+            print(f"⚠️ Błąd regeneracji rankingu nowym systemem dla {category}")
+            
+            return {
+                "detail": f"Błąd podczas regeneracji rankingu nowym systemem dla {category}",
+                "category": category,
+                "status": "error",
+                "method": "new_ranking_analyzer"
+            }
             
     except Exception as e:
         logger.error(f"Błąd podczas regeneracji rankingu dla {category}: {e}")
+        print(f"❌ Błąd regeneracji rankingu: {e}")
         return {
             "detail": f"Błąd podczas regeneracji rankingu: {str(e)}",
             "category": category,

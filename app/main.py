@@ -155,31 +155,42 @@ async def lifespan(app: FastAPI):
         # Automatycznie wygeneruj rankingi po restarcie jeśli nie istnieją
         try:
             print("🔄 Sprawdzam czy rankingi istnieją po restarcie...")
-            from app.trend.services.ranking_manager import ranking_manager
+            
+            # UŻYWAJ NOWEGO SYSTEMU zamiast starego ranking_manager
+            from app.trend.services.ranking_analyzer import RankingAnalyzer
             from app.storage.state_manager import state_manager
             
             # Sprawdź każdą kategorię
             categories = state_manager.get_channels().keys()
             for category in categories:
                 try:
-                    ranking = ranking_manager.load_ranking(category)
-                    if not ranking.get('shorts') and not ranking.get('longform'):
-                        print(f"⚠️ Ranking dla {category} jest pusty - generuję automatycznie...")
-                        # Automatycznie wygeneruj ranking
-                        from app.trend.services.csv_processor import get_trend_data
-                        from datetime import date
+                    # Sprawdź czy istnieje ranking z nowego systemu
+                    from pathlib import Path
+                    from app.config.settings import settings
+                    
+                    base_path = settings.reports_path
+                    pattern = f"ranking_{category.upper()}_*.json"
+                    ranking_files = list(base_path.glob(pattern))
+                    
+                    if not ranking_files:
+                        print(f"⚠️ Brak rankingów dla {category} - generuję automatycznie nowym systemem...")
                         
-                        videos = get_trend_data(category=category, report_date=date.today())
-                        if videos:
-                            ranking_manager.update_ranking(category, videos)
-                            print(f"✅ Automatycznie wygenerowano ranking dla {category}")
+                        # Użyj nowego systemu RankingAnalyzer
+                        analyzer = RankingAnalyzer()
+                        success = analyzer.run_analysis_for_category(category)
+                        
+                        if success:
+                            print(f"✅ Automatycznie wygenerowano ranking dla {category} nowym systemem")
                         else:
-                            print(f"⚠️ Brak danych CSV dla {category}")
+                            print(f"⚠️ Błąd podczas generowania rankingu dla {category} nowym systemem")
+                    else:
+                        print(f"✅ Ranking dla {category} już istnieje (nowy system)")
+                        
                 except Exception as e:
                     print(f"⚠️ Błąd podczas sprawdzania rankingu dla {category}: {e}")
                     logger.warning(f"Błąd podczas sprawdzania rankingu dla {category}: {e}")
             
-            print("✅ Sprawdzanie rankingów po restarcie zakończone")
+            print("✅ Sprawdzanie rankingów po restarcie zakończone (nowy system)")
             
         except Exception as e:
             print(f"⚠️ Błąd podczas automatycznego generowania rankingów: {e}")

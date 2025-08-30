@@ -182,47 +182,80 @@ async def get_local_trends_page(request: Request, category_name: str):
 async def get_category_rankings(request: Request, category_name: str):
     """
     Wyświetla ranking top 10 filmów dla danej kategorii.
-    Pokazuje podział na SHORTS i LONG FORM z historią pozycji.
+    UŻYWA NOWEGO SYSTEMU RankingAnalyzer zamiast starego ranking_manager.
     """
     try:
-        # Import ranking managera
-        from app.trend.services.ranking_manager import ranking_manager
+        print(f"🔄 Stary endpoint /rankings/{category_name} - przekierowuję do nowego systemu...")
         
-        # Pobierz ranking dla kategorii
-        ranking = ranking_manager.load_ranking(category_name)
+        # PRZEKIERUJ DO NOWEGO SYSTEMU zamiast używać starego ranking_manager
+        from datetime import date
+        import json
+        from pathlib import Path
+        from app.config.settings import settings
+        from app.trend.services.ranking_analyzer import RankingAnalyzer
         
-        # Pobierz podsumowanie z trendami
-        summary = ranking_manager.get_ranking_summary(category_name)
+        print(f"🔄 Używam nowego systemu RankingAnalyzer dla {category_name}...")
         
-        # Renderuj szablon rankingów
+        base_path = settings.reports_path
+        today_str = date.today().strftime("%Y-%m-%d")
+        ranking_path = base_path / f"ranking_{category_name.upper()}_{today_str}.json"
+        
+        print(f"📁 Szukam rankingu w: {ranking_path}")
+        
+        ranking_data = {"shorts": [], "longform": [], "error": "Brak rankingu"}
+        if ranking_path.exists():
+            print(f"✅ Znaleziono ranking: {ranking_path}")
+            with open(ranking_path, 'r', encoding='utf-8') as f:
+                ranking_data = json.load(f)
+            print(f"📊 Wczytano ranking: {len(ranking_data.get('shorts', []))} shorts, {len(ranking_data.get('longform', []))} longform")
+        else:
+            print(f"⚠️ Brak rankingu dla {category_name} z dzisiaj: {ranking_path}")
+            # Spróbuj znaleźć najnowszy dostępny ranking
+            pattern = f"ranking_{category_name.upper()}_*.json"
+            ranking_files = list(base_path.glob(pattern))
+            if ranking_files:
+                latest_ranking = sorted(ranking_files)[-1]
+                print(f"📁 Używam najnowszego dostępnego rankingu: {latest_ranking}")
+                with open(latest_ranking, 'r', encoding='utf-8') as f:
+                    ranking_data = json.load(f)
+                today_str = latest_ranking.stem.split('_')[-1]  # Wyciągnij datę z nazwy pliku
+            else:
+                print(f"❌ Brak jakichkolwiek rankingów dla {category_name}")
+                ranking_data = {"shorts": [], "longform": [], "error": "Brak rankingów"}
+        
+        print(f"✅ Zwracam dane dla {category_name}: {len(ranking_data.get('shorts', []))} shorts, {len(ranking_data.get('longform', []))} longform")
+        
+        # Użyj tego samego szablonu co nowy system
         return templates.TemplateResponse(
             "trend/rankings.html",
             {
                 "request": request,
-                "category_name": category_name,
-                "ranking": ranking,
-                "summary": summary
+                "category_name": category_name.capitalize(),
+                "ranking": ranking_data,
+                "summary": {
+                    "category": category_name,
+                    "last_updated": ranking_data.get('last_updated'),
+                    "shorts_count": len(ranking_data.get('shorts', [])),
+                    "longform_count": len(ranking_data.get('longform', [])),
+                    "total_videos": ranking_data.get('total_videos_analyzed', 0)
+                }
             }
         )
         
     except Exception as e:
+        print(f"❌ Błąd w starym endpoincie dla {category_name}: {e}")
         log.error(f"Błąd podczas pobierania rankingu dla kategorii {category_name}: {e}")
+        import traceback
+        traceback.print_exc()
         
-        # W przypadku błędu zwróć szablon z pustymi danymi
         return templates.TemplateResponse(
             "trend/rankings.html",
             {
                 "request": request,
-                "category_name": category_name,
-                "ranking": {
-                    "category": category_name,
-                    "last_updated": None,
-                    "shorts": [],
-                    "longform": [],
-                    "history": {}
-                },
-                "summary": {"error": str(e)},
-                "error": str(e)
+                "category_name": category_name.capitalize(),
+                "report_date": "Błąd",
+                "ranking": {"shorts": [], "longform": [], "error": str(e)},
+                "summary": {"error": str(e)}
             }
         )
 
@@ -232,25 +265,38 @@ async def clear_category_ranking(request: Request, category_name: str):
     Czyści ranking dla danej kategorii, wymuszając regenerację z nową logiką.
     """
     try:
-        from app.trend.services.ranking_manager import ranking_manager
+        print(f"🔄 Czyszczenie rankingu dla {category_name} - używam nowego systemu...")
         
-        # Wyczyść ranking
-        success = ranking_manager.clear_ranking(category_name)
+        # UŻYWAJ NOWEGO SYSTEMU zamiast starego ranking_manager
+        from pathlib import Path
+        from app.config.settings import settings
         
-        if success:
-            return {
-                "message": f"Ranking dla kategorii {category_name} został wyczyszczony",
-                "category": category_name,
-                "status": "cleared"
-            }
-        else:
-            return {
-                "message": f"Błąd podczas czyszczenia rankingu dla {category_name}",
-                "category": category_name,
-                "status": "error"
-            }
+        base_path = settings.reports_path
+        
+        # Usuń wszystkie pliki rankingów dla tej kategorii
+        pattern = f"ranking_{category_name.upper()}_*.json"
+        ranking_files = list(base_path.glob(pattern))
+        
+        deleted_count = 0
+        for ranking_file in ranking_files:
+            try:
+                ranking_file.unlink()
+                deleted_count += 1
+                print(f"🗑️ Usunięto: {ranking_file.name}")
+            except Exception as e:
+                print(f"⚠️ Błąd podczas usuwania {ranking_file.name}: {e}")
+        
+        print(f"✅ Usunięto {deleted_count} plików rankingów dla {category_name}")
+        
+        return {
+            "message": f"Ranking dla kategorii {category_name} został wyczyszczony",
+            "category": category_name,
+            "status": "cleared",
+            "deleted_files": deleted_count
+        }
             
     except Exception as e:
+        print(f"❌ Błąd podczas czyszczenia rankingu dla {category_name}: {e}")
         log.error(f"Błąd podczas czyszczenia rankingu dla {category_name}: {e}")
         return {
             "message": f"Błąd podczas czyszczenia rankingu: {str(e)}",
@@ -264,37 +310,34 @@ async def regenerate_category_ranking(request: Request, category_name: str):
     Regeneruje ranking dla danej kategorii używając najnowszych danych CSV i nowej logiki.
     """
     try:
-        from app.trend.services.ranking_manager import ranking_manager
-        from app.trend.services.csv_processor import get_trend_data
-        from datetime import date
+        print(f"🔄 Regeneracja rankingu dla {category_name} - używam nowego systemu...")
         
-        # Wyczyść stary ranking
-        ranking_manager.clear_ranking(category_name)
+        # UŻYWAJ NOWEGO SYSTEMU RankingAnalyzer
+        from app.trend.services.ranking_analyzer import RankingAnalyzer
         
-        # Pobierz najnowsze dane CSV
-        videos = get_trend_data(category=category_name, report_date=date.today())
+        # Utwórz instancję nowego analizatora
+        analyzer = RankingAnalyzer()
         
-        if not videos:
+        # Uruchom analizę dla kategorii
+        success = analyzer.run_analysis_for_category(category_name)
+        
+        if success:
             return {
-                "message": f"Brak danych CSV dla kategorii {category_name}",
+                "message": f"Ranking dla kategorii {category_name} został zregenerowany pomyślnie",
                 "category": category_name,
-                "status": "no_data"
+                "status": "regenerated",
+                "method": "new_ranking_analyzer"
             }
-        
-        # Wygeneruj nowy ranking z nową logiką
-        ranking = ranking_manager.update_ranking(category_name, videos)
-        
-        return {
-            "message": f"Ranking dla kategorii {category_name} został zregenerowany z nową logiką",
-            "category": category_name,
-            "status": "regenerated",
-            "videos_count": len(videos),
-            "shorts_count": len(ranking.get("shorts", [])),
-            "longform_count": len(ranking.get("longform", [])),
-            "last_updated": ranking.get("last_updated")
-        }
+        else:
+            return {
+                "message": f"Błąd podczas regeneracji rankingu dla {category_name}",
+                "category": category_name,
+                "status": "error",
+                "method": "new_ranking_analyzer"
+            }
             
     except Exception as e:
+        print(f"❌ Błąd podczas regeneracji rankingu dla {category_name}: {e}")
         log.error(f"Błąd podczas regeneracji rankingu dla {category_name}: {e}")
         return {
             "message": f"Błąd podczas regeneracji rankingu: {str(e)}",

@@ -15,9 +15,9 @@ class RankingAnalyzer:
 
     def run_analysis_for_category(self, category: str) -> bool:
         """
-        Implementuje prawdziwą logikę 5-dniowego okna śledzenia:
-        1. Wczytuje CSV (dzisiejsze dane) + JSON (wczorajszy ranking)
-        2. Łączy i aktualizuje dane
+        Implementuje prawdziwą logikę analizy rankingowej:
+        1. Wczytuje KILKA najnowszych raportów CSV (ostatnie 3-5 dni)
+        2. Łączy wszystkie dane w jedną bazę
         3. Tworzy Top 10 z połączonych danych
         4. Zapisuje stan na jutro
         """
@@ -25,7 +25,7 @@ class RankingAnalyzer:
             today = date.today()
             print(f"🔄 Rozpoczynam analizę rankingu dla kategorii: {category}")
             
-            # 1. WCZYTAJ DANE - znajdź najnowszy dostępny raport CSV
+            # 1. WCZYTAJ KILKA NAJNOWSZYCH RAPORTÓW CSV (ostatnie 5 dni)
             pattern = f"report_{category.upper()}_*.csv"
             csv_files = list(self.base_path.glob(pattern))
             
@@ -34,132 +34,88 @@ class RankingAnalyzer:
                 logger.warning(f"Nie znaleziono raportów CSV dla {category}")
                 return False
             
-            # Weź najnowszy raport CSV
-            latest_csv_path = sorted(csv_files)[-1]
-            latest_date_str = latest_csv_path.stem.split('_')[-1]
-            latest_date_obj = datetime.strptime(latest_date_str, '%Y-%m-%d').date()
+            # Sortuj pliki po dacie (najnowsze na końcu)
+            csv_files_sorted = sorted(csv_files, key=lambda x: x.stem.split('_')[-1])
             
-            print(f"📊 Używam najnowszego dostępnego raportu CSV: {latest_csv_path}")
-            print(f"📅 Data raportu CSV: {latest_date_str}")
+            # Weź ostatnie 5 raportów (lub wszystkie jeśli mniej niż 5)
+            recent_csv_files = csv_files_sorted[-5:] if len(csv_files_sorted) >= 5 else csv_files_sorted
             
-            # 2. WCZYTAJ WCZORAJSZY RANKING JSON (plik-pamięć)
-            yesterday_ranking_path = self.base_path / f"ranking_{category.upper()}_{latest_date_obj - timedelta(days=1)}.json"
+            print(f"📊 Znaleziono {len(csv_files)} raportów CSV dla {category}")
+            print(f"📊 Używam {len(recent_csv_files)} najnowszych raportów:")
+            for csv_file in recent_csv_files:
+                date_str = csv_file.stem.split('_')[-1]
+                print(f"   - {csv_file.name} (data: {date_str})")
             
-            print(f"📁 Szukam wczorajszego rankingu: {yesterday_ranking_path}")
+            # 2. WCZYTAJ I POŁĄCZ WSZYSTKIE DANE Z CSV
+            print("🔄 Wczytuję i łączę dane z wszystkich raportów CSV...")
             
-            # Wczytaj dane CSV
-            print(f"📊 Wczytuję raport CSV: {latest_csv_path}")
-            df_csv = pd.read_csv(latest_csv_path)
-            print(f"✅ Wczytano {len(df_csv)} filmów z CSV")
+            all_videos = {}  # Słownik: video_id -> najnowsze dane
             
-            # Wczytaj wczorajszy ranking (jeśli istnieje)
-            yesterday_data = {"shorts": [], "longform": []}
-            if yesterday_ranking_path.exists():
-                print(f"📁 Znaleziono wczorajszy ranking: {yesterday_ranking_path}")
-                with open(yesterday_ranking_path, 'r', encoding='utf-8') as f:
-                    yesterday_data = json.load(f)
-                print(f"📊 Wczytano wczorajszy ranking: {len(yesterday_data.get('shorts', []))} shorts, {len(yesterday_data.get('longform', []))} longform")
-            else:
-                print(f"⚠️ Brak wczorajszego rankingu - to pierwsza analiza")
-            
-            # 3. POŁĄCZ I ZAKTUALIZUJ DANE
-            print("🔄 Łączę dane z CSV i wczorajszego rankingu...")
-            
-            # Konwertuj CSV na format słownika
-            csv_videos = []
-            for _, row in df_csv.iterrows():
-                video = {
-                    'video_id': str(row.get('Video_ID', '')),
-                    'title': str(row.get('Title', '')),
-                    'channel': str(row.get('Channel_Name', '')),
-                    'views': int(row.get('View_Count', 0)),
-                    'thumbnail_url': str(row.get('Thumbnail_URL', '')),
-                    'published_date': str(row.get('Date_of_Publishing', '')),
-                    'source': 'csv',
-                    'date': latest_date_str
-                }
-                csv_videos.append(video)
-            
-            # Konwertuj wczorajszy ranking na format słownika
-            yesterday_videos = []
-            for video_type in ['shorts', 'longform']:
-                for video in yesterday_data.get(video_type, []):
-                    video_copy = video.copy()
-                    video_copy['source'] = 'yesterday'
-                    video_copy['date'] = str(latest_date_obj - timedelta(days=1))
-                    yesterday_videos.append(video_copy)
-            
-            # 4. POŁĄCZ DANE - CSV ma priorytet (nowsze dane)
-            print("🔄 Łączę dane z priorytetem dla CSV...")
-            
-            combined_videos = {}
-            
-            # Najpierw dodaj wczorajsze dane
-            for video in yesterday_videos:
-                video_id = video['video_id']
-                if video_id:
-                    combined_videos[video_id] = video
-            
-            # Następnie dodaj/aktualizuj danymi z CSV (mają priorytet)
-            for video in csv_videos:
-                video_id = video['video_id']
-                if video_id:
-                    if video_id in combined_videos:
-                        # Aktualizuj istniejący film nowszymi danymi z CSV
-                        old_video = combined_videos[video_id]
-                        combined_videos[video_id] = {
-                            **old_video,
-                            'views': video['views'],  # Nowe wyświetlenia z CSV
-                            'title': video['title'],   # Nowy tytuł z CSV
-                            'channel': video['channel'], # Nowy kanał z CSV
-                            'thumbnail_url': video['thumbnail_url'], # Nowa miniatura z CSV
-                            'published_date': video['published_date'], # Nowa data z CSV
-                            'source': 'csv_updated',
-                            'date': latest_date_str
+            for csv_file in recent_csv_files:
+                date_str = csv_file.stem.split('_')[-1]
+                print(f"📊 Wczytuję raport: {csv_file.name}")
+                
+                try:
+                    df = pd.read_csv(csv_file)
+                    print(f"   ✅ Wczytano {len(df)} filmów z {date_str}")
+                    
+                    # Przetwórz każdy film z tego raportu
+                    for _, row in df.iterrows():
+                        video_id = str(row.get('Video_ID', ''))
+                        if not video_id:
+                            continue
+                        
+                        video_data = {
+                            'video_id': video_id,
+                            'title': str(row.get('Title', '')),
+                            'channel': str(row.get('Channel_Name', '')),
+                            'views': int(row.get('View_Count', 0)),
+                            'thumbnail_url': str(row.get('Thumbnail_URL', '')),
+                            'published_date': str(row.get('Date_of_Publishing', '')),
+                            'video_type': str(row.get('Video_Type', 'longform')),
+                            'source_date': date_str,
+                            'report_file': csv_file.name
                         }
-                        print(f"🔄 Zaktualizowano film: {video['title'][:50]}... (wyświetlenia: {old_video['views']} → {video['views']})")
-                    else:
-                        # Nowy film z CSV
-                        combined_videos[video_id] = video
-                        print(f"🆕 Dodano nowy film: {video['title'][:50]}...")
+                        
+                        # Jeśli film już istnieje, zaktualizuj danymi z nowszego raportu
+                        if video_id in all_videos:
+                            existing_video = all_videos[video_id]
+                            existing_date = datetime.strptime(existing_video['source_date'], '%Y-%m-%d').date()
+                            new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                            
+                            if new_date > existing_date:
+                                # Nowszy raport - aktualizuj dane
+                                old_views = existing_video['views']
+                                all_videos[video_id] = video_data
+                                print(f"   🔄 Zaktualizowano film: {video_data['title'][:50]}... (wyświetlenia: {old_views} → {video_data['views']})")
+                            # Jeśli starszy raport - pomiń
+                        else:
+                            # Nowy film - dodaj
+                            all_videos[video_id] = video_data
+                            print(f"   🆕 Dodano nowy film: {video_data['title'][:50]}...")
+                
+                except Exception as e:
+                    print(f"   ❌ Błąd podczas wczytywania {csv_file.name}: {e}")
+                    continue
             
-            print(f"✅ Połączono {len(combined_videos)} unikalnych filmów")
+            print(f"✅ Połączono dane z {len(recent_csv_files)} raportów: {len(all_videos)} unikalnych filmów")
             
-            # 5. PODZIEL NA SHORTS I LONG-FORM
+            # 3. PODZIEL NA SHORTS I LONG-FORM
             print("🔄 Dzielę filmy na kategorie...")
             
             shorts_videos = []
             longform_videos = []
             
-            for video in combined_videos.values():
-                # Użyj logiki z CSV do określenia typu
-                if video['source'] == 'csv' or video['source'] == 'csv_updated':
-                    # Sprawdź w oryginalnym CSV
-                    csv_row = df_csv[df_csv['Video_ID'] == video['video_id']]
-                    if not csv_row.empty:
-                        video_type = csv_row.iloc[0].get('Video_Type', 'longform')
-                        if video_type == 'shorts':
-                            shorts_videos.append(video)
-                        else:
-                            longform_videos.append(video)
-                    else:
-                        # Fallback - dodaj do longform
-                        longform_videos.append(video)
+            for video in all_videos.values():
+                if video['video_type'].lower() == 'shorts':
+                    shorts_videos.append(video)
                 else:
-                    # Film z wczorajszego rankingu - zachowaj oryginalny typ
-                    if 'video_type' in video:
-                        if video['video_type'] == 'shorts':
-                            shorts_videos.append(video)
-                        else:
-                            longform_videos.append(video)
-                    else:
-                        # Fallback - dodaj do longform
-                        longform_videos.append(video)
+                    longform_videos.append(video)
             
             print(f"📱 Shorts: {len(shorts_videos)} filmów")
             print(f"🎬 Long-form: {len(longform_videos)} filmów")
             
-            # 6. POSORTUJ I WYBIERZ TOP 10 (OPCJA A - po wyświetleniach)
+            # 4. POSORTUJ I WYBIERZ TOP 10 (OPCJA A - po wyświetleniach)
             print("🏆 Sortuję i wybieram Top 10...")
             
             # Sortuj po wyświetleniach (malejąco)
@@ -173,24 +129,20 @@ class RankingAnalyzer:
             print(f"🏆 Top 10 Shorts: {len(top_10_shorts)} filmów")
             print(f"🏆 Top 10 Long-form: {len(top_10_longform)} filmów")
             
-            # 7. KONWERTUJ DO FORMATU STAREGO SYSTEMU (z trendami)
+            # 5. KONWERTUJ DO FORMATU STAREGO SYSTEMU (z trendami)
             print("🔄 Konwertuję dane do formatu starego systemu...")
             
             def convert_to_old_format(videos_list, video_type):
                 """Konwertuje dane do formatu starego systemu z trendami"""
                 converted = []
                 for i, video in enumerate(videos_list):
-                    # Oblicz trend na podstawie pozycji i źródła danych
-                    if video['source'] == 'csv' or video['source'] == 'csv_updated':
-                        if i == 0:
-                            trend = 'new'  # Pierwszy = nowy
-                        elif i < 3:
-                            trend = 'up'   # Top 3 = w górę
-                        else:
-                            trend = 'stable'  # Reszta = stabilne
+                    # Oblicz trend na podstawie pozycji
+                    if i == 0:
+                        trend = 'new'  # Pierwszy = nowy
+                    elif i < 3:
+                        trend = 'up'   # Top 3 = w górę
                     else:
-                        # Film z wczorajszego rankingu
-                        trend = 'stable'
+                        trend = 'stable'  # Reszta = stabilne
                     
                     converted_video = {
                         'video_id': video.get('video_id', ''),
@@ -201,8 +153,8 @@ class RankingAnalyzer:
                         'thumbnail_url': video.get('thumbnail_url', ''),
                         'published_date': video.get('published_date', ''),
                         'video_type': video_type,
-                        'source': video.get('source', ''),
-                        'date': video.get('date', '')
+                        'source_date': video.get('source_date', ''),
+                        'report_file': video.get('report_file', '')
                     }
                     converted.append(converted_video)
                 return converted
@@ -218,26 +170,29 @@ class RankingAnalyzer:
                     'current_position': shorts_formatted.index(video) + 1 if video in shorts_formatted else longform_formatted.index(video) + 1,
                     'previous_position': None,  # Będzie dostępne w następnej analizie
                     'trend': video['trend'],
-                    'source': video.get('source', ''),
-                    'last_updated': video.get('date', '')
+                    'source_date': video.get('source_date', ''),
+                    'report_file': video.get('report_file', '')
                 }
             
-            # 8. ZAPISZ STAN NA JUTRO (plik-pamięć)
+            # 6. ZAPISZ STAN NA JUTRO (plik-pamięć)
             print("💾 Zapisuję ranking na jutro...")
+            
+            # Znajdź najnowszą datę z użytych raportów
+            latest_report_date = max([video['source_date'] for video in all_videos.values()])
+            
             final_ranking = {
                 'shorts': shorts_formatted,
                 'longform': longform_formatted,
                 'history': history,
                 'last_updated': today.isoformat(),
                 'analysis_date': today.isoformat(),
-                'csv_date': latest_date_str,
-                'yesterday_ranking_date': str(latest_date_obj - timedelta(days=1)) if yesterday_ranking_path.exists() else None,
-                'total_videos_analyzed': len(combined_videos),
+                'latest_csv_date': latest_report_date,
+                'csv_files_used': [f.name for f in recent_csv_files],
+                'total_videos_analyzed': len(all_videos),
                 'shorts_count': len(shorts_videos),
                 'longform_count': len(longform_videos),
-                'csv_videos_count': len(csv_videos),
-                'yesterday_videos_count': len(yesterday_videos),
-                'combined_videos_count': len(combined_videos)
+                'csv_reports_count': len(recent_csv_files),
+                'analysis_method': 'multiple_csv_analysis'
             }
             
             output_path = self.base_path / f"ranking_{category.upper()}_{today}.json"
@@ -246,9 +201,9 @@ class RankingAnalyzer:
             
             print(f"✅ Zapisano analizę rankingu dla {category.upper()} w pliku: {output_path}")
             print(f"📊 Statystyki:")
-            print(f"   - CSV: {len(csv_videos)} filmów")
-            print(f"   - Wczorajszy ranking: {len(yesterday_videos)} filmów")
-            print(f"   - Połączone: {len(combined_videos)} filmów")
+            print(f"   - Użyte raporty CSV: {len(recent_csv_files)}")
+            print(f"   - Najnowszy raport: {latest_report_date}")
+            print(f"   - Unikalne filmy: {len(all_videos)}")
             print(f"   - Top 10 Shorts: {len(top_10_shorts)} filmów")
             print(f"   - Top 10 Long-form: {len(top_10_longform)} filmów")
             
