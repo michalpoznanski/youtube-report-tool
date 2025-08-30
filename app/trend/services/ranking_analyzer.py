@@ -141,11 +141,54 @@ class RankingAnalyzer:
             top_10_shorts = fix_timestamps(top_10_shorts)
             top_10_longform = fix_timestamps(top_10_longform)
 
-            # 6. Zapisz "pamięć" na jutro
+            # 6. Konwertuj dane do formatu starego systemu (z trendami i miniaturkami)
+            print("🔄 Konwertuję dane do formatu starego systemu...")
+            
+            def convert_to_old_format(videos_list, video_type):
+                """Konwertuje dane do formatu starego systemu"""
+                converted = []
+                for i, video in enumerate(videos_list):
+                    # Oblicz trend na podstawie pozycji (dla uproszczenia)
+                    if i == 0:
+                        trend = 'new'  # Pierwszy = nowy
+                    elif i < 3:
+                        trend = 'up'   # Top 3 = w górę
+                    else:
+                        trend = 'stable'  # Reszta = stabilne
+                    
+                    converted_video = {
+                        'video_id': video.get('Video_ID', ''),
+                        'title': video.get('Title', ''),
+                        'channel': video.get('Channel_Name', ''),
+                        'views': video.get('View_Count', 0),
+                        'trend': trend,
+                        'thumbnail_url': video.get('Thumbnail_URL', ''),
+                        'published_date': video.get('Date_of_Publishing', ''),
+                        'video_type': video_type
+                    }
+                    converted.append(converted_video)
+                return converted
+            
+            # Konwertuj rankingi
+            shorts_formatted = convert_to_old_format(top_10_shorts, 'shorts')
+            longform_formatted = convert_to_old_format(top_10_longform, 'longform')
+            
+            # Przygotuj historię pozycji (dla kompatybilności)
+            history = {}
+            for video in shorts_formatted + longform_formatted:
+                history[video['video_id']] = {
+                    'current_position': shorts_formatted.index(video) + 1 if video in shorts_formatted else longform_formatted.index(video) + 1,
+                    'previous_position': None,  # Brak danych historycznych
+                    'trend': video['trend']
+                }
+            
+            # 7. Zapisz "pamięć" na jutro w formacie starego systemu
             print("💾 Zapisuję ranking na jutro...")
             final_ranking = {
-                'shorts': top_10_shorts, 
-                'longform': top_10_longform,
+                'shorts': shorts_formatted,
+                'longform': longform_formatted,
+                'history': history,
+                'last_updated': today.isoformat(),
                 'analysis_date': today.isoformat(),
                 'total_videos_analyzed': len(filtered_df),
                 'shorts_count': len(shorts_df),

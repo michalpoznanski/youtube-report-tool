@@ -347,12 +347,18 @@ async def get_modern_category_trends(request: Request, category_name: str):
         print(f"✅ Zwracam dane dla {category_name}: {len(ranking_data.get('shorts', []))} shorts, {len(ranking_data.get('longform', []))} longform")
         
         return templates.TemplateResponse(
-            "trend/modern_ranking.html",
+            "trend/rankings.html",  # Użyj starego szablonu z pięknymi tabelami
             {
                 "request": request,
                 "category_name": category_name.capitalize(),
-                "report_date": today_str,
-                "ranking": ranking_data
+                "ranking": ranking_data,  # Dane w formacie starego systemu
+                "summary": {
+                    "category": category_name,
+                    "last_updated": ranking_data.get('last_updated'),
+                    "shorts_count": len(ranking_data.get('shorts', [])),
+                    "longform_count": len(ranking_data.get('longform', [])),
+                    "total_videos": ranking_data.get('total_videos_analyzed', 0)
+                }
             }
         )
         
