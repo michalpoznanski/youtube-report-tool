@@ -156,7 +156,7 @@ async def lifespan(app: FastAPI):
         try:
             print("🔄 Sprawdzam czy rankingi istnieją po restarcie...")
             
-            # UŻYWAJ NOWEGO SYSTEMU zamiast starego ranking_manager
+            # UŻYWAJ NOWEGO SYSTEMU RankingAnalyzer
             from app.trend.services.ranking_analyzer import RankingAnalyzer
             from app.storage.state_manager import state_manager
             
