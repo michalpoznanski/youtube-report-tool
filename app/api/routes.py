@@ -493,6 +493,20 @@ async def stop_scheduler():
         logger.error(f"Błąd podczas zatrzymywania schedulera: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/scheduler/run-ranking-analysis")
+async def run_ranking_analysis():
+    """Ręcznie uruchamia analizę rankingową"""
+    try:
+        if not task_scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler nie jest dostępny")
+        
+        # Uruchom analizę rankingową
+        await task_scheduler.daily_ranking_analysis_task()
+        return {"message": "Analiza rankingowa uruchomiona pomyślnie"}
+    except Exception as e:
+        logger.error(f"Błąd podczas uruchamiania analizy rankingowej: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/cache/stats")
 async def get_cache_stats():
