@@ -101,6 +101,18 @@ class RankingAnalyzer:
             
             print(f"✅ Połączono dane z {len(recent_csv_files)} raportów: {len(all_videos)} unikalnych filmów")
             
+            # Sprawdź czy Marcin Banot jest w danych
+            marcin_banot_found = False
+            for video in all_videos.values():
+                if 'Marcin Banot' in video['title'] or 'Cyprian Majcher' in video['channel']:
+                    print(f"🎯 ZNALEZIONO: {video['title']} - {video['channel']} - {video['views']} wyświetleń z {video['source_date']}")
+                    marcin_banot_found = True
+            
+            if not marcin_banot_found:
+                print(f"⚠️ NIE ZNALEZIONO filmu Marcin Banot w danych!")
+            else:
+                print(f"✅ ZNALEZIONO film Marcin Banot w danych!")
+            
             # 3. PODZIEL NA SHORTS I LONG-FORM
             print("🔄 Dzielę filmy na kategorie...")
             
