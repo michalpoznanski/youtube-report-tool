@@ -193,72 +193,54 @@ class TaskScheduler:
     async def daily_ranking_analysis_task(self):
         """
         Codzienne zadanie analizy rankingowej o 1:30.
-        Aktualizuje rankingi top 10 dla wszystkich kategorii.
+        Używa nowego RankingAnalyzer do generowania rankingów.
         """
         try:
-            logger.info("Rozpoczynam codzienną analizę rankingową...")
+            logger.info("Rozpoczynam codzienną analizę rankingową z nowym RankingAnalyzer...")
+            print("🔄 Rozpoczynam codzienną analizę rankingową z nowym systemem...")
             
-            # Import ranking managera
-            from app.trend.services.ranking_manager import ranking_manager
+            # Import nowego analizatora
+            from app.trend.services.ranking_analyzer import RankingAnalyzer
+            
+            # Utwórz instancję analizatora
+            analyzer = RankingAnalyzer()
             
             # Pobierz wszystkie kategorie
             categories = self.state_manager.get_channels().keys()
+            print(f"📊 Analizuję rankingi dla {len(categories)} kategorii: {list(categories)}")
+            
+            success_count = 0
+            total_count = len(categories)
             
             for category in categories:
                 try:
+                    print(f"🔄 Analizuję ranking dla kategorii: {category}")
                     logger.info(f"Analizuję ranking dla kategorii: {category}")
                     
-                    # Znajdź najnowszy plik CSV dla tej kategorii
-                    reports_dir = settings.reports_path
-                    pattern = f"report_{category.upper()}_*.csv"
-                    csv_files = list(reports_dir.glob(pattern))
+                    # Uruchom analizę dla kategorii
+                    success = analyzer.run_analysis_for_category(category)
                     
-                    if not csv_files:
-                        logger.warning(f"Nie znaleziono plików CSV dla kategorii {category}")
-                        continue
-                    
-                    # Weź najnowszy plik
-                    latest_csv = sorted(csv_files)[-1]
-                    logger.info(f"Używam pliku CSV: {latest_csv}")
-                    
-                    # Sprawdź czy to dzisiejszy raport (z 1:00)
-                    try:
-                        # Bezpieczniejsze parsowanie daty z nazwy pliku
-                        filename = latest_csv.name
-                        if '_' in filename:
-                            csv_date = filename.split('_')[-1].replace('.csv', '')
-                        else:
-                            csv_date = latest_csv.stem
-                        
-                        today = datetime.now().strftime('%Y-%m-%d')
-                        
-                        if csv_date != today:
-                            logger.warning(f"Ostatni raport dla {category} nie jest z dzisiaj: {csv_date} vs {today}")
-                            continue
-                    except Exception as e:
-                        logger.warning(f"Błąd podczas parsowania daty z nazwy pliku {latest_csv}: {e}")
-                        # Kontynuuj mimo błędu parsowania daty
-                        pass
-                    
-                    # Wczytaj dane z CSV
-                    df = pd.read_csv(latest_csv)
-                    
-                    # Konwertuj DataFrame na listę słowników
-                    videos = df.to_dict('records')
-                    
-                    # Aktualizuj ranking
-                    ranking = ranking_manager.update_ranking(category, videos)
-                    
-                    logger.info(f"Zaktualizowano ranking dla {category}: {len(ranking['shorts'])} shorts, {len(ranking['longform'])} longform")
+                    if success:
+                        success_count += 1
+                        print(f"✅ Pomyślnie przeanalizowano ranking dla {category}")
+                        logger.info(f"Pomyślnie przeanalizowano ranking dla {category}")
+                    else:
+                        print(f"⚠️ Analiza rankingu dla {category} nie powiodła się")
+                        logger.warning(f"Analiza rankingu dla {category} nie powiodła się")
                     
                 except Exception as e:
+                    print(f"❌ Błąd podczas analizy rankingu dla kategorii {category}: {e}")
                     logger.error(f"Błąd podczas analizy rankingu dla kategorii {category}: {e}")
                     continue
             
-            logger.info("Codzienna analiza rankingowa zakończona")
+            print(f"✅ Codzienna analiza rankingowa zakończona: {success_count}/{total_count} kategorii")
+            logger.info(f"Codzienna analiza rankingowa zakończona: {success_count}/{total_count} kategorii")
             
         except Exception as e:
+            print(f"❌ Błąd podczas wykonywania codziennej analizy rankingowej: {e}")
             logger.error(f"Błąd podczas wykonywania codziennej analizy rankingowej: {e}")
+            import traceback
+            traceback.print_exc()
     
     def add_channel(self, channel_data: Dict, category: str = "general"):
         """Dodaje kanał do monitorowania"""

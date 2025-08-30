@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Nowoczesny Ranking - {{ category_name }}</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: auto; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+            overflow: hidden; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 2.5rem; 
+            font-weight: 300; 
+        }
+        .header .subtitle { 
+            margin: 10px 0 0 0; 
+            opacity: 0.9; 
+            font-size: 1.1rem; 
+        }
+        .content { 
+            padding: 30px; 
+        }
+        .back-btn { 
+            display: inline-block; 
+            margin-bottom: 20px; 
+            padding: 12px 24px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 25px; 
+            transition: all 0.3s ease; 
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); 
+        }
+        .back-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); 
+        }
+        .info-box { 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+            padding: 20px; 
+            margin-bottom: 30px; 
+            border-left: 4px solid #667eea; 
+        }
+        .ranking-section { 
+            margin-bottom: 40px; 
+            background-color: #fff; 
+            border-radius: 8px; 
+            padding: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+        }
+        .ranking-title { 
+            font-size: 1.5rem; 
+            color: #333; 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+            border-left: 4px solid #667eea; 
+        }
+        .ranking-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            background-color: #fff; 
+        }
+        .ranking-table th, .ranking-table td { 
+            border: 1px solid #e0e0e0; 
+            padding: 12px 15px; 
+            text-align: left; 
+            vertical-align: top; 
+        }
+        .ranking-table th { 
+            background-color: #eef2f5; 
+            font-weight: 600; 
+            color: #333; 
+        }
+        .ranking-table tr:nth-child(even) { 
+            background-color: #f9f9f9; 
+        }
+        .ranking-table tr:hover { 
+            background-color: #f0f8ff; 
+        }
+        .rank { 
+            width: 50px; 
+            font-weight: bold; 
+            text-align: center; 
+            color: #667eea; 
+        }
+        .shorts-icon { 
+            color: #ff6b6b; 
+            font-size: 1.2em; 
+        }
+        .longform-icon { 
+            color: #4ecdc4; 
+            font-size: 1.2em; 
+        }
+        .error-message { 
+            background: #ffe6e6; 
+            border: 1px solid #ff9999; 
+            color: #cc0000; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+        }
+        .stats { 
+            display: flex; 
+            justify-content: space-around; 
+            margin-bottom: 30px; 
+            padding: 20px; 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+        }
+        .stat-item { 
+            text-align: center; 
+        }
+        .stat-number { 
+            font-size: 2rem; 
+            font-weight: bold; 
+            color: #667eea; 
+        }
+        .stat-label { 
+            color: #666; 
+            margin-top: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Nowoczesny Ranking</h1>
+            <div class="subtitle">{{ category_name }}</div>
+        </div>
+        
+        <div class="content">
+            <a href="/trend" class="back-btn">← Powrót do Trendów</a>
+            
+            <div class="info-box">
+                <h3>📊 Informacje o rankingu</h3>
+                <p><strong>Data raportu:</strong> {{ report_date }}</p>
+                <p><strong>Kategoria:</strong> {{ category_name }}</p>
+                <p><strong>System:</strong> Nowoczesny RankingAnalyzer z 5-dniowym oknem śledzenia</p>
+            </div>
+
+            {% if ranking.error %}
+            <div class="error-message">
+                <h3>⚠️ Błąd podczas ładowania rankingu</h3>
+                <p>{{ ranking.error }}</p>
+            </div>
+            {% endif %}
+
+            {% if ranking.shorts or ranking.longs %}
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ ranking.shorts|length }}</div>
+                    <div class="stat-label">🔥 Shorts</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ ranking.longs|length }}</div>
+                    <div class="stat-label">🎬 Long-Form</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ (ranking.shorts|length) + (ranking.longs|length) }}</div>
+                    <div class="stat-label">📊 Łącznie</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="ranking-section">
+                <h2 class="ranking-title">
+                    <span class="shorts-icon">🔥</span> Top 10 Shorts
+                </h2>
+                {% if ranking.shorts %}
+                <table class="ranking-table">
+                    <thead>
+                        <tr>
+                            <th class="rank">#</th>
+                            <th>Tytuł</th>
+                            <th>Kanał</th>
+                            <th>Wyświetlenia</th>
+                            <th>Data publikacji</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in ranking.shorts %}
+                        <tr>
+                            <td class="rank">{{ loop.index }}</td>
+                            <td><strong>{{ video.Title }}</strong></td>
+                            <td>{{ video.Channel_Name }}</td>
+                            <td>{{ "{:,.0f}".format(video.View_Count) }}</td>
+                            <td>{{ video.Date_of_Publishing }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Brak danych o shorts dla tej kategorii.</p>
+                {% endif %}
+            </div>
+
+            <div class="ranking-section">
+                <h2 class="ranking-title">
+                    <span class="longform-icon">🎬</span> Top 10 Long-Form
+                </h2>
+                {% if ranking.longs %}
+                <table class="ranking-table">
+                    <thead>
+                        <tr>
+                            <th class="rank">#</th>
+                            <th>Tytuł</th>
+                            <th>Kanał</th>
+                            <th>Wyświetlenia</th>
+                            <th>Data publikacji</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in ranking.longs %}
+                        <tr>
+                            <td class="rank">{{ loop.index }}</td>
+                            <td><strong>{{ video.Title }}</strong></td>
+                            <td>{{ video.Channel_Name }}</td>
+                            <td>{{ "{:,.0f}".format(video.View_Count) }}</td>
+                            <td>{{ video.Date_of_Publishing }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Brak danych o long-form dla tej kategorii.</p>
+                {% endif %}
+            </div>
+
+            {% if ranking.analysis_date %}
+            <div class="info-box">
+                <h3>📈 Szczegóły analizy</h3>
+                <p><strong>Data analizy:</strong> {{ ranking.analysis_date }}</p>
+                {% if ranking.total_videos_analyzed %}
+                <p><strong>Łącznie przeanalizowanych filmów:</strong> {{ ranking.total_videos_analyzed }}</p>
+                {% endif %}
+                {% if ranking.shorts_count %}
+                <p><strong>Liczba shorts:</strong> {{ ranking.shorts_count }}</p>
+                {% endif %}
+                {% if ranking.longform_count %}
+                <p><strong>Liczba long-form:</strong> {{ ranking.longform_count }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

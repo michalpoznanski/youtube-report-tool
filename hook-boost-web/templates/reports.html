@@ -155,6 +155,7 @@
                                 <div class="category-actions">
                                     ${category.has_reports ? `
                                         <a href="/trend/rankings/${category.name}" class="btn btn-success">🏆 Ranking Top 10</a>
+                    <a href="/trend/modern/${category.name}" class="btn btn-primary">🚀 Nowoczesny Ranking</a>
                                         <button onclick="forceReport('${category.name}')" class="btn btn-warning">🔄 Wymuś Raport</button>
                                         <button onclick="forceRanking('${category.name}')" class="btn btn-info">🔧 Regeneruj Ranking</button>
                                     ` : `

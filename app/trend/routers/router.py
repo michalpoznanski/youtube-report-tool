@@ -301,3 +301,74 @@ async def regenerate_category_ranking(request: Request, category_name: str):
             "category": category_name,
             "status": "error"
         }
+
+@router.get("/modern/{category_name}")
+async def get_modern_category_trends(request: Request, category_name: str):
+    """
+    NOWY endpoint do wyświetlania trendów dla danej kategorii.
+    Używa nowego systemu RankingAnalyzer i plików JSON.
+    """
+    try:
+        from datetime import date
+        import json
+        from pathlib import Path
+        from app.config.settings import settings
+        
+        print(f"🔄 Nowy endpoint /modern/{category_name} - wczytuję ranking...")
+        
+        # Użyj naszych ustawień zamiast sztywnej ścieżki
+        base_path = settings.reports_path
+        today_str = date.today().strftime("%Y-%m-%d")
+        ranking_path = base_path / f"ranking_{category_name.upper()}_{today_str}.json"
+        
+        print(f"📁 Szukam rankingu w: {ranking_path}")
+        
+        ranking_data = {"shorts": [], "longform": [], "error": "Brak rankingu"}
+        if ranking_path.exists():
+            print(f"✅ Znaleziono ranking: {ranking_path}")
+            with open(ranking_path, 'r', encoding='utf-8') as f:
+                ranking_data = json.load(f)
+            print(f"📊 Wczytano ranking: {len(ranking_data.get('shorts', []))} shorts, {len(ranking_data.get('longform', []))} longform")
+        else:
+            print(f"⚠️ Brak rankingu dla {category_name} z dzisiaj: {ranking_path}")
+            # Spróbuj znaleźć najnowszy dostępny ranking
+            pattern = f"ranking_{category_name.upper()}_*.json"
+            ranking_files = list(base_path.glob(pattern))
+            if ranking_files:
+                latest_ranking = sorted(ranking_files)[-1]
+                print(f"📁 Używam najnowszego dostępnego rankingu: {latest_ranking}")
+                with open(latest_ranking, 'r', encoding='utf-8') as f:
+                    ranking_data = json.load(f)
+                today_str = latest_ranking.stem.split('_')[-1]  # Wyciągnij datę z nazwy pliku
+            else:
+                print(f"❌ Brak jakichkolwiek rankingów dla {category_name}")
+                ranking_data = {"shorts": [], "longform": [], "error": "Brak rankingów"}
+        
+        print(f"✅ Zwracam dane dla {category_name}: {len(ranking_data.get('shorts', []))} shorts, {len(ranking_data.get('longform', []))} longform")
+        
+        return templates.TemplateResponse(
+            "trend/modern_ranking.html",
+            {
+                "request": request,
+                "category_name": category_name.capitalize(),
+                "report_date": today_str,
+                "ranking": ranking_data
+            }
+        )
+        
+    except Exception as e:
+        print(f"❌ Błąd w nowym endpoincie dla {category_name}: {e}")
+        log.error(f"Błąd podczas pobierania nowoczesnego rankingu dla kategorii {category_name}: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # W przypadku błędu zwróć szablon z pustymi danymi
+        return templates.TemplateResponse(
+            "trend/modern_ranking.html",
+            {
+                "request": request,
+                "category_name": category_name.capitalize(),
+                "report_date": "Błąd",
+                "ranking": {"shorts": [], "longform": [], "error": str(e)}
+            }
+        )
